@@ -1,0 +1,9 @@
+Package: TBRden
+Type: Package
+Title: Compute CNV Burden at TAD Boundary Regions
+Version: 0.0.1
+Author: Ryan Collins & Jake Conway
+Maintainer: <rlcollins@g.harvard.edu> or <jake_conway@g.harvard.edu>
+Description: This package performs statistical tests required for CNV burden analyses at TAD boundary regions (TBRs). CNV and TAD data must be pre-computed (see related documentation).
+License: MIT
+LazyData: TRUE

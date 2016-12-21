@@ -1,0 +1,21 @@
+{
+    "collab_server" : "",
+    "contents" : "#!/usr/bin/env R\n\n#Copyright (c) 2016 Ryan Collins and Jake Conway\n#Distributed under terms of the MIT License\n\n#cleanManhattan: a dressed-up manhattan plot\n\ncleanManhattan <- function (df,              #three-column data frame of chrom, pos, p-value\n                            theme=\"green\",   #select color theme (options: blue, green, red, orange, purple)\n                            nominal=0.05,    #threshold for nominal significance\n                            adjusted=1E-8    #threshold for adjusted significance (e.g. genome-wide)\n){\n  #Set color theme vectors\n  if(theme==\"green\"){\n    colors <- c(\"#3a874c\",\"#55db74\",\"#f9ff54\",\"#ff5a02\")\n  }else if(theme==\"blue\"){\n    colors <- c(\"#44748c\",\"#5ebded\",\"#ffe502\",\"#ff02e1\")\n  }else if(theme==\"red\"){\n    colors <- c(\"#911212\",\"#fc3737\",\"#fff602\",\"#021bff\")\n  }else if(theme==\"orange\"){\n    colors <- c(\"#eda917\",\"#f4db33\",\"#1472e5\",\"#d11ba9\")\n  }else if(theme==\"purple\"){\n    colors <- c(\"#601d87\",\"#c470f4\",\"#42f1f4\",\"#f9ea0e\")\n  }\n  #Gather list of unique contigs\n  contigs <- unique(df[,1])\n  contigs <- contigs[which(!(is.na(contigs)))]\n  #Create index data frame\n  indexes <- as.data.frame(t(sapply(contigs,function(chr){\n    return(c(chr,0,max(df[which(df[,1]==chr),2])))\n  })))\n  indexes[,2] <- c(0,cumsum(indexes[,3]))[1:nrow(indexes)]\n  indexes$bg <- rep(colors[1:2],ceiling(nrow(indexes)/2))[1:nrow(indexes)]\n  #Create new plotting df with modified coordinates & color assignments\n  df.plot <- as.data.frame(t(apply(df,1,function(row){\n    return(c(row[1],\n             as.numeric(row[2]+indexes[as.numeric(row[1]),2]),\n             as.numeric(row[3]),\n             indexes[as.numeric(row[1]),4]))\n  })))\n  df.plot[,2] <- as.numeric(as.character(df.plot[,2]))\n  df.plot[,3] <- as.numeric(as.character(df.plot[,3]))\n  #Prepare plotting window\n  par(mar=c(2.1,3.1,0.6,0.6))\n  plot(x=range(indexes[,2]),y=c(0,1.1*max(-log10(df[,3]))),\n       type=\"n\",xaxs=\"i\",yaxs=\"i\",xaxt=\"n\",yaxt=\"n\",xlab=\"\",ylab=\"\")\n  rect(xleft=rep(par(\"usr\")[1],3),xright=rep(par(\"usr\")[2],3),\n       ybottom=c(par(\"usr\")[3],-log10(nominal),-log10(adjusted)),\n       ytop=c(-log10(nominal),-log10(adjusted),par(\"usr\")[4]),\n       border=NA,col=c(\"gray60\",\"gray80\",\"gray95\"))\n  abline(v=indexes[,2],col=\"gray90\")\n  #Plots points & thresholds\n  points(df.plot[,2],-log10(df.plot[,3]),\n         cex=0.6,pch=21,lwd=0.01,bg=as.character(df.plot[,4]))\n  abline(h=-log10(c(nominal,adjusted)),col=colors[3:4])\n  #Adds axes & titles\n  axis(1,at=indexes[,2],labels=NA)\n  midpoints <- sapply(1:length(indexes[,2]),function(i){\n    return(mean(c(indexes[i,2],indexes[i,2]+indexes[i,3])))\n  })\n  axis(1,at=midpoints,labels=indexes[,1],tick=F,line=-1.25,cex.axis=0.4)\n  mtext(1,text=\"Chromosome\",line=0.5)\n  y.at <- seq(0,ceiling(par(\"usr\")[4]),by=ceiling(par(\"usr\")[4]/6))\n  axis(2,at=y.at,labels=NA)\n  axis(2,at=y.at,tick=F,line=-0.3,labels=y.at,cex.axis=0.75,las=2)\n  mtext(2,text=expression(-log[10](italic(p))),line=1.5)\n}\n",
+    "created" : 1481904095422.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "548097569",
+    "id" : "BC09EABA",
+    "lastKnownWriteTime" : 1481582447,
+    "last_content_update" : 1481582447,
+    "path" : "~/Desktop/RCollins/HMS/Courses/HST508/HST508_FinalProject/HST508_FinalProject/TBRden/R/cleanManhattan.R",
+    "project_path" : "R/cleanManhattan.R",
+    "properties" : {
+        "tempName" : "Untitled2"
+    },
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

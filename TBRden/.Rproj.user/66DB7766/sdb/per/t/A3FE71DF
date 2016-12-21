@@ -1,0 +1,20 @@
+{
+    "collab_server" : "",
+    "contents" : "#!/usr/bin/env R\n\n#Copyright (c) 2016 Ryan Collins and Jake Conway\n#Distributed under terms of the MIT License\n\n#TBRden: master function to perform burden analyses between two sets\n#of outputs from TBRden_pileup.sh (see related documentation)\n\nTBRden <- function(controls,        #Path to TBRden_pileup.sh output for the control group\n                   cases,           #Path to TBRden_pileup.sh output for the comparison group\n                   QQ=T,            #Automatically generate QQ plot\n                   manhattan=T,     #Automatically generate manhattan plot\n                   adjusted=1E-8,   #Adjusted p-value for genome-wide significance\n                   return=F,        #Return results as data frame\n                   OUTDIR=NULL,     #Output directory for writing results\n                   prefix=\"TBRden\", #Prefix to be appended to results and QQ plot\n                   gzip=T           #Gzip output\n){\n  #Sanity check input files\n  if(!(file.exists(controls))){\n    stop(paste(\"Input file \",controls,\" does not exist.\",sep=\"\"))\n  }\n  if(!(file.exists(cases))){\n    stop(paste(\"Input file \",cases,\" does not exist.\",sep=\"\"))\n  }\n\n  #Import control data\n  CTRL <- read.table(controls,header=T,comment.char=\"\",sep=\"\\t\")\n  names(CTRL)[1] <- \"chr\"\n\n  #Import case data\n  CASE <- read.table(cases,header=T,comment.char=\"\",sep=\"\\t\")\n  names(CASE)[1] <- \"chr\"\n\n  #Merge cases and controls and subset to relevant columns\n  ALL <- merge(CTRL,CASE,by=1:4,sort=F,suffixes=c(\".CTRL\",\".CASE\"))\n\n  #Print warning if number of rows in merged case + control file doesn't match cases or controls\n  if(nrow(CASE)!=nrow(ALL) | nrow(CTRL)!=nrow(ALL)){\n    warning(\"TBR definitions are apparently inconsistent between cases and controls. Proceeding anyway...\")\n  }\n\n  #Run Fisher test on TBR vs left and right TADs separately\n  fisher.L <- t(apply(ALL[,c(5:6,8:9)],1,function(vals){\n    TBR.fisher.test(vals[1],vals[2],vals[3],vals[4])\n  }))\n  fisher.R <- t(apply(ALL[,c(5,7:8,10)],1,function(vals){\n    TBR.fisher.test(vals[1],vals[2],vals[3],vals[4])\n  }))\n\n  #Run Fisher test on TBR vs left+right TADs\n  fisher.M <- t(apply(ALL[,5:10],1,function(vals){\n    TBR.fisher.test(vals[1],sum(vals[2:3],na.rm=T),vals[4],sum(vals[5:6],na.rm=T))\n  }))\n\n  #Report minimum p-value for each TBR between left and right comparisons\n  fisher <- as.data.frame(cbind(fisher.L,fisher.R,fisher.M))\n  fisher[,7] <- apply(fisher[,c(1,3)],1,min,na.rm=T)\n  names(fisher) <- c(\"p.Left\",\"OR.Left\",\"p.Right\",\"OR.Right\",\n                     \"p.Combined\",\"OR.Combined\",\"p.Min\")\n\n  #Optional: generate QQ plot\n  if(QQ==T){\n    pdf(paste(OUTDIR,\"/\",prefix,\".QQ.pdf\",sep=\"\"),height=6,width=6)\n    cleanQQ(fisher[,7],adjusted=adjusted)\n    dev.off()\n  }\n\n  #Clean output data frame and write to file\n  res <- cbind(ALL,fisher)\n  write.table(res,paste(OUTDIR,\"/\",prefix,\".TBRden_results.bed\",sep=\"\"),\n              col.names=T,row.names=F,sep=\"\\t\",quote=F)\n  if(gzip==T){\n    system(paste(\"gzip -f \",OUTDIR,\"/\",prefix,\".TBRden_results.bed\",sep=\"\"))\n  }\n\n  #Optional: generate manhattan plot\n  if(manhattan==T){\n    df <- res[,c(1,2,ncol(res))]\n    names(df) <- c(\"CHR\",\"BP\",\"P\")\n    df$CHR <- as.numeric(as.character(df$CHR))\n    pdf(paste(OUTDIR,\"/\",prefix,\".manhattan.pdf\",sep=\"\"),height=4,width=8)\n    cleanManhattan(df,adjusted=adjusted)\n    dev.off()\n  }\n\n  #Optional: return results\n  if(return==T){\n    return(res)\n  }\n\n}\n",
+    "created" : 1481119702137.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3413027290",
+    "id" : "A3FE71DF",
+    "lastKnownWriteTime" : 1481784267,
+    "last_content_update" : 1481784267497,
+    "path" : "~/Desktop/RCollins/HMS/Courses/HST508/HST508_FinalProject/HST508_FinalProject/TBRden/R/TBRden.R",
+    "project_path" : "R/TBRden.R",
+    "properties" : {
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
