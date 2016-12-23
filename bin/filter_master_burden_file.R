@@ -89,8 +89,6 @@ parser <- OptionParser(usage="%prog [options] burden_file",
                        option_list=option_list,add_help_option=T)
 args <- parse_args(parser,positional_arguments=TRUE)
 opts <- args$options
-print(args$args)
-print(args$args[1])
 
 #Checks for appropriate positional arguments
 if(length(args$args) != 1) {
@@ -113,6 +111,6 @@ names(output)[1] <- "#chr"
 if(opts$outfile != "/dev/stdout"){
   write.table(output,opts$outfile,col.names=T,row.names=F,sep="\t",quote=F)
 }else{
-  print(outfile,row.names=F)
+  print(output,row.names=F)
 }
 
