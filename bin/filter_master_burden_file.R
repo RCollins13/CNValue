@@ -89,7 +89,8 @@ parser <- OptionParser(usage="%prog [options] burden_file",
                        option_list=option_list,add_help_option=T)
 args <- parse_args(parser,positional_arguments=TRUE)
 opts <- args$options
-print(args)
+print(args$args)
+print(args$args[1])
 
 #Checks for appropriate positional arguments
 if(length(args$args) != 1) {
@@ -98,7 +99,7 @@ if(length(args$args) != 1) {
 }
 
 #Loads data frame
-df <- read.table(args[1],comment.char="",header=T)
+df <- read.table(args$args[1],comment.char="",header=T)
 
 #Filters
 output <- filter.table(df,
