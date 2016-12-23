@@ -108,4 +108,9 @@ output <- filter.table(df,
 names(output)[1] <- "#chr"
 
 #Write out
-write.table(output,opts$outfile,col.names=T,row.names=F,sep="\t",quote=F)
+if(opts$outfile != "/dev/stdout"){
+  write.table(output,opts$outfile,col.names=T,row.names=F,sep="\t",quote=F)
+}else{
+  print(outfile,row.names=F)
+}
+
