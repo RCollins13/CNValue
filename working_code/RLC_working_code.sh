@@ -194,7 +194,11 @@ for dummy in 1; do
 done | paste <( zcat ${WRKDIR}/analysis/Final_Loci/DD_vs_CTRL_CNV_all.results.all_bins.bed | \
   cut -f1-4 ) - > \
 ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed
-
+${WRKDIR}/bin/rCNVmap/bin/summarize_master_burden_file.R \
+${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed \
+${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed2
+mv ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed2 \
+${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed
 gzip ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed
 #Print table
 # for group in DD SCZ DD_SCZ CNCR; do

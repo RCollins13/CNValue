@@ -13,6 +13,9 @@
 
 #Set params
 options(scipen=1000)
+diseases <- c("DD","SCZ","DD_SCZ","CNCR")
+CNVs <- c("CNV","DEL","DUP")
+filts <- c("all","noncoding")
 
 #Read arguments
 #first: input
@@ -22,130 +25,94 @@ args <- commandArgs(trailingOnly=T)
 #Read table
 x <- read.table(args[1],comment.char="",header=T)
 
-#Run
+#Gather summary metrics
 merged_results <- as.data.frame(t(sapply(1:nrow(x),function(i){
   vals <- x[i,-c(1:4)]
   names(vals) <- colnames(x)[-c(1:4)]
-  #All CNVs, coding + noncoding
-  MIN.CNV.all.obs_p <- min(vals$DD.CNV.all.obs_p,vals$SCZ.CNV.all.obs_p,
-                           vals$DD_SCZ.CNV.all.obs_p,vals$CNCR.CNV.all.obs_p,
-                           na.rm=T)
-  if(!(all(is.na(c(vals$DD.CNV.all.perm_p,vals$SCZ.CNV.all.perm_p,
-                   vals$DD_SCZ.CNV.all.perm_p,vals$CNCR.CNV.all.perm_p))))){
-    MIN.CNV.all.perm_p <- min(vals$DD.CNV.all.perm_p,vals$SCZ.CNV.all.perm_p,
-                              vals$DD_SCZ.CNV.all.perm_p,vals$CNCR.CNV.all.perm_p,
-                              na.rm=T)
-  }else{
-    MIN.CNV.all.perm_p <- NA
-  }
-  #All CNVs, noncoding only
-  MIN.CNV.noncoding.obs_p <- min(vals$DD.CNV.noncoding.obs_p,vals$SCZ.CNV.noncoding.obs_p,
-                           vals$DD_SCZ.CNV.noncoding.obs_p,vals$CNCR.CNV.noncoding.obs_p,
-                           na.rm=T)
-  if(!(all(is.na(c(vals$DD.CNV.noncoding.perm_p,vals$SCZ.CNV.noncoding.perm_p,
-                   vals$DD_SCZ.CNV.noncoding.perm_p,vals$CNCR.CNV.noncoding.perm_p))))){
-    MIN.CNV.noncoding.perm_p <- min(vals$DD.CNV.noncoding.perm_p,vals$SCZ.CNV.noncoding.perm_p,
-                              vals$DD_SCZ.CNV.noncoding.perm_p,vals$CNCR.CNV.noncoding.perm_p,
-                              na.rm=T)
-  }else{
-    MIN.CNV.noncoding.perm_p <- NA
-  }
-  #DELs, coding + noncoding
-  MIN.DEL.all.obs_p <- min(vals$DD.DEL.all.obs_p,vals$SCZ.DEL.all.obs_p,
-                           vals$DD_SCZ.DEL.all.obs_p,vals$CNCR.DEL.all.obs_p,
-                           na.rm=T)
-  if(!(all(is.na(c(vals$DD.DEL.all.perm_p,vals$SCZ.DEL.all.perm_p,
-                   vals$DD_SCZ.DEL.all.perm_p,vals$CNCR.DEL.all.perm_p))))){
-    MIN.DEL.all.perm_p <- min(vals$DD.DEL.all.perm_p,vals$SCZ.DEL.all.perm_p,
-                              vals$DD_SCZ.DEL.all.perm_p,vals$CNCR.DEL.all.perm_p,
-                              na.rm=T)
-  }else{
-    MIN.DEL.all.perm_p <- NA
-  }
-  #DELs, noncoding only
-  MIN.DEL.noncoding.obs_p <- min(vals$DD.DEL.noncoding.obs_p,vals$SCZ.DEL.noncoding.obs_p,
-                                 vals$DD_SCZ.DEL.noncoding.obs_p,vals$CNCR.DEL.noncoding.obs_p,
-                                 na.rm=T)
-  if(!(all(is.na(c(vals$DD.DEL.noncoding.perm_p,vals$SCZ.DEL.noncoding.perm_p,
-                   vals$DD_SCZ.DEL.noncoding.perm_p,vals$CNCR.DEL.noncoding.perm_p))))){
-    MIN.DEL.noncoding.perm_p <- min(vals$DD.DEL.noncoding.perm_p,vals$SCZ.DEL.noncoding.perm_p,
-                                    vals$DD_SCZ.DEL.noncoding.perm_p,vals$CNCR.DEL.noncoding.perm_p,
-                                    na.rm=T)
-  }else{
-    MIN.DEL.noncoding.perm_p <- NA
-  }
-  #DUPs, coding + noncoding
-  MIN.DUP.all.obs_p <- min(vals$DD.DUP.all.obs_p,vals$SCZ.DUP.all.obs_p,
-                           vals$DD_SCZ.DUP.all.obs_p,vals$CNCR.DUP.all.obs_p,
-                           na.rm=T)
-  if(!(all(is.na(c(vals$DD.DUP.all.perm_p,vals$SCZ.DUP.all.perm_p,
-                   vals$DD_SCZ.DUP.all.perm_p,vals$CNCR.DUP.all.perm_p))))){
-    MIN.DUP.all.perm_p <- min(vals$DD.DUP.all.perm_p,vals$SCZ.DUP.all.perm_p,
-                              vals$DD_SCZ.DUP.all.perm_p,vals$CNCR.DUP.all.perm_p,
-                              na.rm=T)
-  }else{
-    MIN.DUP.all.perm_p <- NA
-  }
-  #DUPs, noncoding only
-  MIN.DUP.noncoding.obs_p <- min(vals$DD.DUP.noncoding.obs_p,vals$SCZ.DUP.noncoding.obs_p,
-                                 vals$DD_SCZ.DUP.noncoding.obs_p,vals$CNCR.DUP.noncoding.obs_p,
-                                 na.rm=T)
-  if(!(all(is.na(c(vals$DD.DUP.noncoding.perm_p,vals$SCZ.DUP.noncoding.perm_p,
-                   vals$DD_SCZ.DUP.noncoding.perm_p,vals$CNCR.DUP.noncoding.perm_p))))){
-    MIN.DUP.noncoding.perm_p <- min(vals$DD.DUP.noncoding.perm_p,vals$SCZ.DUP.noncoding.perm_p,
-                                    vals$DD_SCZ.DUP.noncoding.perm_p,vals$CNCR.DUP.noncoding.perm_p,
-                                    na.rm=T)
-  }else{
-    MIN.DUP.noncoding.perm_p <- NA
-  }
-  #Summary minimums across classes
-  MIN.CNV.obs_p <- min(MIN.CNV.all.obs_p,MIN.CNV.noncoding.obs_p)
-  if(!(all(is.na(c(MIN.CNV.all.perm_p,MIN.CNV.noncoding.perm_p))))){
-    MIN.CNV.perm_p <- min(MIN.CNV.all.perm_p,MIN.CNV.noncoding.perm_p,na.rm=T)
-  }else{
-    MIN.CNV.perm_p <- NA
-  }
-  MIN.DEL.obs_p <- min(MIN.DEL.all.obs_p,MIN.DEL.noncoding.obs_p)
-  if(!(all(is.na(c(MIN.DEL.all.perm_p,MIN.DEL.noncoding.perm_p))))){
-    MIN.DEL.perm_p <- min(MIN.DEL.all.perm_p,MIN.DEL.noncoding.perm_p,na.rm=T)
-  }else{
-    MIN.DEL.perm_p <- NA
-  }
-  MIN.DUP.obs_p <- min(MIN.DUP.all.obs_p,MIN.DUP.noncoding.obs_p)
-  if(!(all(is.na(c(MIN.DUP.all.perm_p,MIN.DUP.noncoding.perm_p))))){
-    MIN.DUP.perm_p <- min(MIN.DUP.all.perm_p,MIN.DUP.noncoding.perm_p,na.rm=T)
-  }else{
-    MIN.DUP.perm_p <- NA
-  }
-  MIN.ANY.obs_p <- min(MIN.CNV.obs_p,MIN.DEL.obs_p,MIN.DUP.obs_p)
-  if(!(all(is.na(c(MIN.CNV.perm_p,MIN.DEL.perm_p,MIN.DUP.perm_p))))){
-    MIN.ANY.perm_p <- min(MIN.CNV.perm_p,MIN.DEL.perm_p,MIN.DUP.perm_p,na.rm=T)
-  }else{
-    MIN.ANY.perm_p <- NA
-  }
   
-  #Return
-  return(c(MIN.CNV.all.obs_p,MIN.CNV.all.perm_p,
-    MIN.CNV.noncoding.obs_p,MIN.CNV.noncoding.perm_p,
-    MIN.DEL.all.obs_p,MIN.DEL.all.perm_p,
-    MIN.DEL.noncoding.obs_p,MIN.DEL.noncoding.perm_p,
-    MIN.DUP.all.obs_p,MIN.DUP.all.perm_p,
-    MIN.DUP.noncoding.obs_p,MIN.DUP.noncoding.perm_p,
-    MIN.CNV.obs_p,MIN.CNV.perm_p,
-    MIN.DEL.obs_p,MIN.DEL.perm_p,
-    MIN.DUP.obs_p,MIN.DUP.perm_p,
-    MIN.ANY.obs_p,MIN.ANY.perm_p))
+  #Report if bin was significant by ANY of CNV/DEL/DUP per disease
+  ANY.p <- as.vector(sapply(diseases,function(disease){
+    terms <- as.vector(sapply(CNVs,function(CNV){
+      unlist(sapply(filts,function(filt){
+        return(c(paste(disease,CNV,filt,"obs_p",sep="."),
+                 paste(disease,CNV,filt,"perm_p",sep=".")))
+      }))
+    }))
+    ANYp <- unlist(lapply(list(c(1,5,9),c(2,6,10),c(3,7,11),c(4,8,12),
+                               c(1,3,5,7,9,11),c(2,4,6,8,10,12)),
+                          function(l){
+      d <- vals[which(names(vals) %in% terms[l])]
+      if(!(all(is.na(d)))){
+        return(min(d,na.rm=T))
+      }else{
+        return(NA)
+      }
+    }))
+    return(ANYp)
+  }))
+  
+  #Report if bin was significant by ANY of CNV/DEL/DUP for ANY disease
+  ANY.ANY.p <- as.vector(sapply(CNVs,function(CNV){
+      terms <- as.vector(unlist(sapply(filts,function(filt){
+        return(c(paste(CNV,filt,"obs_p",sep="."),
+                 paste(CNV,filt,"perm_p",sep=".")))
+      })))
+      terms.idx <- as.vector(sapply(terms,function(term){
+        grep(term,names(vals))
+      }))
+      ANY.ANY.p <- unlist(lapply(list(1:4,5:8,9:12,13:16,c(1:4,9:12),c(5:8,13:16)),function(l){
+                            d <- vals[terms.idx[l]]
+                            if(!(all(is.na(d)))){
+                              return(min(d,na.rm=T))
+                            }else{
+                              return(NA)
+                            }
+                          }))
+      return(ANY.ANY.p)
+    }))
+  final.p <- as.vector(sapply(filts,function(filt){
+    terms <- c(paste(filt,"obs_p",sep="."),
+               paste(filt,"perm_p",sep="."))
+    terms.idx <- as.vector(sapply(terms,function(term){
+      grep(term,names(vals))
+    }))
+    final.p <- unlist(lapply(list(1:12,13:24),function(l){
+      d <- vals[terms.idx[l]]
+      if(!(all(is.na(d)))){
+        return(min(d,na.rm=T))
+      }else{
+        return(NA)
+      }
+    }))
+    return(final.p)
+  }))
+  global_min.obs_p <- min(final.p[c(1,3)])
+  if(!(all(is.na(final.p[c(2,4)])))){
+    global_min.perm_p <- min(final.p[c(2,4)],na.rm=T)
+  }else{
+    global_min.perm_p <- NA
+  }
+  final.p <- c(final.p,global_min.obs_p,global_min.perm_p)
+  
+  #Concatenate results and print
+  return(c(ANY.p,ANY.ANY.p,final.p))
 })))
-names(merged_results) <- c("MIN.CNV.all.obs_p","MIN.CNV.all.perm_p",
-                           "MIN.CNV.noncoding.obs_p","MIN.CNV.noncoding.perm_p",
-                           "MIN.DEL.all.obs_p","MIN.DEL.all.perm_p",
-                           "MIN.DEL.noncoding.obs_p","MIN.DEL.noncoding.perm_p",
-                           "MIN.DUP.all.obs_p","MIN.DUP.all.perm_p",
-                           "MIN.DUP.noncoding.obs_p","MIN.DUP.noncoding.perm_p",
-                           "MIN.CNV.obs_p","MIN.CNV.perm_p",
-                           "MIN.DEL.obs_p","MIN.DEL.perm_p",
-                           "MIN.DUP.obs_p","MIN.DUP.perm_p",
-                           "MIN.ANY.obs_p","MIN.ANY.perm_p")
+newcolnames <- as.vector(sapply(diseases,function(disease){
+  sapply(c(filts,"either_filter"),function(filt){
+    sapply(c("obs_p","perm_p"),function(measure){
+      return(paste("MIN",disease,"ANY_CNV",filt,measure,sep="."))
+    })
+  })
+}))
+newcolnames <- c(newcolnames,
+                 as.vector(sapply(c(CNVs,"ANY_CNV"),function(CNV){
+                   sapply(c(filts,"either_filter"),function(filt){
+                     sapply(c("obs_p","perm_p"),function(measure){
+                       return(paste("MIN","ANY_DISEASE",CNV,filt,measure,sep="."))
+                     })
+                   })
+})))
+names(merged_results) <- newcolnames
 results_out <- cbind(x,merged_results)
 names(results_out)[1] <- "#chr"
 write.table(results_out,args[2],col.names=T,row.names=F,quote=F,sep="\t")
