@@ -31,6 +31,7 @@ mkdir ${WRKDIR}/lists
 mkdir ${WRKDIR}/bin
 mkdir ${WRKDIR}/data
 mkdir ${WRKDIR}/data/CNV
+mkdir ${WRKDIR}/data/CNV/CNV_DENSITY
 mkdir ${WRKDIR}/data/CNV/CNV_MASTER
 mkdir ${WRKDIR}/data/plot_data
 mkdir ${WRKDIR}/data/annotations
@@ -47,6 +48,55 @@ mkdir ${WRKDIR}/analysis/Functional_Enrichments_exonExclusion
 #Note: see old code for parameters & syntax used during callset curation
 cp /data/talkowski/rlc47/TAD_intolerance/data/CNV/CNV_MASTER/* \
 ${WRKDIR}/data/CNV/CNV_MASTER/
+
+#####Correct "5_" contig CNV issue for DD & DD+SCZ
+for group in DD DD_SCZ; do
+  for CNV in CNV DUP; do
+    #All
+    zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz | fgrep -v "#" | \
+    sed 's/^5_/5/g' | sort -Vk1,1 -k2,2n -k3,3n | \
+    cat <( zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz | head -n1 ) - > \
+    ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed
+    gzip -f ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed
+    #Noncoding
+    zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.noncoding.bed.gz | fgrep -v "#" | \
+    sed 's/^5_/5/g' | sort -Vk1,1 -k2,2n -k3,3n | \
+    cat <( zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.noncoding.bed.gz | head -n1 ) - > \
+    ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.noncoding.bed
+    gzip -f ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.noncoding.bed
+  done
+done
+
+#####Generate CNV density per callset
+for group in CTRL DD SCZ DD_SCZ CNCR; do
+  echo ${group}
+  for CNV in DEL DUP CNV; do
+    echo ${CNV}
+    bedtools genomecov -bga -g /data/talkowski/rlc47/src/GRCh37.genome \
+    -i ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz > \
+    ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.all.CNV_density.bg
+    gzip ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.all.CNV_density.bg
+    bedtools genomecov -bga -g /data/talkowski/rlc47/src/GRCh37.genome \
+    -i ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.noncoding.bed.gz > \
+    ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.noncoding.CNV_density.bg
+    gzip ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.noncoding.CNV_density.bg
+  done
+done
+for group in DD DD_SCZ; do
+  echo ${group}
+  for CNV in DUP CNV; do
+    echo ${CNV}
+    bedtools genomecov -bga -g /data/talkowski/rlc47/src/GRCh37.genome \
+    -i ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz > \
+    ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.all.CNV_density.bg
+    gzip -f ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.all.CNV_density.bg
+    bedtools genomecov -bga -g /data/talkowski/rlc47/src/GRCh37.genome \
+    -i ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.noncoding.bed.gz > \
+    ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.noncoding.CNV_density.bg
+    gzip -f ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.noncoding.CNV_density.bg
+  done
+done
+
 
 #####Run TBRden pileup for all tissue types and all phenotypes (coding & noncoding CNVs)
 for group in CTRL DD SCZ DD_SCZ CNCR; do
