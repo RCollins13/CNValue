@@ -712,6 +712,20 @@ for group in DD SCZ DD_SCZ CNCR; do
   if [ -e ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL ]; then
     rm -rf ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL
   fi
+  case ${group} in
+    DD)
+      color="green"
+      ;;
+    SCZ)
+      color="purple"
+      ;;
+    DD_SCZ)
+      color="blue"
+      ;;
+    CNCR)
+      color="orange"
+      ;;
+  esac
   mkdir ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL
   for CNV in DEL DUP CNV; do
     #Parallelize analyses (LSF)
@@ -720,19 +734,19 @@ for group in DD SCZ DD_SCZ CNCR; do
     ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL.${CNV}.TBRden_binned_pileup.bed.gz \
     ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.bed.gz \
     ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/ \
-    ${group}_vs_CTRL_${CNV}_all"
+    ${group}_vs_CTRL_${CNV}_all ${color}"
     bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_coding_TBRden_analysis \
     "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
     ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL.${CNV}.TBRden_binned_pileup.coding.bed.gz \
     ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.coding.bed.gz \
     ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/ \
-    ${group}_vs_CTRL_${CNV}_coding"
+    ${group}_vs_CTRL_${CNV}_coding ${color}"
     bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_noncoding_TBRden_analysis \
     "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
     ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL.${CNV}.TBRden_binned_pileup.noncoding.bed.gz \
     ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.noncoding.bed.gz \
     ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/ \
-    ${group}_vs_CTRL_${CNV}_noncoding"
+    ${group}_vs_CTRL_${CNV}_noncoding ${color}"
   done
 done
 
