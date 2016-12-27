@@ -27,8 +27,8 @@ x <- read.table(args[1],comment.char="",header=T)
 
 #Gather summary metrics
 merged_results <- as.data.frame(t(sapply(1:nrow(x),function(i){
-  vals <- x[i,-c(1:4)]
-  names(vals) <- colnames(x)[-c(1:4)]
+  vals <- x[i,-c(1:20)]
+  names(vals) <- colnames(x)[-c(1:20)]
 
   #Report if bin was significant by ANY of CNV/DEL/DUP per disease
   ANY.p <- as.vector(sapply(diseases,function(disease){
@@ -53,27 +53,27 @@ merged_results <- as.data.frame(t(sapply(1:nrow(x),function(i){
   }))
 
   #Report if bin was significant by ANY of CNV/DEL/DUP for ANY disease
-  # ANY.ANY.p <- as.vector(sapply(CNVs,function(CNV){
-  #     terms <- as.vector(unlist(sapply(filts,function(filt){
-  #       return(c(paste(CNV,filt,"obs_p",sep="."),
-  #                paste(CNV,filt,"perm_p",sep=".")))
-  #     })))
-  #     terms.idx <- as.vector(sapply(terms,function(term){
-  #       grep(term,names(vals))
-  #     }))
-  #     ANY.ANY.p <- unlist(lapply(list(1:4,5:8,9:12,13:16,17:20,21:24,
-  #                                     c(1:4,9:12,17:20),
-  #                                     c(5:8,13:16,21:24)),
-  #                                function(l){
-  #                           d <- vals[terms.idx[l]]
-  #                           if(!(all(is.na(d)))){
-  #                             return(min(d,na.rm=T))
-  #                           }else{
-  #                             return(NA)
-  #                           }
-  #                         }))
-  #     return(ANY.ANY.p)
-  #   }))
+  ANY.ANY.p <- as.vector(sapply(CNVs,function(CNV){
+      terms <- as.vector(unlist(sapply(filts,function(filt){
+        return(c(paste(CNV,filt,"obs_p",sep="."),
+                 paste(CNV,filt,"perm_p",sep=".")))
+      })))
+      terms.idx <- as.vector(sapply(terms,function(term){
+        grep(term,names(vals))
+      }))
+      ANY.ANY.p <- unlist(lapply(list(1:4,5:8,9:12,13:16,17:20,21:24,
+                                      c(1:4,9:12,17:20),
+                                      c(5:8,13:16,21:24)),
+                                 function(l){
+                            d <- vals[terms.idx[l]]
+                            if(!(all(is.na(d)))){
+                              return(min(d,na.rm=T))
+                            }else{
+                              return(NA)
+                            }
+                          }))
+      return(ANY.ANY.p)
+    }))
   final.p <- as.vector(sapply(filts,function(filt){
     terms <- c(paste(filt,"obs_p",sep="."),
                paste(filt,"perm_p",sep="."))
@@ -90,9 +90,9 @@ merged_results <- as.data.frame(t(sapply(1:nrow(x),function(i){
     }))
     return(final.p)
   }))
-  global_min.obs_p <- min(final.p[c(1,3)])
-  if(!(all(is.na(final.p[c(2,4)])))){
-    global_min.perm_p <- min(final.p[c(2,4)],na.rm=T)
+  global_min.obs_p <- min(final.p[c(1,3,5)])
+  if(!(all(is.na(final.p[c(2,4,6)])))){
+    global_min.perm_p <- min(final.p[c(2,4,6)],na.rm=T)
   }else{
     global_min.perm_p <- NA
   }
@@ -104,7 +104,7 @@ merged_results <- as.data.frame(t(sapply(1:nrow(x),function(i){
 newcolnames <- as.vector(sapply(diseases,function(disease){
   sapply(c(filts,"ANY_FILTER"),function(filt){
     sapply(c("obs_p","perm_p"),function(measure){
-      return(paste("MIN",disease,"ANY_CNV",filt,measure,sep="."))
+      return(paste(disease,"ANY_CNV",filt,measure,sep="."))
     })
   })
 }))
