@@ -15,7 +15,7 @@
 options(scipen=1000,stringsAsFactors=F)
 diseases <- c("DD","SCZ","DD_SCZ","CNCR","ANY_DISEASE")
 CNVs <- c("CNV","DEL","DUP","ANY_CNV")
-filts <- c("all","noncoding","either_filter")
+filts <- c("all","coding","noncoding","ANY_FILTER")
 actions <- c("include","exclude")
 
 #Load requirements
@@ -25,7 +25,7 @@ require("optparse")
 filter.table <- function(df,
                          disease="ANY_DISEASE",
                          CNV="ANY_CNV",
-                         filt="either_filter",
+                         filt="ANY_FILTER",
                          action="include"){
   #Sanity check variables
   if(!(disease %in% diseases)){
@@ -35,31 +35,31 @@ filter.table <- function(df,
     stop("Argument 'CNV' must be either 'CNV', 'DEL', 'DUP', or 'ANY_CNV'")
   }
   if(!(filt %in% filts)){
-    stop("Argument 'filt' must be either 'all', 'noncoding', or 'either_filter'")
+    stop("Argument 'filt' must be either 'all', 'coding', 'noncoding', or 'ANY_FILTER'")
   }
   if(!(action %in% actions)){
     stop("Argument 'action' must be either 'include' or 'exclude'")
   }
-  
+
   #Instantiate column header of interest
   term <- paste(disease,CNV,filt,"perm_p",sep=".")
-  if(disease == "ANY_DISEASE" | CNV == "ANY_CNV" | filt == "either_filter"){
+  if(disease == "ANY_DISEASE" | CNV == "ANY_CNV" | filt == "ANY_FILTER"){
     term <- paste("MIN",term,sep=".")
   }
-  
+
   #Get corresponding column index
   cidx <- which(names(df)==term)
   if(length(cidx)==0){
     stop("No column headers match your specified criteria. Please check your input file.")
   }
-  
+
   #Slice df
   if(action=="include"){
     results <- df[which(df[,cidx]<=0.05),]
   }else{
     results <- df[which(df[,cidx]>0.05 | is.na(df[,cidx])),]
   }
-  
+
   #Return results
   names(results)[1] <- "#chr"
   return(results)
@@ -68,19 +68,19 @@ filter.table <- function(df,
 #list of Rscript options
 option_list <- list(
   make_option(c("-C", "--CNV"), type="character", default="ANY_CNV",
-              help="CNV class [default '%default']", 
+              help="CNV class [default '%default']",
               metavar="character"),
   make_option(c("-d", "--disease"), type="character", default="ANY_DISEASE",
-              help="disease cohort [default '%default']", 
+              help="disease cohort [default '%default']",
               metavar="character"),
-  make_option(c("-f", "--filter"), type="character", default="either_filter",
-              help="coding+noncoding or noncoding-only [default '%default']", 
+  make_option(c("-f", "--filter"), type="character", default="ANY_FILTER",
+              help="coding+noncoding or noncoding-only [default '%default']",
               metavar="character"),
   make_option(c("-a", "--action"), type="character", default="include",
-              help="include or exclude bins based on criteria [default '%default']", 
+              help="include or exclude bins based on criteria [default '%default']",
               metavar="character"),
   make_option(c("-o", "--outfile"), type="character", default="/dev/stdout",
-              help="write output to file [default stdout]", 
+              help="write output to file [default stdout]",
               metavar="character")
 )
 

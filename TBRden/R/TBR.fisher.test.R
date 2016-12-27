@@ -26,7 +26,7 @@ TBR.fisher.test <- function(TBR.CTRL,  #Count of CNVs overlapping TBR in control
 
   #Run Fisher's exact test
   if(!(any(is.na(scores)))){
-    p <- fisher.test(matrix(scores[c(3:4,1:2)],nrow=2),
+    p <- fisher.test(matrix(scores[c(2,1,4,3)],nrow=2),
                      alternative="greater")$p.value
   }else{
     p <- NA

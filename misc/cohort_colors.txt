@@ -1,0 +1,5 @@
+cohort	c1	c2
+DD	#3dce56	#3a874c
+SCZ	#c470f4	#601d87
+DD_SCZ	#5ebded	#44748c
+CNCR	#f1a517	#c65401

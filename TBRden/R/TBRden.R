@@ -6,15 +6,16 @@
 #TBRden: master function to perform burden analyses between two sets
 #of outputs from TBRden_pileup.sh (see related documentation)
 
-TBRden <- function(controls,        #Path to TBRden_pileup.sh output for the control group
-                   cases,           #Path to TBRden_pileup.sh output for the comparison group
-                   QQ=T,            #Automatically generate QQ plot
-                   manhattan=T,     #Automatically generate manhattan plot
-                   adjusted=1E-8,   #Adjusted p-value for genome-wide significance
-                   return=F,        #Return results as data frame
-                   OUTDIR=NULL,     #Output directory for writing results
-                   prefix="TBRden", #Prefix to be appended to results and QQ plot
-                   gzip=T           #Gzip output
+TBRden <- function(controls,         #Path to TBRden_pileup.sh output for the control group
+                   cases,            #Path to TBRden_pileup.sh output for the comparison group
+                   QQ=T,             #Automatically generate QQ plot
+                   manhattan=T,      #Automatically generate manhattan plot
+                   manColor="green", #Color for manhattan plot
+                   adjusted=1E-8,    #Adjusted p-value for genome-wide significance
+                   return=F,         #Return results as data frame
+                   OUTDIR=NULL,      #Output directory for writing results
+                   prefix="TBRden",  #Prefix to be appended to results and QQ plot
+                   gzip=T            #Gzip output
 ){
   #Sanity check input files
   if(!(file.exists(controls))){
@@ -80,7 +81,7 @@ TBRden <- function(controls,        #Path to TBRden_pileup.sh output for the con
     names(df) <- c("CHR","BP","P")
     df$CHR <- as.numeric(as.character(df$CHR))
     pdf(paste(OUTDIR,"/",prefix,".manhattan.pdf",sep=""),height=4,width=8)
-    cleanManhattan(df,adjusted=adjusted)
+    cleanManhattan(df,adjusted=adjusted,theme=manColor)
     dev.off()
   }
 
