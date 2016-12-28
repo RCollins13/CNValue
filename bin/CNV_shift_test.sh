@@ -33,7 +33,9 @@ Positional arguments:
 
 Optional arguments:
   -h  HELP          Show this help message and exit
-  -d  DIST          Distance to consider flanking each bin, in bp (default: 300,000)
+  -d  DIST          Distance to shift each CNV, as fraction of CNV size (default: 2.0)
+  -b  BUFFER        Distance padded between window and left/right flanking
+                    windows, in bp (default: 1,000,000 bp)
   -N  TIMES         Number of permutations to perform (default: 1,000)
   -o  OUTFILE       Output file (default: stdout)
   -p  PREFIX        Prefix for all output files (default: TBRden_shuffle)
@@ -42,12 +44,13 @@ EOF
 }
 
 #Parse arguments
-DIST=300000
+DIST=2
+BUFFER=1000000
 TIMES=1000
 OUTFILE=/dev/stdout
 PREFIX="TBRden_CNV_shiftTest"
 GZ=0
-while getopts ":d:N:o:p:zh" opt; do
+while getopts ":d:b:N:o:p:zh" opt; do
   case "$opt" in
     h)
       usage
@@ -55,6 +58,9 @@ while getopts ":d:N:o:p:zh" opt; do
       ;;
     d)
       DIST=${OPTARG}
+      ;;
+    b)
+      BUFFER=${OPTARG}
       ;;
     N)
       TIMES=${OPTARG}
@@ -143,16 +149,16 @@ for i in $( seq 1 ${TIMES} ); do
   #Shift case CNVs by half their size
   Rscript -e "write.table(as.data.frame(sample(c(-0.5,0.5),${nCASE},replace=T)),\
               \"${DIRECTION}\",row.names=F,col.names=F,quote=F)"
-  paste <( fgrep -v "#" ${CASE} ) ${DIRECTION} | awk -v OFS="\t" \
-  '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
+  paste <( fgrep -v "#" ${CASE} ) ${DIRECTION} | awk -v OFS="\t" -v d=${DIST} \
+  '{ printf "%s\t%i\t%i\n", $1, $2+(d*$NF*($3-$2)), $3+(d*$NF*($3-$2)) }' | \
   awk -v OFS="\t" '{ if ($2<=0) $2=1; print }' | \
   awk -v OFS="\t" '{ if ($3<=0) $2=2; print }' > ${CASE_SHUF}
 
   #Shift control CNVs by half their size
   Rscript -e "write.table(as.data.frame(sample(c(-0.5,0.5),${nCTRL},replace=T)),\
               \"${DIRECTION}\",row.names=F,col.names=F,quote=F)"
-  paste <( fgrep -v "#" ${CTRL} ) ${DIRECTION} | awk -v OFS="\t" \
-  '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
+  paste <( fgrep -v "#" ${CTRL} ) ${DIRECTION} | awk -v OFS="\t" -v d=${DIST} \
+  '{ printf "%s\t%i\t%i\n", $1, $2+(d*$NF*($3-$2)), $3+(d*$NF*($3-$2)) }' | \
   awk -v OFS="\t" '{ if ($2<=0) $2=1; print $0 }' > ${CTRL_SHUF}
 
   #Run CNV pileups on shuffled CNVs

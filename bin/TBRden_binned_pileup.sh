@@ -14,22 +14,23 @@
 #Usage statement
 usage(){
 cat <<EOF
-usage: TBRden_pileup.sh [-h] [-w WINDOW] [-s STEP] [-x EXCLUDE]
-                        [-o OUTFILE] [-z] CNVs genome
+usage: TBRden_binned_pileup.sh [-h] [-w WINDOW] [-s STEP] [-d DIST]
+                        [-x EXCLUDE] [-o OUTFILE] [-z] CNVs genome
 
-Runs intersection of a CNV dataset versus a TAD boundary region (TBR) file
+Runs intersection of a CNV dataset versus a binned genome of sliding windows
 
 Positional arguments:
-  CNVs     path to CNV input file. Must have at least three columns: chr, 
-           start, end
+  CNVs     path to CNV input file. Must have at least three columns: chr, start, end
   genome   path to input genome file (per bedtools specs). Must have two columns:
            contig ID & length
 
 Optional arguments:
   -h  HELP          Show this help message and exit
   -z  GZIP          Gzip output file
-  -w  WINDOW        Size of window, in bp (default: 300,000 bp)
-  -s  STEP          Size of step, in bp (default: 30,000 bp)
+  -w  WINDOW        Size of window, in bp (default: 100,000 bp)
+  -s  STEP          Size of step, in bp (default: 25,000 bp)
+  -d  DIST          Distance padded between window and left/right flanking
+                    windows, in bp (default: 1,000,000 bp)
   -x  EXCLUDE       Regions to exclude from calculations
   -o  OUTFILE       Output file (default: stdout)
 EOF
@@ -39,9 +40,10 @@ EOF
 OUTFILE=/dev/stdout
 GZ=0
 EXCLUDE=0
-WINDOW=300000
-STEP=30000
-while getopts ":o:w:s:x:zh" opt; do
+WINDOW=100000
+STEP=25000
+DIST=1000000
+while getopts ":o:w:s:d:x:zh" opt; do
   case "$opt" in
     h)
       usage
@@ -55,6 +57,9 @@ while getopts ":o:w:s:x:zh" opt; do
       ;;
     s)
       STEP=${OPTARG}
+      ;;
+    d)
+      DIST=${OPTARG}
       ;;
     x)
       EXCLUDE=${OPTARG}
@@ -87,29 +92,34 @@ if [ ${GZ} == 1 ] && [ ${OUTFILE: -3} == ".gz" ]; then
 fi
 
 #1. Make master list of all intervals needed to do pileup calculations
-#  a. First bin must be able to be flanked by at least one bin earlier on chromosome
-#  b. Last bin must be able to be flanked by at least one bin later on chromosome
 #2. Remove all bins with any overlap versus excluded regions
-#3. Add flanking regions ±1 window size to all test intervals
 INTS=`mktemp`
 if ! [ ${EXCLUDE} == "0" ]; then
   while read contig length; do
-    paste <( seq ${WINDOW} ${STEP} $(( ${length}-(2*${WINDOW}) )) ) \
-    <( seq $((2*${WINDOW})) ${STEP} $((${length}-${WINDOW})) ) | \
+    paste <( seq 0 ${STEP} $(( ${length}-${WINDOW} )) ) \
+    <( seq ${WINDOW} ${STEP} ${length} ) | \
     awk -v OFS="\t" -v contig=${contig} '{ print contig, $1, $2 }' | \
     bedtools intersect -v -a - -b ${EXCLUDE} | awk -v OFS="\t" \
     '{ print $0, "Bin_"$1"_"NR }'
-  done < ${genome} | awk -v OFS="\t" -v W=${WINDOW} \
-  '{ print $1, $2-W, $2, $4"_A\n"$1, $2, $3, $4"_B\n"$1, $3, $3+W, $4"_C" }' > ${INTS}
+  done < ${genome} | awk -v OFS="\t" -v W=${WINDOW} -v d=${DIST} \
+  '{ print $1, $2-(W+d), $2-d, $4"_A\n"$1, $2, $3, $4"_B\n"$1, $3+d, $3+(W+d), $4"_C" }' > ${INTS}
 else
-    while read contig length; do
-    paste <( seq ${WINDOW} ${STEP} $(( ${length}-(2*${WINDOW}) )) ) \
-    <( seq $((2*${WINDOW})) ${STEP} $((${length}-${WINDOW})) ) | \
+  while read contig length; do
+    paste <( seq 0 ${STEP} $(( ${length}-${WINDOW} )) ) \
+    <( seq ${WINDOW} ${STEP} ${length} ) | \
     awk -v OFS="\t" -v contig=${contig} '{ print contig, $1, $2 }' | awk -v OFS="\t" \
     '{ print $0, "Bin_"$1"_"NR }'
   done < ${genome} | awk -v OFS="\t" -v W=${WINDOW} \
-  '{ print $1, $2-W, $2, $4"_A\n"$1, $2, $3, $4"_B\n"$1, $3, $3+W, $4"_C" }' > ${INTS}
+  '{ print $1, $2-(W+d), $2-d, $4"_A\n"$1, $2, $3, $4"_B\n"$1, $3+d, $3+(W+d), $4"_C" }' > ${INTS}
 fi
+
+#Reset coordinates of bins with negative size or bins extending beyond the ends of chromosomes to 0
+awk -v OFS="\t" -v w=${WINDOW} '{ if ($2<0) $2=0; if ($3<w) $3=w; print }' ${INTS} | \
+bedtools intersect -u -a - -b <( awk -v OFS="\t" '{ print $1, 1, $2 }' ${genome} ) > ${INTS}2
+awk -v OFS="\t" -v w=${WINDOW} '{ if ($2<0) $2=0; if ($3<w) $3=w; print }' ${INTS} | \
+bedtools intersect -v -a - -b <( awk -v OFS="\t" '{ print $1, 1, $2 }' ${genome} ) | \
+awk -v OFS="\t" -v w=${WINDOW} '{ print $1, 0, w, $4 }' >> ${INTS}2
+sort -Vk1,1 -k4,4V ${INTS}2 > ${INTS}
 
 #Run overlap of master interval file vs CNVs
 COUNTS=`mktemp`

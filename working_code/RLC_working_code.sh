@@ -693,19 +693,19 @@ for group in CTRL DD SCZ DD_SCZ CNCR; do
   for CNV in DEL DUP CNV; do
     #Parallelize intersections (LSF)
     bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_binned_pileup \
-    "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 100000 -s 25000 \
+    "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 100000 -s 25000 -d 1000000 \
     -o ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.bed \
     -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
     /data/talkowski/rlc47/src/GRCh37.genome"
     bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_binned_pileup_noncoding \
-    "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 100000 -s 25000 \
+    "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 100000 -s 25000 -d 1000000 \
     -o ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.noncoding.bed \
     -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.noncoding.bed.gz \
     /data/talkowski/rlc47/src/GRCh37.genome"
     bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_binned_pileup_coding \
-    "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 100000 -s 25000 \
+    "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 100000 -s 25000 -d 1000000 \
     -o ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.coding.bed \
     -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.coding.bed.gz \
@@ -910,7 +910,7 @@ for group in DD SCZ DD_SCZ CNCR ANY_DISEASE; do
   mkdir ${WRKDIR}/analysis/Final_Loci/significant/${group}
   for CNV in CNV DEL DUP ANY_CNV; do
     echo ${CNV}
-    for filt in all coding noncoding ANY_FILTER; do
+    for filt in all coding noncoding; do
       echo ${filt}
       list=`mktemp`
       echo -e "${group}.${CNV}.${filt}.perm_p" > ${list}
@@ -922,105 +922,100 @@ for group in DD SCZ DD_SCZ CNCR ANY_DISEASE; do
       bedtools merge -header -c $( seq 4 ${ncol} | paste -s -d, ) -o distinct \
       -i ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed > \
       ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed
-      gzip ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed
-      gzip ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed
+      gzip -f ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed
+      gzip -f ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed
     done
     if [ ${CNV} == "ANY_CNV" ] || [ ${group} == "ANY_DISEASE" ]; then
-      filt=either_filter
+      filt=ANY_FILTER
       echo ${filt}
+      list=`mktemp`
+      echo -e "${group}.${CNV}.${filt}.perm_p" > ${list}
       ${WRKDIR}/bin/rCNVmap/bin/filter_master_burden_file.R \
-      -C ${CNV} -d ${group} -f ${filt} \
       -o ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed \
-      ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed.gz
+      ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed.gz ${list}
+      rm ${list}
       ncol=$( head -n1 ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed | awk '{ print NF }' )
       bedtools merge -header -c $( seq 4 ${ncol} | paste -s -d, ) -o distinct \
       -i ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed > \
       ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed
-      gzip ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed
-      gzip ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed
+      gzip -f ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed
+      gzip -f ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed
     fi
   done
 done
 #Print table
-# for group in DD SCZ DD_SCZ CNCR; do
-#   for CNV in CNV DEL DUP; do
-#     for filt in all noncoding; do
-#       echo -e "${group}\n${CNV}\n${filt}"
-#       #Count total number of bins tested
-#       zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.TBRden_results.bed.gz | \
-#       sed '1d' | awk '{ if ($1!="X" && $1!="Y") print $0 }' | wc -l
-#       #Count number of nominally significant bins from burden test
-#       zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.TBRden_results.bed.gz | \
-#       sed '1d' | awk '{ if ($NF<=0.05) print $0 }' | awk '{ if ($1!="X" && $1!="Y") print $0 }' | wc -l
-#       #Count number of Bonferroni significant bins from burden test
-#       zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.TBRden_results.bed.gz | \
-#       sed '1d' | awk '{ if ($NF<=0.05/8875) print $0 }' | awk '{ if ($1!="X" && $1!="Y") print $0 }' | wc -l
-#       if [ -e ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.permuted.bed.gz ]; then
-#         #Write window results to file
-#         zcat ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.permuted.bed.gz | \
-#         head -n1 | cut -f1-5,8 > ${WRKDIR}/analysis/Final_Loci/${group}_vs_CTRL_${filt}.${CNV}.significant_windows.bed
-#         zcat ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.permuted.bed.gz | \
-#         sed '1d' | awk '{ if ($NF<=0.05) print $0 }' | awk '{ if ($1!="X" && $1!="Y") print $0 }' | cut -f1-5,8 >> \
-#         ${WRKDIR}/analysis/Final_Loci/${group}_vs_CTRL_${filt}.${CNV}.significant_windows.bed
-#         #Write loci results to file
-#         zcat ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.permuted.bed.gz | \
-#         head -n1 | cut -f1-5,8 > ${WRKDIR}/analysis/Final_Loci/${group}_vs_CTRL_${filt}.${CNV}.significant_loci.bed
-#         zcat ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.permuted.bed.gz | \
-#         sed '1d' | awk '{ if ($NF<=0.05) print $0 }' | awk '{ if ($1!="X" && $1!="Y") print $0 }' | cut -f1-5,8 | sort -Vk1,1 -k2,2n -k3,3n | \
-#         bedtools merge -c 4,5,6 -o distinct,min,min -i - >> ${WRKDIR}/analysis/Final_Loci/${group}_vs_CTRL_${filt}.${CNV}.significant_loci.bed
-#         #Count number of bins that passed permutation test
-#         cat ${WRKDIR}/analysis/Final_Loci/${group}_vs_CTRL_${filt}.${CNV}.significant_windows.bed | \
-#         awk '{ if ($1!="X" && $1!="Y") print $0 }' | wc -l
-#         #Count number of merged loci that passed permutation test
-#         cat ${WRKDIR}/analysis/Final_Loci/${group}_vs_CTRL_${filt}.${CNV}.significant_loci.bed | \
-#         awk '{ if ($1!="X" && $1!="Y") print $0 }' | wc -l
-#         #Count raw overlaps with syndromic loci
-#         bedtools intersect -f 0.1 -wa -u \
-#         -a ${WRKDIR}/analysis/Final_Loci/${group}_vs_CTRL_${filt}.${CNV}.significant_loci.bed \
-#         -b /data/talkowski/Samples/SFARI/EcoFinal/annotation_files/rCNVs/talkowski_highQual_rCNVs.bed | wc -l
-#       else
-#         echo -e "TBD\nTBD\nTBD"
-#       fi
-#     done | paste - - - - - - - - -
-#   done
-# done
-# #Prep for comparison of final loci within and between sets
-# for group in DD SCZ DD_SCZ CNCR; do
-#   #Make list of all loci
-#   for CNV in CNV DEL DUP; do
-#     for filt in all noncoding; do
-#       fgrep -v "#" ${WRKDIR}/analysis/Final_Loci/${group}_vs_CTRL_${filt}.${CNV}.significant_loci.bed
-#     done
-#   done | sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v group=${group} '{ print $0, group }' > ${TMPDIR}/${group}_master.bed
-#   #Make lists of coding/noncoding loci for dels + dups
-#   for filt in all noncoding; do
-#     for CNV in DEL DUP; do
-#       fgrep -v "#" ${WRKDIR}/analysis/Final_Loci/${group}_vs_CTRL_${filt}.${CNV}.significant_loci.bed
-#     done | sort -Vk1,1 -k2,2n -k3,3n > ${TMPDIR}/${group}_${filt}.bed
-#   done
-# done
-# #Cat all master lists
-# for group in DD SCZ DD_SCZ CNCR; do
-#   cat ${TMPDIR}/${group}_master.bed
-# done | sort -Vk1,1 -k2,2n -k3,3n > ${TMPDIR}/all_master.bed
-# #Run comparison of final loci between del / dup within a given set
-# for group in DD SCZ DD_SCZ CNCR; do
-#   echo -e "-\n-"
-#   for CNV in DEL DUP; do
-#     for filt in all noncoding; do
-#       bedtools intersect -r -f 0.5 -c \
-#       -a ${WRKDIR}/analysis/Final_Loci/${group}_vs_CTRL_${filt}.${CNV}.significant_loci.bed \
-#       -b ${TMPDIR}/${group}_${filt}.bed | awk '{ if ($NF==1) print $0 }' | wc -l
-#     done
-#   done
-# done
-# #Run comparison of loci specific to phenotype
-# for group in DD SCZ DD_SCZ CNCR; do
-#   for CNV in CNV DEL DUP; do
-#     for filt in all noncoding; do
-#       awk -v group=${group} '{ if ($NF!=group) print $0 }' ${TMPDIR}/all_master.bed | \
-#       bedtools intersect -v -r -f 0.5 -b - \
-#       -a ${WRKDIR}/analysis/Final_Loci/${group}_vs_CTRL_${filt}.${CNV}.significant_loci.bed | wc -l
-#     done
-#   done
-# done
+for group in DD SCZ DD_SCZ CNCR; do
+  for CNV in CNV DEL DUP; do
+    for filt in all coding noncoding; do
+      echo -e "${group}\n${CNV}\n${filt}"
+      #Count total number of bins tested
+      zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.TBRden_results.bed.gz | \
+      sed '1d' | awk '{ if ($1!="X" && $1!="Y") print $0 }' | wc -l
+      #Count number of nominally significant bins from burden test
+      zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.TBRden_results.bed.gz | \
+      sed '1d' | awk '{ if ($NF<=0.05) print $0 }' | awk '{ if ($1!="X" && $1!="Y") print $0 }' | wc -l
+      #Count number of Bonferroni significant bins from burden test
+      zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.TBRden_results.bed.gz | \
+      sed '1d' | awk '{ if ($NF<=0.05/8875) print $0 }' | awk '{ if ($1!="X" && $1!="Y") print $0 }' | wc -l
+      #Count number of bins that passed permutation test
+      zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed.gz | \
+      fgrep -v "#" | wc -l
+      #Count number of merged loci that passed permutation test
+      zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed.gz | \
+      fgrep -v "#" | wc -l
+    done | paste - - - - - - - -
+  done
+done
+for group in DD SCZ DD_SCZ CNCR; do
+  for CNV in CNV DEL DUP; do
+    for filt in all coding noncoding; do
+      #Count raw overlaps with syndromic loci
+      bedtools intersect -wa -u \
+      -b ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed.gz \
+      -a /data/talkowski/Samples/SFARI/EcoFinal/annotation_files/rCNVs/talkowski_highQual_rCNVs.bed | wc -l
+    done
+  done
+done | awk '{ print "=\""$1"/38\"" }'
+
+#Prep for comparison of final loci within and between sets
+for group in DD SCZ DD_SCZ CNCR; do
+  #Make list of all loci
+  for CNV in CNV DEL DUP; do
+    for filt in all coding noncoding; do
+      zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed.gz | fgrep -v "#"
+    done
+  done | sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v group=${group} '{ print $0, group }' > ${TMPDIR}/${group}_master.bed
+  #Make lists of coding/noncoding loci for dels + dups
+  for filt in all coding noncoding; do
+    for CNV in DEL DUP; do
+      zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed.gz | fgrep -v "#"
+    done | sort -Vk1,1 -k2,2n -k3,3n > ${TMPDIR}/${group}_${filt}.bed
+  done
+done
+#Cat all master lists
+for group in DD SCZ DD_SCZ CNCR; do
+  cat ${TMPDIR}/${group}_master.bed
+done | sort -Vk1,1 -k2,2n -k3,3n > ${TMPDIR}/all_master.bed
+#Run comparison of final loci between del / dup within a given set
+for group in DD SCZ DD_SCZ CNCR; do
+  for CNV in CNV DEL DUP; do
+    for filt in all coding noncoding; do
+      bedtools intersect -r -f 0.5 -c \
+      -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed.gz \
+      -b ${TMPDIR}/${group}_${filt}.bed | awk '{ if ($NF==1) print $0 }' | wc -l
+    done
+  done
+done
+#Run comparison of loci specific to phenotype
+for group in DD SCZ DD_SCZ CNCR; do
+  for CNV in CNV DEL DUP; do
+    for filt in all coding noncoding; do
+      awk -v group=${group} '{ if ($NF!=group) print $0 }' ${TMPDIR}/all_master.bed | \
+      bedtools intersect -v -r -f 0.5 -b - \
+      -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed.gz | wc -l
+    done
+  done
+done
+
+
+
