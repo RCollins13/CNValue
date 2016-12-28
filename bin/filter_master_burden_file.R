@@ -36,36 +36,27 @@ filter.table <- function(df,
     stop("No column headers match your specified terms. Please check your input terms list.")
   }
 
-  #Slice df
+  #Get rows passing filter for each column
   if(action=="include"){
-    #Get rows passing filter for each column
     pass <- lapply(cidx,function(i){
       return(which(df[,i] <= 0.05 & !(is.na(df[,i]))))
     })
-    #Find intersection of all passing rows
-    union <- intersect(pass[[1]],pass[[2]])
-    if(length(pass)>2){
-      for(i in 3:length(pass)){
-        union <- intersect(union,pass[[i]])
-      }
-    }
-    #Filter df
-    results <- df[union,]
   }else{
-    #Get rows passing filter for each column
     pass <- lapply(cidx,function(i){
       return(which(df[,i] > 0.05 & !(is.na(df[,i]))))
     })
-    #Find intersection of all passing rows
-    union <- intersect(pass[[1]],pass[[2]])
-    if(length(pass)>2){
-      for(i in 3:length(pass)){
-        union <- intersect(union,pass[[i]])
-      }
-    }
-    #Filter df
-    results <- df[union,]
   }
+
+  #Find intersection of all passing rows
+  union <- pass[[1]]
+  if(length(pass)>1){
+    for(i in 2:length(pass)){
+      union <- intersect(union,pass[[i]])
+    }
+  }
+
+  #Filter df
+  results <- df[union,]
 
   #Return results
   names(results)[1] <- "#chr"

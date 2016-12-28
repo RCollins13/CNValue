@@ -910,12 +910,14 @@ for group in DD SCZ DD_SCZ CNCR ANY_DISEASE; do
   mkdir ${WRKDIR}/analysis/Final_Loci/significant/${group}
   for CNV in CNV DEL DUP ANY_CNV; do
     echo ${CNV}
-    for filt in all noncoding; do
+    for filt in all coding noncoding ANY_FILTER; do
       echo ${filt}
+      list=`mktemp`
+      echo -e "${group}.${CNV}.${filt}.perm_p" > ${list}
       ${WRKDIR}/bin/rCNVmap/bin/filter_master_burden_file.R \
-      -C ${CNV} -d ${group} -f ${filt} \
       -o ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed \
-      ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed.gz
+      ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed.gz ${list}
+      rm ${list}
       ncol=$( head -n1 ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed | awk '{ print NF }' )
       bedtools merge -header -c $( seq 4 ${ncol} | paste -s -d, ) -o distinct \
       -i ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed > \
