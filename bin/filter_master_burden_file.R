@@ -23,41 +23,48 @@ require("optparse")
 
 #Function to filter
 filter.table <- function(df,
-                         disease="ANY_DISEASE",
-                         CNV="ANY_CNV",
-                         filt="ANY_FILTER",
+                         terms,
                          action="include"){
-  #Sanity check variables
-  if(!(disease %in% diseases)){
-    stop("Argument 'disease' must be either 'DD', 'SCZ', 'DD_SCZ', 'CNCR', or 'ANY_DISEASE'")
-  }
-  if(!(CNV %in% CNVs)){
-    stop("Argument 'CNV' must be either 'CNV', 'DEL', 'DUP', or 'ANY_CNV'")
-  }
-  if(!(filt %in% filts)){
-    stop("Argument 'filt' must be either 'all', 'coding', 'noncoding', or 'ANY_FILTER'")
-  }
+  #Sanity check action
   if(!(action %in% actions)){
     stop("Argument 'action' must be either 'include' or 'exclude'")
   }
 
-  #Instantiate column header of interest
-  term <- paste(disease,CNV,filt,"perm_p",sep=".")
-  if(disease == "ANY_DISEASE" | CNV == "ANY_CNV" | filt == "ANY_FILTER"){
-    term <- paste("MIN",term,sep=".")
-  }
-
-  #Get corresponding column index
-  cidx <- which(names(df)==term)
+  #Get corresponding column indexes
+  cidx <- which(names(df) %in% terms)
   if(length(cidx)==0){
-    stop("No column headers match your specified criteria. Please check your input file.")
+    stop("No column headers match your specified terms. Please check your input terms list.")
   }
 
   #Slice df
   if(action=="include"){
-    results <- df[which(df[,cidx]<=0.05),]
+    #Get rows passing filter for each column
+    pass <- lapply(cidx,function(i){
+      return(which(df[,i] <= 0.05 & !(is.na(df[,i]))))
+    })
+    #Find intersection of all passing rows
+    union <- intersect(pass[[1]],pass[[2]])
+    if(length(pass)>2){
+      for(i in 3:length(pass)){
+        union <- intersect(union,pass[[i]])
+      }
+    }
+    #Filter df
+    results <- df[union,]
   }else{
-    results <- df[which(df[,cidx]>0.05 | is.na(df[,cidx])),]
+    #Get rows passing filter for each column
+    pass <- lapply(cidx,function(i){
+      return(which(df[,i] > 0.05 & !(is.na(df[,i]))))
+    })
+    #Find intersection of all passing rows
+    union <- intersect(pass[[1]],pass[[2]])
+    if(length(pass)>2){
+      for(i in 3:length(pass)){
+        union <- intersect(union,pass[[i]])
+      }
+    }
+    #Filter df
+    results <- df[union,]
   }
 
   #Return results
@@ -67,15 +74,6 @@ filter.table <- function(df,
 
 #list of Rscript options
 option_list <- list(
-  make_option(c("-C", "--CNV"), type="character", default="ANY_CNV",
-              help="CNV class [default '%default']",
-              metavar="character"),
-  make_option(c("-d", "--disease"), type="character", default="ANY_DISEASE",
-              help="disease cohort [default '%default']",
-              metavar="character"),
-  make_option(c("-f", "--filter"), type="character", default="ANY_FILTER",
-              help="coding+noncoding or noncoding-only [default '%default']",
-              metavar="character"),
   make_option(c("-a", "--action"), type="character", default="include",
               help="include or exclude bins based on criteria [default '%default']",
               metavar="character"),
@@ -85,25 +83,27 @@ option_list <- list(
 )
 
 #Get command-line arguments & options
-parser <- OptionParser(usage="%prog [options] burden_file",
+parser <- OptionParser(usage="%prog [options] burden_file terms_list",
                        option_list=option_list,add_help_option=T)
 args <- parse_args(parser,positional_arguments=TRUE)
 opts <- args$options
 
 #Checks for appropriate positional arguments
-if(length(args$args) != 1) {
+if(length(args$args) != 2) {
   print_help(parser)
-  stop("Must specify an input burden file")
+  stop("Must specify an input burden file and a terms list")
 }
 
 #Loads data frame
 df <- read.table(args$args[1],comment.char="",header=T)
 
+#Loads terms & converts to vector
+terms <- as.vector(read.table(args$args[2],header=F)[,1])
+
+
 #Filters
 output <- filter.table(df,
-                       disease=opts$disease,
-                       CNV=opts$CNV,
-                       filt=opts$filt,
+                       terms,
                        action=opts$action)
 names(output)[1] <- "#chr"
 

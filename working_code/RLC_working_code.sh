@@ -648,6 +648,8 @@ for group in CTRL DD SCZ DD_SCZ CNCR; do
           echo -e "${filt}\t${total}" | awk '{ print $1/$2 }'
         done
       done | paste -s
+      zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.noMaxSize.GRCh37.bed.gz | fgrep -v "#" | \
+      awk '{ print $3-$2 }' | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
     done | paste -s
   done
 done > ${WRKDIR}/data/plot_data/CNV_size_bySize.all.txt
@@ -663,6 +665,8 @@ for group in CTRL DD SCZ DD_SCZ CNCR; do
           echo -e "${filt}\t${total}" | awk '{ print $1/$2 }'
         done
       done | paste -s
+      zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.noMaxSize.GRCh37.coding.bed.gz | fgrep -v "#" | \
+      awk '{ print $3-$2 }' | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
     done | paste -s
   done
 done > ${WRKDIR}/data/plot_data/CNV_size_bySize.coding.txt
@@ -678,6 +682,8 @@ for group in CTRL DD SCZ DD_SCZ CNCR; do
           echo -e "${filt}\t${total}" | awk '{ print $1/$2 }'
         done
       done | paste -s
+      zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.noMaxSize.GRCh37.noncoding.bed.gz | fgrep -v "#" | \
+      awk '{ print $3-$2 }' | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
     done | paste -s
   done
 done > ${WRKDIR}/data/plot_data/CNV_size_bySize.noncoding.txt
@@ -893,7 +899,7 @@ ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed \
 ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed2
 mv ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed2 \
 ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed
-gzip ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed
+gzip -f ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed
 
 #####Cut master table of bins that are significant per disease
 for group in DD SCZ DD_SCZ CNCR ANY_DISEASE; do

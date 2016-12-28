@@ -112,7 +112,7 @@ newcolnames <- c(newcolnames,
                  as.vector(sapply(c(CNVs,"ANY_CNV"),function(CNV){
                    sapply(c(filts,"ANY_FILTER"),function(filt){
                      sapply(c("obs_p","perm_p"),function(measure){
-                       return(paste("MIN","ANY_DISEASE",CNV,filt,measure,sep="."))
+                       return(paste("ANY_DISEASE",CNV,filt,measure,sep="."))
                      })
                    })
 })))
