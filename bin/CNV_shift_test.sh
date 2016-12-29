@@ -97,8 +97,16 @@ CASES=$2
 BINS=$3
 
 #Check that both coding and noncoding flags aren't set
-if [ ${CODING} -eq 1 ] && [ ${NONCODING} -eq 1 ]; do
+if [ ${CODING} -eq 1 ] && [ ${NONCODING} -eq 1 ]; then
   echo -e "\nERROR: SPECIFY EITHER -c OR -n, BUT NOT BOTH\n"
+  usage
+  exit 0
+fi
+
+#Check that exon file exists if either coding or noncoding flag is set
+if [ ${CODING} -eq 1 ] || [ ${NONCODING} -eq 1 ]; then
+  if ! [ -e ${EXONS} ]; then
+  echo -e "\nERROR: INVALID EXON FILE (REQUIRED FOR EITHER -c OR -n)\n"
   usage
   exit 0
 fi
