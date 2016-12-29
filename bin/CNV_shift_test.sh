@@ -33,7 +33,8 @@ Positional arguments:
 
 Optional arguments:
   -h  HELP          Show this help message and exit
-  -d  DIST          Distance to shift each CNV, as fraction of CNV size (default: 2.0)
+  -d  DIST          Maximum distance to shift each CNV, as fraction of 
+                    CNV size (default: 5.0)
   -b  BUFFER        Distance padded between window and left/right flanking
                     windows, in bp (default: 1,000,000 bp)
   -N  TIMES         Number of permutations to perform (default: 1,000)
@@ -47,15 +48,15 @@ EOF
 }
 
 #Parse arguments
-DIST=2
+DIST=5
 BUFFER=1000000
 TIMES=1000
 OUTFILE=/dev/stdout
-PREFIX="TBRden_CNV_shiftTest"
-GZ=0
-EXONS=0
 CODING=0
 NONCODING=0
+EXONS=0
+PREFIX="TBRden_CNV_shiftTest"
+GZ=0
 while getopts ":d:b:N:e:o:p:zcnh" opt; do
   case "$opt" in
     h)
@@ -95,9 +96,6 @@ shift $((${OPTIND} - 1))
 CONTROLS=$1
 CASES=$2
 BINS=$3
-
-#DEBUG
-echo -e "CODING: ${CODING}\nNONCODING: ${NONCODING}\nEXONS: ${EXONS}"
 
 #Check that both coding and noncoding flags aren't set
 if [ ${CODING} -eq 1 ] && [ ${NONCODING} -eq 1 ]; then
@@ -167,9 +165,6 @@ fi
 nCASE=$( fgrep -v "#" ${CASE} | wc -l )
 nCTRL=$( fgrep -v "#" ${CTRL} | wc -l )
 
-#DEBUG
-echo -e "nCASE: ${nCASE}\nnCTRL: ${nCTRL}"
-
 #Make temporary files for iterating permutations
 DIRECTION=`mktemp`
 CASE_SHUF=`mktemp`
@@ -184,7 +179,7 @@ for i in $( seq 1 ${TIMES} ); do
   mkdir ${TMPDIR}/${PREFIX}_${i}
 
   #Shift case CNVs by half their size
-  Rscript -e "write.table(as.data.frame(sample(c(-${DIST},${DIST}),${nCASE},replace=T)),\
+  Rscript -e "write.table(as.data.frame(sample(seq(-${DIST},${DIST},0.01),${nCASE},replace=T)),\
               \"${DIRECTION}\",row.names=F,col.names=F,quote=F)"
   if [ ${CODING} -eq 1 ]; then
     paste <( fgrep -v "#" ${CASE} ) ${DIRECTION} | awk -v OFS="\t" \
@@ -203,7 +198,7 @@ for i in $( seq 1 ${TIMES} ); do
   fi
 
   #Shift control CNVs by half their size
-  Rscript -e "write.table(as.data.frame(sample(c(-${DIST},${DIST}),${nCTRL},replace=T)),\
+  Rscript -e "write.table(as.data.frame(sample(seq(-${DIST},${DIST},0.01),${nCTRL},replace=T)),\
               \"${DIRECTION}\",row.names=F,col.names=F,quote=F)"
   if [ ${CODING} -eq 1 ]; then
     paste <( fgrep -v "#" ${CTRL} ) ${DIRECTION} | awk -v OFS="\t" \
@@ -220,9 +215,6 @@ for i in $( seq 1 ${TIMES} ); do
     '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
     awk -v OFS="\t" '{ if ($2>=0) print }' > ${CTRL_SHUF}
   fi
-
-  #DEBUG
-  echo -e "CASE SHUF: $( wc -l ${CASE_SHUF} )\nCTRL SHUF: $( wc -l ${CTRL_SHUF} )"
 
   #Run CNV pileups on shuffled CNVs
   ${TBRden_bin}/TBRden_pileup.sh -d ${BUFFER} -o ${TMPDIR}/${PREFIX}_${i}/${PREFIX}_${i}.CASE_CNVs.pileup.bed ${CASE_SHUF} ${BIN}
