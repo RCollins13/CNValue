@@ -96,6 +96,9 @@ CONTROLS=$1
 CASES=$2
 BINS=$3
 
+#DEBUG
+echo -e "CODING: ${CODING}\nNONCODING: ${NONCODING}\nEXONS: ${EXONS}"
+
 #Check that both coding and noncoding flags aren't set
 if [ ${CODING} -eq 1 ] && [ ${NONCODING} -eq 1 ]; then
   echo -e "\nERROR: SPECIFY EITHER -c OR -n, BUT NOT BOTH\n"
@@ -247,7 +250,7 @@ done >> ${OUTFILE}
 
 #Gzip, if optioned
 if [ ${GZ} -eq 1 ]; then
-  gzip ${OUTFILE}
+  gzip -f ${OUTFILE}
 fi
 
 #Clean up
