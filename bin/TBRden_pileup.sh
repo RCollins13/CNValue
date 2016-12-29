@@ -14,7 +14,7 @@
 #Usage statement
 usage(){
 cat <<EOF
-usage: TBRden_pileup.sh [-h] [-z] [-D distance] [-o OUTFILE] CNVs elements
+usage: TBRden_pileup.sh [-h] [-z] [-d distance] [-o OUTFILE] CNVs elements
 
 Runs intersection of a CNV dataset versus a bed file of elements/loci
 
@@ -90,7 +90,7 @@ fi
 INTS=`mktemp`
 fgrep -v "#" ${elements} | awk -v OFS="\t" -v d=${DIST} \
 '{ print $1, $2-d, $3-d, $4"_input_"NR"_A\n"$1, $2, $3, $4"_input_"NR"_B\n"$1, $2+d, $3+d, $4"_input_"NR"_C" }' | \
-awk -v OFS="\t" -v w=${WINDOW} '{ if ($2<0) $2=0; if ($3<w) $3=w; print }' > ${INTS}
+awk -v OFS="\t" -v d=${DIST} '{ if ($2<0) $2=0; if ($3<d) $3=d; print }' > ${INTS}
 
 #Run overlap of master interval file vs CNVs
 COUNTS=`mktemp`
