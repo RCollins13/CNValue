@@ -14,8 +14,8 @@
 #Usage statement
 usage(){
 cat <<EOF
-usage: CNV_shift_test.sh [-h] [-d DIST] [-N times] [-o OUTDIR]
-                         [-p prefix] [-z] CONTROLS CASES BINS
+usage: CNV_shift_test.sh [-h] [-d DIST] [-b BUFFER] [-N TIMES] [-e EXONS] [-c/-n]
+                         [-o OUTDIR] [-p prefix] [-z] CONTROLS CASES BINS
 
 Permutation test of CNV burdens by local CNV shifting
 
@@ -37,6 +37,9 @@ Optional arguments:
   -b  BUFFER        Distance padded between window and left/right flanking
                     windows, in bp (default: 1,000,000 bp)
   -N  TIMES         Number of permutations to perform (default: 1,000)
+  -e  EXONS         File of exons to use for coding/noncoding filter
+  -c  CODING        Flag to only consider coding (i.e. exon-overlapping) CNVs
+  -n  NONCODING     Flag to only consider noncoding (i.e. not exon-overlapping) CNVs
   -o  OUTFILE       Output file (default: stdout)
   -p  PREFIX        Prefix for all output files (default: TBRden_shuffle)
   -z  GZIP          Gzip output
@@ -50,7 +53,10 @@ TIMES=1000
 OUTFILE=/dev/stdout
 PREFIX="TBRden_CNV_shiftTest"
 GZ=0
-while getopts ":d:b:N:o:p:zh" opt; do
+EXONS=0
+CODING=0
+NONCODING=0
+while getopts ":d:b:N:e:o:p:zcnh" opt; do
   case "$opt" in
     h)
       usage
@@ -64,6 +70,15 @@ while getopts ":d:b:N:o:p:zh" opt; do
       ;;
     N)
       TIMES=${OPTARG}
+      ;;
+    e)
+      EXONS=${OPTARG}
+      ;;
+    c)
+      CODING=1
+      ;;
+    n)
+      NONCODING=1
       ;;
     o)
       OUTFILE=${OPTARG}
@@ -80,6 +95,13 @@ shift $((${OPTIND} - 1))
 CONTROLS=$1
 CASES=$2
 BINS=$3
+
+#Check that both coding and noncoding flags aren't set
+if [ ${CODING} -eq 1 ] && [ ${NONCODING} -eq 1 ]; do
+  echo -e "\nERROR: SPECIFY EITHER -c OR -n, BUT NOT BOTH\n"
+  usage
+  exit 0
+fi
 
 #Set TBRden directory path
 TBRden_bin="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -149,16 +171,40 @@ for i in $( seq 1 ${TIMES} ); do
   #Shift case CNVs by half their size
   Rscript -e "write.table(as.data.frame(sample(c(-${DIST},${DIST}),${nCASE},replace=T)),\
               \"${DIRECTION}\",row.names=F,col.names=F,quote=F)"
-  paste <( fgrep -v "#" ${CASE} ) ${DIRECTION} | awk -v OFS="\t" \
-  '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
-  awk -v OFS="\t" '{ if ($2>=0) print }' > ${CASE_SHUF}
+  if [ ${CODING} -eq 1 ]; then
+    paste <( fgrep -v "#" ${CASE} ) ${DIRECTION} | awk -v OFS="\t" \
+    '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
+    awk -v OFS="\t" '{ if ($2>=0) print }' | \
+    bedtools intersect -wa -u -a - -b ${EXONS} > ${CASE_SHUF}
+  else if [ ${NONCODING} -eq 1 ]; then
+    paste <( fgrep -v "#" ${CASE} ) ${DIRECTION} | awk -v OFS="\t" \
+    '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
+    awk -v OFS="\t" '{ if ($2>=0) print }' | \
+    bedtools intersect -wa -v -a - -b ${EXONS} > ${CASE_SHUF}
+  else
+    paste <( fgrep -v "#" ${CASE} ) ${DIRECTION} | awk -v OFS="\t" \
+    '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
+    awk -v OFS="\t" '{ if ($2>=0) print }' > ${CASE_SHUF}
+  fi
 
   #Shift control CNVs by half their size
   Rscript -e "write.table(as.data.frame(sample(c(-${DIST},${DIST}),${nCTRL},replace=T)),\
               \"${DIRECTION}\",row.names=F,col.names=F,quote=F)"
-  paste <( fgrep -v "#" ${CTRL} ) ${DIRECTION} | awk -v OFS="\t" \
-  '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
-  awk -v OFS="\t" '{ if ($2>=0) print }' > ${CTRL_SHUF}
+  if [ ${CODING} -eq 1 ]; then
+    paste <( fgrep -v "#" ${CTRL} ) ${DIRECTION} | awk -v OFS="\t" \
+    '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
+    awk -v OFS="\t" '{ if ($2>=0) print }' | \
+    bedtools intersect -wa -u -a - -b ${EXONS} > ${CTRL_SHUF}
+  else if [ ${NONCODING} -eq 1 ]; then
+    paste <( fgrep -v "#" ${CTRL} ) ${DIRECTION} | awk -v OFS="\t" \
+    '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
+    awk -v OFS="\t" '{ if ($2>=0) print }' | \
+    bedtools intersect -wa -v -a - -b ${EXONS} > ${CTRL_SHUF}
+  else
+    paste <( fgrep -v "#" ${CTRL} ) ${DIRECTION} | awk -v OFS="\t" \
+    '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
+    awk -v OFS="\t" '{ if ($2>=0) print }' > ${CTRL_SHUF}
+  fi
 
   #Run CNV pileups on shuffled CNVs
   ${TBRden_bin}/TBRden_pileup.sh -d ${BUFFER} -o ${TMPDIR}/${PREFIX}_${i}/${PREFIX}_${i}.CASE_CNVs.pileup.bed ${CASE_SHUF} ${BIN}

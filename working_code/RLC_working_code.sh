@@ -787,24 +787,24 @@ for group in DD SCZ DD_SCZ CNCR; do
       if ! [ -e ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i} ]; then
         mkdir ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}
       fi
-      bsub -q normal -sla miket_sc -J ${group}_vs_CTRL.${CNV}.all.1k_permute.${i} -u nobody \
-      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 100000 -N 100 \
+      bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.all.1k_permute.${i} -u nobody \
+      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 2 -b 1000000 -N 1000 \
       -o ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_all.permuted.${i}.bed \
       -p ${group}_vs_CTRL_${CNV}_all \
       ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
       ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
       ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.Bonferroni.bed"
       #Coding CNVs only
-      bsub -q normal -sla miket_sc -J ${group}_vs_CTRL.${CNV}.coding.1k_permute.${i} -u nobody \
-      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 100000 -N 100 \
+      bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.coding.1k_permute.${i} -u nobody \
+      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 2 -b 100000 -N 1000 \
       -o ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_coding.permuted.${i}.bed \
       -p ${group}_vs_CTRL_${CNV}_coding \
       ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.coding.bed.gz \
       ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.coding.bed.gz \
       ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_coding.Bonferroni.bed"
       #Noncoding CNVs only
-      bsub -q normal -sla miket_sc -J ${group}_vs_CTRL.${CNV}.noncoding.1k_permute.${i} -u nobody \
-      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 100000 -N 100 \
+      bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.noncoding.1k_permute.${i} -u nobody \
+      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 2 -b 100000 -N 1000 \
       -o ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_noncoding.permuted.${i}.bed \
       -p ${group}_vs_CTRL_${CNV}_noncoding \
       ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.noncoding.bed.gz \
