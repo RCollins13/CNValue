@@ -106,9 +106,10 @@ fi
 #Check that exon file exists if either coding or noncoding flag is set
 if [ ${CODING} -eq 1 ] || [ ${NONCODING} -eq 1 ]; then
   if ! [ -e ${EXONS} ]; then
-  echo -e "\nERROR: INVALID EXON FILE (REQUIRED FOR EITHER -c OR -n)\n"
-  usage
-  exit 0
+    echo -e "\nERROR: INVALID EXON FILE (REQUIRED FOR EITHER -c OR -n)\n"
+    usage
+    exit 0
+  fi
 fi
 
 #Set TBRden directory path
@@ -184,7 +185,7 @@ for i in $( seq 1 ${TIMES} ); do
     '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
     awk -v OFS="\t" '{ if ($2>=0) print }' | \
     bedtools intersect -wa -u -a - -b ${EXONS} > ${CASE_SHUF}
-  else if [ ${NONCODING} -eq 1 ]; then
+  elif [ ${NONCODING} -eq 1 ]; then
     paste <( fgrep -v "#" ${CASE} ) ${DIRECTION} | awk -v OFS="\t" \
     '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
     awk -v OFS="\t" '{ if ($2>=0) print }' | \
@@ -203,7 +204,7 @@ for i in $( seq 1 ${TIMES} ); do
     '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
     awk -v OFS="\t" '{ if ($2>=0) print }' | \
     bedtools intersect -wa -u -a - -b ${EXONS} > ${CTRL_SHUF}
-  else if [ ${NONCODING} -eq 1 ]; then
+  elif [ ${NONCODING} -eq 1 ]; then
     paste <( fgrep -v "#" ${CTRL} ) ${DIRECTION} | awk -v OFS="\t" \
     '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
     awk -v OFS="\t" '{ if ($2>=0) print }' | \
