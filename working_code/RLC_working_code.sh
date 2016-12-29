@@ -796,7 +796,7 @@ for group in DD SCZ DD_SCZ CNCR; do
       ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.Bonferroni.bed"
       #Coding CNVs only
       bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.coding.1k_permute.${i} -u nobody \
-      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 2 -b 100000 -N 1000 \
+      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 2 -b 100000 -N 50 \
       -o ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_coding.permuted.${i}.bed \
       -p ${group}_vs_CTRL_${CNV}_coding \
       -c -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \

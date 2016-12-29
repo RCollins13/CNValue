@@ -167,6 +167,9 @@ fi
 nCASE=$( fgrep -v "#" ${CASE} | wc -l )
 nCTRL=$( fgrep -v "#" ${CTRL} | wc -l )
 
+#DEBUG
+echo -e "nCASE: ${nCASE}\nnCTRL: ${nCTRL}"
+
 #Make temporary files for iterating permutations
 DIRECTION=`mktemp`
 CASE_SHUF=`mktemp`
@@ -217,6 +220,9 @@ for i in $( seq 1 ${TIMES} ); do
     '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
     awk -v OFS="\t" '{ if ($2>=0) print }' > ${CTRL_SHUF}
   fi
+
+  #DEBUG
+  echo -e "CASE SHUF: $( wc -l ${CASE_SHUF} )\nCTRL SHUF: $( wc -l ${CTRL_SHUF} )"
 
   #Run CNV pileups on shuffled CNVs
   ${TBRden_bin}/TBRden_pileup.sh -d ${BUFFER} -o ${TMPDIR}/${PREFIX}_${i}/${PREFIX}_${i}.CASE_CNVs.pileup.bed ${CASE_SHUF} ${BIN}
