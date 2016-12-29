@@ -146,26 +146,23 @@ for i in $( seq 1 ${TIMES} ); do
   #Create output directory for shuffle i
   mkdir ${TMPDIR}/${PREFIX}_${i}
 
-=======STOPPED HERE=======
+  #Shift case CNVs by half their size
+  Rscript -e "write.table(as.data.frame(sample(c(-${DIST},${DIST}),${nCASE},replace=T)),\
+              \"${DIRECTION}\",row.names=F,col.names=F,quote=F)"
+  paste <( fgrep -v "#" ${CASE} ) ${DIRECTION} | awk -v OFS="\t" \
+  '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
+  awk -v OFS="\t" '{ if ($2>=0) print }' > ${CASE_SHUF}
 
-  # #Shift case CNVs by half their size
-  # Rscript -e "write.table(as.data.frame(sample(c(-${DIST},${DIST}),${nCASE},replace=T)),\
-  #             \"${DIRECTION}\",row.names=F,col.names=F,quote=F)"
-  # paste <( fgrep -v "#" ${CASE} ) ${DIRECTION} | awk -v OFS="\t" \
-  # '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
-  # awk -v OFS="\t" '{ if ($2<=0) $2=1; print }' | \
-  # awk -v OFS="\t" '{ if ($3<=0) $2=2; print }' > ${CASE_SHUF}
-
-  # #Shift control CNVs by half their size
-  # Rscript -e "write.table(as.data.frame(sample(c(-0.5,0.5),${nCTRL},replace=T)),\
-  #             \"${DIRECTION}\",row.names=F,col.names=F,quote=F)"
-  # paste <( fgrep -v "#" ${CTRL} ) ${DIRECTION} | awk -v OFS="\t" -v d=${DIST} \
-  # '{ printf "%s\t%i\t%i\n", $1, $2+(d*$NF*($3-$2)), $3+(d*$NF*($3-$2)) }' | \
-  # awk -v OFS="\t" '{ if ($2<=0) $2=1; print $0 }' > ${CTRL_SHUF}
+  #Shift control CNVs by half their size
+  Rscript -e "write.table(as.data.frame(sample(c(-${DIST},${DIST}),${nCTRL},replace=T)),\
+              \"${DIRECTION}\",row.names=F,col.names=F,quote=F)"
+  paste <( fgrep -v "#" ${CTRL} ) ${DIRECTION} | awk -v OFS="\t" \
+  '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
+  awk -v OFS="\t" '{ if ($2>=0) print }' > ${CTRL_SHUF}
 
   #Run CNV pileups on shuffled CNVs
-  ${TBRden_bin}/TBRden_pileup.sh -o ${TMPDIR}/${PREFIX}_${i}/${PREFIX}_${i}.CASE_CNVs.pileup.bed ${CASE_SHUF} ${BIN}
-  ${TBRden_bin}/TBRden_pileup.sh -o ${TMPDIR}/${PREFIX}_${i}/${PREFIX}_${i}.CONTROL_CNVs.pileup.bed ${CTRL_SHUF} ${BIN}
+  ${TBRden_bin}/TBRden_pileup.sh -d ${BUFFER} -o ${TMPDIR}/${PREFIX}_${i}/${PREFIX}_${i}.CASE_CNVs.pileup.bed ${CASE_SHUF} ${BIN}
+  ${TBRden_bin}/TBRden_pileup.sh -d ${BUFFER} -o ${TMPDIR}/${PREFIX}_${i}/${PREFIX}_${i}.CONTROL_CNVs.pileup.bed ${CTRL_SHUF} ${BIN}
 
   #Calculate burden from shuffled CNVs
   ${TBRden_bin}/TBRden_test_noPlots.R \
