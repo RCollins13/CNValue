@@ -24,6 +24,7 @@ require("optparse")
 #Function to filter
 filter.table <- function(df,
                          terms,
+                         threshold=0.05,
                          action="include"){
   #Sanity check action
   if(!(action %in% actions)){
@@ -39,11 +40,11 @@ filter.table <- function(df,
   #Get rows passing filter for each column
   if(action=="include"){
     pass <- lapply(cidx,function(i){
-      return(which(df[,i] <= 0.05 & !(is.na(df[,i]))))
+      return(which(df[,i] <= threshold & !(is.na(df[,i]))))
     })
   }else{
     pass <- lapply(cidx,function(i){
-      return(which(df[,i] > 0.05 & !(is.na(df[,i]))))
+      return(which(df[,i] > threshold & !(is.na(df[,i]))))
     })
   }
 
@@ -67,6 +68,9 @@ filter.table <- function(df,
 option_list <- list(
   make_option(c("-a", "--action"), type="character", default="include",
               help="include or exclude bins based on criteria [default '%default']",
+              metavar="character"),
+  make_option(c("-t", "--threshold"), type="integer", default=0.05,
+              help="p-value threshold for including or excluding bins [default '%default']",
               metavar="character"),
   make_option(c("-o", "--outfile"), type="character", default="/dev/stdout",
               help="write output to file [default stdout]",
@@ -95,6 +99,7 @@ terms <- as.vector(read.table(args$args[2],header=F)[,1])
 #Filters
 output <- filter.table(df,
                        terms,
+                       opts$threshold,
                        action=opts$action)
 names(output)[1] <- "#chr"
 
