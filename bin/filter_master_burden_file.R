@@ -69,7 +69,7 @@ option_list <- list(
   make_option(c("-a", "--action"), type="character", default="include",
               help="include or exclude bins based on criteria [default '%default']",
               metavar="character"),
-  make_option(c("-t", "--threshold"), type="integer", default=0.05,
+  make_option(c("-t", "--threshold"), type="numeric", default=0.05,
               help="p-value threshold for including or excluding bins [default '%default']",
               metavar="character"),
   make_option(c("-o", "--outfile"), type="character", default="/dev/stdout",
@@ -99,7 +99,7 @@ terms <- as.vector(read.table(args$args[2],header=F)[,1])
 #Filters
 output <- filter.table(df,
                        terms,
-                       opts$threshold,
+                       threshold=opts$threshold,
                        action=opts$action)
 names(output)[1] <- "#chr"
 
