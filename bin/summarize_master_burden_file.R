@@ -30,7 +30,8 @@ merged_results <- as.data.frame(t(sapply(1:nrow(x),function(i){
   vals <- x[i,-c(1:20)]
   names(vals) <- colnames(x)[-c(1:20)]
 
-  #Report if bin was significant by ANY of CNV/DEL/DUP per disease
+  #Report if bin was significant for ANY filter per CNV/DEL/DUP per disease
+  #or by ANY of CNV/DEL/DUP per disease
   ANY.p <- as.vector(sapply(diseases,function(disease){
     terms <- as.vector(sapply(CNVs,function(CNV){
       unlist(sapply(filts,function(filt){
@@ -38,47 +39,50 @@ merged_results <- as.data.frame(t(sapply(1:nrow(x),function(i){
                  paste(disease,CNV,filt,"perm_p",sep=".")))
       }))
     }))
-    ANYp <- unlist(lapply(list(c(1,7,13),c(2,8,14),c(3,9,15),
+    ANYp <- unlist(lapply(list(c(1,3,5),c(2,4,6),c(7,9,11),
+                               c(8,10,12),c(13,15,17),c(14,16,18),
+                               c(1,7,13),c(2,8,14),c(3,9,15),
                                c(4,10,16),c(5,11,17),c(6,12,18),
                                seq(1,17,2),seq(2,18,2)),
                           function(l){
-      d <- vals[which(names(vals) %in% terms[l])]
-      if(!(all(is.na(d)))){
-        return(min(d,na.rm=T))
-      }else{
-        return(NA)
-      }
-    }))
-    return(ANYp)
-  }))
-
-  #Report if bin was significant by ANY of CNV/DEL/DUP for ANY disease
-  ANY.ANY.p <- as.vector(sapply(CNVs,function(CNV){
-      terms <- as.vector(unlist(sapply(filts,function(filt){
-        return(c(paste(CNV,filt,"obs_p",sep="."),
-                 paste(CNV,filt,"perm_p",sep=".")))
-      })))
-      terms.idx <- as.vector(sapply(terms,function(term){
-        grep(term,names(vals))
-      }))
-      ANY.ANY.p <- unlist(lapply(list(1:4,5:8,9:12,13:16,17:20,21:24,
-                                      c(1:4,9:12,17:20),
-                                      c(5:8,13:16,21:24)),
-                                 function(l){
-                            d <- vals[terms.idx[l]]
+                            d <- vals[which(names(vals) %in% terms[l])]
                             if(!(all(is.na(d)))){
                               return(min(d,na.rm=T))
                             }else{
                               return(NA)
                             }
                           }))
-      return(ANY.ANY.p)
-    }))
-  final.p <- as.vector(sapply(filts,function(filt){
-    terms <- c(paste(filt,"obs_p",sep="."),
-               paste(filt,"perm_p",sep="."))
+    return(ANYp)
+  }))
+
+  #Report if bin was significant by ANY of CNV/DEL/DUP for ANY disease
+  ANY.ANY.p <- as.vector(sapply(CNVs,function(CNV){
+    terms <- as.vector(unlist(sapply(filts,function(filt){
+      return(c(paste(CNV,filt,"obs_p",sep="."),
+               paste(CNV,filt,"perm_p",sep=".")))
+    })))
     terms.idx <- as.vector(sapply(terms,function(term){
       grep(term,names(vals))
+    }))
+    ANY.ANY.p <- unlist(lapply(list(1:4,5:8,9:12,13:16,17:20,21:24,
+                                    c(1:4,9:12,17:20),
+                                    c(5:8,13:16,21:24)),
+                               function(l){
+                                 d <- vals[terms.idx[l]]
+                                 if(!(all(is.na(d)))){
+                                   return(min(d,na.rm=T))
+                                 }else{
+                                   return(NA)
+                                 }
+                               }))
+    return(ANY.ANY.p)
+  }))
+  #ANY DISEASE, ANY CNV
+  final.p <- as.vector(sapply(filts,function(filt){
+    terms <- c(paste("",filt,"obs_p",sep="."),
+               paste("",filt,"perm_p",sep="."))
+    terms.idx <- as.vector(sapply(terms,function(term){
+      grep(term,names(vals),fixed=T)
     }))
     final.p <- unlist(lapply(list(1:12,13:24),function(l){
       d <- vals[terms.idx[l]]
@@ -102,11 +106,17 @@ merged_results <- as.data.frame(t(sapply(1:nrow(x),function(i){
   return(c(ANY.p,ANY.ANY.p,final.p))
 })))
 newcolnames <- as.vector(sapply(diseases,function(disease){
-  sapply(c(filts,"ANY_FILTER"),function(filt){
+  partA <- sapply(CNVs,function(CNV){
+    sapply(c("obs_p","perm_p"),function(measure){
+      return(paste(disease,CNV,"ANY_FILTER",measure,sep="."))
+    })
+  })
+  partB <- sapply(c(filts,"ANY_FILTER"),function(filt){
     sapply(c("obs_p","perm_p"),function(measure){
       return(paste(disease,"ANY_CNV",filt,measure,sep="."))
     })
   })
+  return(c(partA,partB))
 }))
 newcolnames <- c(newcolnames,
                  as.vector(sapply(c(CNVs,"ANY_CNV"),function(CNV){
@@ -115,7 +125,7 @@ newcolnames <- c(newcolnames,
                        return(paste("ANY_DISEASE",CNV,filt,measure,sep="."))
                      })
                    })
-})))
+                 })))
 names(merged_results) <- newcolnames
 results_out <- cbind(x,merged_results)
 names(results_out)[1] <- "#chr"

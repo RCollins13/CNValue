@@ -437,7 +437,7 @@ for CNV in DEL DUP; do
     ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.minSize_maxVF.maxVF.blacklisted.bed
     bedtools intersect -v -f 0.5 \
     -a ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.minSize_maxVF.maxVF.bed \
-    -b ${WRKDIR}/lists/rCNVmap_excluded_loci.bed >> \
+    -b ${WRKDIR}/lists/rCNVmap_excluded_loci.CNVs.bed >> \
     ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.minSize_maxVF.maxVF.blacklisted.bed
   done < ${WRKDIR}/lists/Studies_SampleSizes.list
 done
@@ -688,26 +688,59 @@ for group in CTRL DD SCZ DD_SCZ CNCR; do
   done
 done > ${WRKDIR}/data/plot_data/CNV_size_bySize.noncoding.txt
 
+#####Get pct of reference genome covered by at least one CNV
+gsize=$( grep -ve 'X\|Y\|M' /data/talkowski/rlc47/src/GRCh37.genome | \
+  awk -v OFS="\t" '{ print $1, "1", $2 }' | bedtools subtract -a - \
+  -b /data/talkowski/rlc47/src/GRCh37_Nmask.bed | \
+  awk '{ sum+=($3-$2) }END{ print sum }' )
+#All subjects
+zcat ${WRKDIR}/data/CNV/CNV_MASTER/*CNV.GRCh37.bed.gz | fgrep -v "#" | \
+sort -Vk1,1 -k2,2n -k3,3n | cut -f1-3 | bedtools merge -i - | bedtools coverage -a - \
+-b <( grep -ve 'X\|Y\|M' /data/talkowski/rlc47/src/GRCh37.genome | awk -v OFS="\t" \
+  '{ print $1, "1", $2 }' | bedtools subtract -a - -b /data/talkowski/rlc47/src/GRCh37_Nmask.bed ) | \
+awk -v gsize=${gsize} '{ sum+=$5 }END{ print sum/gsize }'
+#Controls only
+zcat ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.CNV.GRCh37.bed.gz | fgrep -v "#" | \
+sort -Vk1,1 -k2,2n -k3,3n | cut -f1-3 | bedtools merge -i - | bedtools coverage -a - \
+-b <( grep -ve 'X\|Y\|M' /data/talkowski/rlc47/src/GRCh37.genome | awk -v OFS="\t" \
+  '{ print $1, "1", $2 }' | bedtools subtract -a - -b /data/talkowski/rlc47/src/GRCh37_Nmask.bed ) | \
+awk -v gsize=${gsize} '{ sum+=$5 }END{ print sum/gsize }'
+#Cases only
+zcat ${WRKDIR}/data/CNV/CNV_MASTER/DD.CNV.GRCh37.bed.gz \
+${WRKDIR}/data/CNV/CNV_MASTER/SCZ.CNV.GRCh37.bed.gz \
+${WRKDIR}/data/CNV/CNV_MASTER/CNCR.CNV.GRCh37.bed.gz | fgrep -v "#" | \
+sort -Vk1,1 -k2,2n -k3,3n | cut -f1-3 | bedtools merge -i - | bedtools coverage -a - \
+-b <( grep -ve 'X\|Y\|M' /data/talkowski/rlc47/src/GRCh37.genome | awk -v OFS="\t" \
+  '{ print $1, "1", $2 }' | bedtools subtract -a - -b /data/talkowski/rlc47/src/GRCh37_Nmask.bed ) | \
+awk -v gsize=${gsize} '{ sum+=$5 }END{ print sum/gsize }'
+
 #####Run TBRden pileup for all tissue types and all phenotypes (coding & noncoding CNVs)
+#Create master mask of N-masked regions and 1Mb flanking telomeres/centromeres
+grep -e 'centromere\|telomere' /data/talkowski/rlc47/src/GRCh37_heterochromatin.bed | \
+awk -v OFS="\t" '{ print $1, $2-1000000, $3+1000000 }' | awk -v OFS="\t" '{ if ($2<0) $2=0; print }' | \
+cat - /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
+<( grep -e 'X\|Y\|M' ${WRKDIR}/lists/rCNVmap_excluded_loci.CNVs.bed | cut -f1-3 ) | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > ${WRKDIR}/lists/rCNVmap_excluded_loci.bins.bed 
+#Run TBRden pileups
 for group in CTRL DD SCZ DD_SCZ CNCR; do
   for CNV in DEL DUP CNV; do
     #Parallelize intersections (LSF)
     bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_binned_pileup \
     "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 100000 -s 25000 -d 1000000 \
     -o ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.bed \
-    -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
+    -x ${WRKDIR}/lists/rCNVmap_excluded_loci.bins.bed  \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
     /data/talkowski/rlc47/src/GRCh37.genome"
     bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_binned_pileup_noncoding \
     "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 100000 -s 25000 -d 1000000 \
     -o ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.noncoding.bed \
-    -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
+    -x ${WRKDIR}/lists/rCNVmap_excluded_loci.bins.bed  \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.noncoding.bed.gz \
     /data/talkowski/rlc47/src/GRCh37.genome"
     bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_binned_pileup_coding \
     "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 100000 -s 25000 -d 1000000 \
     -o ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.coding.bed \
-    -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
+    -x ${WRKDIR}/lists/rCNVmap_excluded_loci.bins.bed  \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.coding.bed.gz \
     /data/talkowski/rlc47/src/GRCh37.genome"
   done
@@ -788,7 +821,7 @@ for group in DD SCZ DD_SCZ CNCR; do
         mkdir ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}
       fi
       bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.all.1k_permute.${i} -u nobody \
-      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 1000000 -N 44 \
+      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 1000000 -N 1000 \
       -o ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_all.permuted.${i}.bed \
       -p ${group}_vs_CTRL_${CNV}_all \
       ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
@@ -796,7 +829,7 @@ for group in DD SCZ DD_SCZ CNCR; do
       ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.Bonferroni.bed"
       #Coding CNVs only
       bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.coding.1k_permute.${i} -u nobody \
-      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 100000 -N 45 \
+      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 100000 -N 1000 \
       -o ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_coding.permuted.${i}.bed \
       -p ${group}_vs_CTRL_${CNV}_coding \
       -c -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
@@ -805,7 +838,7 @@ for group in DD SCZ DD_SCZ CNCR; do
       ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_coding.Bonferroni.bed"
       #Noncoding CNVs only
       bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.noncoding.1k_permute.${i} -u nobody \
-      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 100000 -N 44 \
+      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 100000 -N 1000 \
       -o ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_noncoding.permuted.${i}.bed \
       -p ${group}_vs_CTRL_${CNV}_noncoding \
       -n -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
@@ -968,6 +1001,7 @@ for group in DD SCZ DD_SCZ CNCR; do
     done | paste - - - - - - - -
   done
 done
+#Count overlap with syndromic CNV intervals
 for group in DD SCZ DD_SCZ CNCR; do
   for CNV in CNV DEL DUP; do
     for filt in all coding noncoding; do
@@ -978,6 +1012,15 @@ for group in DD SCZ DD_SCZ CNCR; do
     done
   done
 done | awk '{ print "=\""$1"/38\"" }'
+#Print overlaps with syndromic CNV intervals for non-coding CNVs
+for group in DD SCZ DD_SCZ CNCR; do
+  echo -e "\n${group}\n"
+  for CNV in CNV DEL DUP; do
+    bedtools intersect -wa -u \
+    -b ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed.gz \
+    -a /data/talkowski/Samples/SFARI/EcoFinal/annotation_files/rCNVs/talkowski_highQual_rCNVs.bed
+  done | sort -Vk1,1 -k2,2n -k3,3n | uniq
+done
 
 #Prep for comparison of final loci within and between sets
 for group in DD SCZ DD_SCZ CNCR; do
@@ -1018,6 +1061,199 @@ for group in DD SCZ DD_SCZ CNCR; do
     done
   done
 done
+
+#####Get list of most significant windows per locus per comparison
+for group in DD SCZ DD_SCZ CNCR ANY_DISEASE; do
+  echo ${group}
+  for CNV in CNV DEL DUP; do
+    echo ${CNV}
+    for filt in all coding noncoding; do
+      while read chr start end; do
+        col=$( zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed.gz | \
+        head -n1 | sed 's/\t/\n/g' | awk -v OFS="\t" '{ print NR, $1 }' | fgrep -w $( echo -e "${group}.${CNV}.${filt}.obs_p" ) | cut -f1 )
+        bedtools intersect -wa -u -b <( echo -e "${chr}\t${start}\t${end}" ) \
+        -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed.gz | \
+        sort -nk${col},${col} | head -n1 | cut -f1-4
+      done < <( zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed.gz | \
+        cut -f1-3 | fgrep -v "#" ) > \
+      ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.peak_windows.bed
+      gzip -f ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.peak_windows.bed
+    done
+  done
+  CNV=ANY_CNV
+  while read chr start end; do
+    col=$( zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed.gz | \
+    head -n1 | sed 's/\t/\n/g' | awk -v OFS="\t" '{ print NR, $1 }' | fgrep -w $( echo -e "${group}.${CNV}.${filt}.obs_p" ) | cut -f1 )
+    bedtools intersect -wa -u -b <( echo -e "${chr}\t${start}\t${end}" ) \
+    -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed.gz | \
+    sort -nk${col},${col} | head -n1 | cut -f1-4
+  done < <( zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.*.${filt}.perm_signif_loci.bed.gz | \
+    cut -f1-3 | fgrep -v "#" | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - ) > \
+  ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.peak_windows.bed
+  gzip -f ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.peak_windows.bed
+done
+#Copy to directory for plotting
+if [ -e ${WRKDIR}/data/plot_data/signif_peak_windows ]; then
+  rm -rf ${WRKDIR}/data/plot_data/signif_peak_windows
+fi
+mkdir ${WRKDIR}/data/plot_data/signif_peak_windows
+for group in DD SCZ DD_SCZ CNCR ANY_DISEASE; do
+  for CNV in CNV DEL DUP ANY_CNV; do
+    for filt in all coding noncoding; do
+      cp ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.peak_windows.bed.gz \
+      ${WRKDIR}/data/plot_data/signif_peak_windows/
+    done
+  done
+done
+
+#####Get counts of significant loci per comparison for Figure 1d barplot
+for group in DD SCZ DD_SCZ CNCR; do
+  echo ${group}
+  for filt in all coding noncoding; do
+    #Any CNV
+    zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.${filt}.perm_signif_loci.bed.gz | wc -l
+    #DEL-specific
+    bedtools intersect -r -f 0.25 -u \
+    -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.${filt}.perm_signif_loci.bed.gz \
+    -b ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.DEL.${filt}.perm_signif_loci.bed.gz | \
+    bedtools intersect -v -r -f 0.5 -a - \
+    -b ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.DUP.${filt}.perm_signif_loci.bed.gz | wc -l
+    #DUP-specific
+    bedtools intersect -r -f 0.25 -u \
+    -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.${filt}.perm_signif_loci.bed.gz \
+    -b ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.DUP.${filt}.perm_signif_loci.bed.gz | \
+    bedtools intersect -v -r -f 0.25 -a - \
+    -b ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.DEL.${filt}.perm_signif_loci.bed.gz | wc -l
+  done | paste - - -
+done | paste - - - - > \
+${WRKDIR}/data/plot_data/signif_loci_breakdown.counts.txt
+
+#####Get overlap for 3-way venn between CNCR, DD, SCZ
+#All
+for group in DD SCZ CNCR; do
+  echo "${group}"
+  notA=$( echo -e "DD\nSCZ\nCNCR" | fgrep -v ${group} | head -n1 )
+  notB=$( echo -e "DD\nSCZ\nCNCR" | fgrep -v ${group} | tail -n1 )
+  #Total
+  zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.ANY_FILTER.perm_signif_loci.bed.gz | \
+  fgrep -v "#" | wc -l
+  #Unique to group
+  bedtools intersect -r -f 0.25 -v \
+  -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.ANY_FILTER.perm_signif_loci.bed.gz \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notA}/${notA}.ANY_CNV.ANY_FILTER.perm_signif_loci.bed.gz | \
+  bedtools intersect -r -f 0.25 -v -a - \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notB}/${notB}.ANY_CNV.ANY_FILTER.perm_signif_loci.bed.gz | wc -l
+  #Shared with A but not B
+  bedtools intersect -r -f 0.25 -u \
+  -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.ANY_FILTER.perm_signif_loci.bed.gz \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notA}/${notA}.ANY_CNV.ANY_FILTER.perm_signif_loci.bed.gz | \
+  bedtools intersect -r -f 0.25 -v -a - \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notB}/${notB}.ANY_CNV.ANY_FILTER.perm_signif_loci.bed.gz | wc -l
+  #Shared with B but not A
+  bedtools intersect -r -f 0.25 -v \
+  -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.ANY_FILTER.perm_signif_loci.bed.gz \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notA}/${notA}.ANY_CNV.ANY_FILTER.perm_signif_loci.bed.gz | \
+  bedtools intersect -r -f 0.25 -u -a - \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notB}/${notB}.ANY_CNV.ANY_FILTER.perm_signif_loci.bed.gz | wc -l
+  #Shared with A and B
+  bedtools intersect -r -f 0.25 -u \
+  -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.ANY_FILTER.perm_signif_loci.bed.gz \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notA}/${notA}.ANY_CNV.ANY_FILTER.perm_signif_loci.bed.gz | \
+  bedtools intersect -r -f 0.25 -u -a - \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notB}/${notB}.ANY_CNV.ANY_FILTER.perm_signif_loci.bed.gz | wc -l
+done | paste - - - - - -
+#Coding
+for group in DD SCZ CNCR; do
+  echo "${group}"
+  notA=$( echo -e "DD\nSCZ\nCNCR" | fgrep -v ${group} | head -n1 )
+  notB=$( echo -e "DD\nSCZ\nCNCR" | fgrep -v ${group} | tail -n1 )
+  #Total
+  zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.coding.perm_signif_loci.bed.gz | \
+  fgrep -v "#" | wc -l
+  #Unique to group
+  bedtools intersect -r -f 0.25 -v \
+  -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.coding.perm_signif_loci.bed.gz \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notA}/${notA}.ANY_CNV.coding.perm_signif_loci.bed.gz | \
+  bedtools intersect -r -f 0.25 -v -a - \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notB}/${notB}.ANY_CNV.coding.perm_signif_loci.bed.gz | wc -l
+  #Shared with A but not B
+  bedtools intersect -r -f 0.25 -u \
+  -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.coding.perm_signif_loci.bed.gz \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notA}/${notA}.ANY_CNV.coding.perm_signif_loci.bed.gz | \
+  bedtools intersect -r -f 0.25 -v -a - \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notB}/${notB}.ANY_CNV.coding.perm_signif_loci.bed.gz | wc -l
+  #Shared with B but not A
+  bedtools intersect -r -f 0.25 -v \
+  -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.coding.perm_signif_loci.bed.gz \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notA}/${notA}.ANY_CNV.coding.perm_signif_loci.bed.gz | \
+  bedtools intersect -r -f 0.25 -u -a - \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notB}/${notB}.ANY_CNV.coding.perm_signif_loci.bed.gz | wc -l
+  #Shared with A and B
+  bedtools intersect -r -f 0.25 -u \
+  -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.coding.perm_signif_loci.bed.gz \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notA}/${notA}.ANY_CNV.coding.perm_signif_loci.bed.gz | \
+  bedtools intersect -r -f 0.25 -u -a - \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notB}/${notB}.ANY_CNV.coding.perm_signif_loci.bed.gz | wc -l
+done | paste - - - - - -
+#Coding
+for group in DD SCZ CNCR; do
+  echo "${group}"
+  notA=$( echo -e "DD\nSCZ\nCNCR" | fgrep -v ${group} | head -n1 )
+  notB=$( echo -e "DD\nSCZ\nCNCR" | fgrep -v ${group} | tail -n1 )
+  #Total
+  zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.noncoding.perm_signif_loci.bed.gz | \
+  fgrep -v "#" | wc -l
+  #Unique to group
+  bedtools intersect -r -f 0.25 -v \
+  -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.noncoding.perm_signif_loci.bed.gz \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notA}/${notA}.ANY_CNV.noncoding.perm_signif_loci.bed.gz | \
+  bedtools intersect -r -f 0.25 -v -a - \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notB}/${notB}.ANY_CNV.noncoding.perm_signif_loci.bed.gz | wc -l
+  #Shared with A but not B
+  bedtools intersect -r -f 0.25 -u \
+  -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.noncoding.perm_signif_loci.bed.gz \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notA}/${notA}.ANY_CNV.noncoding.perm_signif_loci.bed.gz | \
+  bedtools intersect -r -f 0.25 -v -a - \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notB}/${notB}.ANY_CNV.noncoding.perm_signif_loci.bed.gz | wc -l
+  #Shared with B but not A
+  bedtools intersect -r -f 0.25 -v \
+  -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.noncoding.perm_signif_loci.bed.gz \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notA}/${notA}.ANY_CNV.noncoding.perm_signif_loci.bed.gz | \
+  bedtools intersect -r -f 0.25 -u -a - \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notB}/${notB}.ANY_CNV.noncoding.perm_signif_loci.bed.gz | wc -l
+  #Shared with A and B
+  bedtools intersect -r -f 0.25 -u \
+  -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.noncoding.perm_signif_loci.bed.gz \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notA}/${notA}.ANY_CNV.noncoding.perm_signif_loci.bed.gz | \
+  bedtools intersect -r -f 0.25 -u -a - \
+  -b ${WRKDIR}/analysis/Final_Loci/significant/${notB}/${notB}.ANY_CNV.noncoding.perm_signif_loci.bed.gz | wc -l
+done | paste - - - - - -
+
+#####Get overlap between DEL & DUP significant loci (any phenotype)
+#Deletions only
+bedtools intersect -r -f 0.25 -v \
+-a ${WRKDIR}/analysis/Final_Loci/significant/ANY_DISEASE/ANY_DISEASE.DEL.ANY_FILTER.perm_signif_loci.bed.gz \
+-b ${WRKDIR}/analysis/Final_Loci/significant/ANY_DISEASE/ANY_DISEASE.DUP.ANY_FILTER.perm_signif_loci.bed.gz | wc -l
+#Duplications only
+bedtools intersect -r -f 0.25 -v \
+-a ${WRKDIR}/analysis/Final_Loci/significant/ANY_DISEASE/ANY_DISEASE.DUP.ANY_FILTER.perm_signif_loci.bed.gz \
+-b ${WRKDIR}/analysis/Final_Loci/significant/ANY_DISEASE/ANY_DISEASE.DEL.ANY_FILTER.perm_signif_loci.bed.gz | wc -l
+#Overlap
+bedtools intersect -r -f 0.25 \
+-a ${WRKDIR}/analysis/Final_Loci/significant/ANY_DISEASE/ANY_DISEASE.DUP.ANY_FILTER.perm_signif_loci.bed.gz \
+-b ${WRKDIR}/analysis/Final_Loci/significant/ANY_DISEASE/ANY_DISEASE.DEL.ANY_FILTER.perm_signif_loci.bed.gz | wc -l
+
+for group in DD SCZ CNCR; do
+  zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.coding.perm_signif_loci.bed.gz | fgrep -v "#"
+done > ${TMPDIR}/coding.all.bed
+for group in DD SCZ CNCR; do
+  zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.noncoding.perm_signif_loci.bed.gz | fgrep -v "#"
+done > ${TMPDIR}/noncoding.all.bed
+bedtools intersect -r -f 0.25 -v -a ${TMPDIR}/coding.all.bed -b ${TMPDIR}/noncoding.all.bed | wc -l
+bedtools intersect -r -f 0.25 -v -b ${TMPDIR}/coding.all.bed -a ${TMPDIR}/noncoding.all.bed | wc -l
+
+
+
 
 
 

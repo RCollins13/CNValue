@@ -22,7 +22,7 @@ cleanManhattan <- function (df,              #three-column data frame of chrom, 
   }else if(theme=="purple"){
     colors <- c("#601d87","#c470f4","#42f1f4","#f9ea0e")
   }else if(theme=="brown"){
-    colors <- c("#5e522e","#d7c99d","#ffeb19","#19ff34")
+    colors <- c("#5e522e","#f6e8bf","#ffeb19","#19ff34")
   }
   #Gather list of unique contigs
   contigs <- unique(df[,1])
