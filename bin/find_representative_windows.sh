@@ -33,55 +33,44 @@ CNV=$2
 filt=$3
 
 #####Run
-for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
-  echo ${group}
-  for CNV in ANY_CNV CNV DEL DUP; do
-    echo ${CNV}
-    for filt in ANY_FILTER all coding noncoding; do
-      #Parallelize
-      # bsub -q short -sla miket_sc -u nobody -J ${group}.${CNV}.${filt}.findPeakWindows \
-      # "${WRKDIR}/bin/rCNVmap/bin/find_peak_window.sh ${group} ${CNV} ${filt}"
-      while read chr start end; do
-        size=$((${end}-${start}))
-        mod=$( expr ${size} % 100000 )
-        case ${mod} in
-          0)
-            paste <( seq ${start} 100000 $((${end}-100000)) ) \
-            <( seq $((${start}+100000)) 100000 ${end} ) | \
-            awk -v OFS="\t" -v chr=${chr} '{ print chr, $0 }' | \
-            bedtools intersect -wa -r -f 1 -b - \
-            -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | \
-            cut -f1-4
-            ;;
-          25000)
-            paste <( seq ${start} 100000 $((${end}-125000)) ) \
-            <( seq $((${start}+100000)) 100000 $((${end}-25000)) ) | \
-            awk -v OFS="\t" -v chr=${chr} '{ print chr, $0 }' | \
-            bedtools intersect -wa -r -f 1 -b - \
-            -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | \
-            cut -f1-4
-            ;;
-          50000)
-            paste <( seq $((${start}-25000)) 100000 $((${end}-75000)) ) \
-            <( seq $((${start}+75000)) 100000 $((${end}+25000)) ) | \
-            awk -v OFS="\t" -v chr=${chr} '{ print chr, $0 }' | \
-            bedtools intersect -wa -r -f 1 -b - \
-            -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | \
-            cut -f1-4
-            ;;
-          75000)
-            paste <( seq ${start} 100000 $((${end}-75000)) ) \
-            <( seq $((${start}+100000)) 100000 $((${end}+25000)) ) | \
-            awk -v OFS="\t" -v chr=${chr} '{ print chr, $0 }' | \
-            bedtools intersect -wa -r -f 1 -b - \
-            -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | \
-            cut -f1-4
-            ;;
-        esac
-      done < <( zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed.gz | \
-        fgrep -v "#" | cut -f1-3 ) | sort -Vk1,1 -k2,2n -k3,3n | uniq > \
-      ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.representative_windows.bed
-      gzip -f ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.representative_windows.bed
-    done
-  done
-done
+while read chr start end; do
+  size=$((${end}-${start}))
+  mod=$( expr ${size} % 100000 )
+  case ${mod} in
+    0)
+      paste <( seq ${start} 100000 $((${end}-100000)) ) \
+      <( seq $((${start}+100000)) 100000 ${end} ) | \
+      awk -v OFS="\t" -v chr=${chr} '{ print chr, $0 }' | \
+      bedtools intersect -wa -r -f 1 -b - \
+      -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | \
+      cut -f1-4
+      ;;
+    25000)
+      paste <( seq ${start} 100000 $((${end}-125000)) ) \
+      <( seq $((${start}+100000)) 100000 $((${end}-25000)) ) | \
+      awk -v OFS="\t" -v chr=${chr} '{ print chr, $0 }' | \
+      bedtools intersect -wa -r -f 1 -b - \
+      -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | \
+      cut -f1-4
+      ;;
+    50000)
+      paste <( seq $((${start}-25000)) 100000 $((${end}-75000)) ) \
+      <( seq $((${start}+75000)) 100000 $((${end}+25000)) ) | \
+      awk -v OFS="\t" -v chr=${chr} '{ print chr, $0 }' | \
+      bedtools intersect -wa -r -f 1 -b - \
+      -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | \
+      cut -f1-4
+      ;;
+    75000)
+      paste <( seq ${start} 100000 $((${end}-75000)) ) \
+      <( seq $((${start}+100000)) 100000 $((${end}+25000)) ) | \
+      awk -v OFS="\t" -v chr=${chr} '{ print chr, $0 }' | \
+      bedtools intersect -wa -r -f 1 -b - \
+      -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | \
+      cut -f1-4
+      ;;
+  esac
+done < <( zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed.gz | \
+  fgrep -v "#" | cut -f1-3 ) | sort -Vk1,1 -k2,2n -k3,3n | uniq > \
+${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.representative_windows.bed
+gzip -f ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.representative_windows.bed

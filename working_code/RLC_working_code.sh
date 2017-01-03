@@ -1112,8 +1112,8 @@ for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
     echo ${CNV}
     for filt in ANY_FILTER all coding noncoding; do
       #Parallelize
-      # bsub -q short -sla miket_sc -u nobody -J ${group}.${CNV}.${filt}.findPeakWindows \
-      # "${WRKDIR}/bin/rCNVmap/bin/find_peak_window.sh ${group} ${CNV} ${filt}"
+      bsub -q short -sla miket_sc -u nobody -J ${group}.${CNV}.${filt}.findRepWindows \
+      "${WRKDIR}/bin/rCNVmap/bin/find_representative_windows.sh ${group} ${CNV} ${filt}"
       while read chr start end; do
         size=$((${end}-${start}))
         mod=$( expr ${size} % 100000 )
@@ -1141,6 +1141,7 @@ for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
             bedtools intersect -wa -r -f 1 -b - \
             -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | \
             cut -f1-4
+            ;;
           75000)
             paste <( seq ${start} 100000 $((${end}-75000)) ) \
             <( seq $((${start}+100000)) 100000 $((${end}+25000)) ) | \
@@ -1151,9 +1152,9 @@ for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
             ;;
         esac
       done < <( zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed.gz | \
-        fgrep -v "#" | cut -f1-3 ) | sort -Vk1,1 -k2,2n -k3,3n > \
-      ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.representative_windows.bed
-      gzip -f ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.representative_windows.bed
+        fgrep -v "#" | cut -f1-3 ) | sort -Vk1,1 -k2,2n -k3,3n | uniq > \
+      # ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.representative_windows.bed
+      # gzip -f ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.representative_windows.bed
     done
   done
 done
