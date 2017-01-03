@@ -437,8 +437,9 @@ for CNV in DEL DUP; do
   while read study n PMID; do
     echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
     ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.minSize_maxVF.maxVF.blacklisted.bed
-    bedtools intersect -v -f 0.5 \
-    -a ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.minSize_maxVF.maxVF.bed \
+    sed -e 's/^x/X/g' -e 's/^y/Y/g' -e 's/^MT/M/g' -e 's/^5_/5/g' -e 's/^16_/16/g' \
+    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.minSize_maxVF.maxVF.bed | \
+    bedtools intersect -v -f 0.5 -a - \
     -b ${WRKDIR}/lists/rCNVmap_excluded_loci.CNVs.bed >> \
     ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.minSize_maxVF.maxVF.blacklisted.bed
   done < ${WRKDIR}/lists/Studies_SampleSizes.list
@@ -609,7 +610,7 @@ for CNV in CNV DEL DUP; do
       awk '{ print $3-$2 }' | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
     done | paste - - - - - - -
   done
-done
+done | awk -v OFS="\t" '{ print $1, $2, $3, $4, $6, $8, $5, $7, $9 }'
 #Get median sizes of all CNVs by class & germline/all
 for CNV in CNV DEL DUP; do
   echo -e "\n${CNV}\n"
@@ -791,7 +792,7 @@ for group in DD SCZ DD_SCZ CNCR; do
   done
 done
 
-#####Run 100k CNV shift permutation tests for all comparisons
+#####Run 10k CNV shift permutation tests for all comparisons
 #Note: initial p-value cutoff used: 0.05/26802 = 1.865532e-06
 #This corresponds to the number of non-overlapping autosomal 100kb bins we tested (after blacklisting N-mask, etc)
 for group in DD SCZ DD_SCZ CNCR; do
@@ -823,7 +824,7 @@ for group in DD SCZ DD_SCZ CNCR; do
         mkdir ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}
       fi
       bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.all.1k_permute.${i} -u nobody \
-      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 1000000 -N 1000 \
+      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 1000000 -N 100 \
       -o ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_all.permuted.${i}.bed \
       -p ${group}_vs_CTRL_${CNV}_all \
       ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
@@ -831,7 +832,7 @@ for group in DD SCZ DD_SCZ CNCR; do
       ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.Bonferroni.bed"
       #Coding CNVs only
       bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.coding.1k_permute.${i} -u nobody \
-      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 100000 -N 1000 \
+      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 100000 -N 100 \
       -o ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_coding.permuted.${i}.bed \
       -p ${group}_vs_CTRL_${CNV}_coding \
       -c -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
@@ -840,7 +841,7 @@ for group in DD SCZ DD_SCZ CNCR; do
       ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_coding.Bonferroni.bed"
       #Noncoding CNVs only
       bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.noncoding.1k_permute.${i} -u nobody \
-      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 100000 -N 1000 \
+      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 100000 -N 100 \
       -o ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_noncoding.permuted.${i}.bed \
       -p ${group}_vs_CTRL_${CNV}_noncoding \
       -n -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
@@ -862,7 +863,7 @@ for group in DD SCZ DD_SCZ CNCR; do
       done > ${TMPDIR}/${group}_${CNV}_${filt}_perm.in.txt
       Rscript -e "options(scipen=100);\
       d <- apply(read.table(\"${TMPDIR}/${group}_${CNV}_${filt}_perm.in.txt\",header=F),2,sum);\
-      write.table(data.frame(\"perms_less_sig\"=100000-d,\"perms_as_or_more_sig\"=d,\"perm_p\"=(d+1)/100001),\
+      write.table(data.frame(\"perms_less_sig\"=10000-d,\"perms_as_or_more_sig\"=d,\"perm_p\"=(d+1)/10001),\
         \"${TMPDIR}/${group}_${CNV}_${filt}_perm.out.txt\",row.names=F,col.names=T,sep=\"\t\",quote=F)"
       paste <( zcat ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/001/${group}_vs_CTRL_${CNV}_${filt}.permuted.001.bed.gz | cut -f1-5 ) \
       ${TMPDIR}/${group}_${CNV}_${filt}_perm.out.txt > \
@@ -1100,6 +1101,59 @@ for group in DD SCZ DD_SCZ CNCR ANY_DISEASE; do
     for filt in all coding noncoding; do
       cp ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.peak_windows.bed.gz \
       ${WRKDIR}/data/plot_data/signif_peak_windows/
+    done
+  done
+done
+
+#####Get list of most representative windows per locus per comparison (drawn vs disease-specific loci)
+for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+  echo ${group}
+  for CNV in ANY_CNV CNV DEL DUP; do
+    echo ${CNV}
+    for filt in ANY_FILTER all coding noncoding; do
+      #Parallelize
+      # bsub -q short -sla miket_sc -u nobody -J ${group}.${CNV}.${filt}.findPeakWindows \
+      # "${WRKDIR}/bin/rCNVmap/bin/find_peak_window.sh ${group} ${CNV} ${filt}"
+      while read chr start end; do
+        size=$((${end}-${start}))
+        mod=$( expr ${size} % 100000 )
+        case ${mod} in
+          0)
+            paste <( seq ${start} 100000 $((${end}-100000)) ) \
+            <( seq $((${start}+100000)) 100000 ${end} ) | \
+            awk -v OFS="\t" -v chr=${chr} '{ print chr, $0 }' | \
+            bedtools intersect -wa -r -f 1 -b - \
+            -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | \
+            cut -f1-4
+            ;;
+          25000)
+            paste <( seq ${start} 100000 $((${end}-125000)) ) \
+            <( seq $((${start}+100000)) 100000 $((${end}-25000)) ) | \
+            awk -v OFS="\t" -v chr=${chr} '{ print chr, $0 }' | \
+            bedtools intersect -wa -r -f 1 -b - \
+            -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | \
+            cut -f1-4
+            ;;
+          50000)
+            paste <( seq $((${start}-25000)) 100000 $((${end}-75000)) ) \
+            <( seq $((${start}+75000)) 100000 $((${end}+25000)) ) | \
+            awk -v OFS="\t" -v chr=${chr} '{ print chr, $0 }' | \
+            bedtools intersect -wa -r -f 1 -b - \
+            -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | \
+            cut -f1-4
+          75000)
+            paste <( seq ${start} 100000 $((${end}-75000)) ) \
+            <( seq $((${start}+100000)) 100000 $((${end}+25000)) ) | \
+            awk -v OFS="\t" -v chr=${chr} '{ print chr, $0 }' | \
+            bedtools intersect -wa -r -f 1 -b - \
+            -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | \
+            cut -f1-4
+            ;;
+        esac
+      done < <( zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed.gz | \
+        fgrep -v "#" | cut -f1-3 ) | sort -Vk1,1 -k2,2n -k3,3n > \
+      ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.representative_windows.bed
+      gzip -f ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.representative_windows.bed
     done
   done
 done
@@ -2358,65 +2412,65 @@ for group in DD SCZ DD_SCZ CNCR; do
   done
 done
 
-#####Run 100k CNV shift permutation tests for exon comparisons
-#Note: initial p-value cutoff used: 0.05/185277 = 0.0000002698662
-#This corresponds to the number of non-overlapping protein-coding exons we tested
-for group in DD SCZ DD_SCZ CNCR; do
-  echo ${group}
-  if [ -e ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL ]; then
-    rm -rf ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL
-  fi
-  mkdir ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL
-  mkdir ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split
-  for CNV in DEL DUP CNV; do
-    echo ${CNV}
-    #Coding + noncoding CNVs
-    zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.TBRden_results.bed.gz | \
-    awk -v OFS="\t" '{ if ($NF<=(0.05/26802)) print $0 }' > \
-    ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.Bonferroni.bed
-    #Coding CNVs only
-    zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_coding.TBRden_results.bed.gz | \
-    awk -v OFS="\t" '{ if ($NF<=(0.05/26802)) print $0 }' > \
-    ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_coding.Bonferroni.bed
-    #Noncoding CNVs only
-    zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_noncoding.TBRden_results.bed.gz | \
-    awk -v OFS="\t" '{ if ($NF<=(0.05/26802)) print $0 }' > \
-    ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_noncoding.Bonferroni.bed
-    #Split into partitions of 1k permutations each (x100 per comparison)
-    for i in $( seq -w 001 100 ); do
-      echo ${i}
-      #Coding + noncoding CNVs
-      if ! [ -e ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i} ]; then
-        mkdir ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}
-      fi
-      bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.all.1k_permute.${i} -u nobody \
-      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 1000000 -N 1000 \
-      -o ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_all.permuted.${i}.bed \
-      -p ${group}_vs_CTRL_${CNV}_all \
-      ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
-      ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
-      ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.Bonferroni.bed"
-      #Coding CNVs only
-      bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.coding.1k_permute.${i} -u nobody \
-      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 100000 -N 1000 \
-      -o ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_coding.permuted.${i}.bed \
-      -p ${group}_vs_CTRL_${CNV}_coding \
-      -c -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
-      ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
-      ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
-      ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_coding.Bonferroni.bed"
-      #Noncoding CNVs only
-      bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.noncoding.1k_permute.${i} -u nobody \
-      "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 100000 -N 1000 \
-      -o ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_noncoding.permuted.${i}.bed \
-      -p ${group}_vs_CTRL_${CNV}_noncoding \
-      -n -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
-      ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
-      ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
-      ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_noncoding.Bonferroni.bed"
-    done
-  done
-done
+# #####Run 100k CNV shift permutation tests for exon comparisons
+# #Note: initial p-value cutoff used: 0.05/18991 = 0.000002632826
+# #This corresponds to the number of non-overlapping protein-coding exons we tested
+# for group in DD SCZ DD_SCZ CNCR; do
+#   echo ${group}
+#   if [ -e ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL ]; then
+#     rm -rf ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL
+#   fi
+#   mkdir ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL
+#   mkdir ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split
+#   for CNV in DEL DUP CNV; do
+#     echo ${CNV}
+#     #Coding + noncoding CNVs
+#     zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.TBRden_results.bed.gz | \
+#     awk -v OFS="\t" '{ if ($NF<=(0.05/26802)) print $0 }' > \
+#     ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.Bonferroni.bed
+#     #Coding CNVs only
+#     zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_coding.TBRden_results.bed.gz | \
+#     awk -v OFS="\t" '{ if ($NF<=(0.05/26802)) print $0 }' > \
+#     ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_coding.Bonferroni.bed
+#     #Noncoding CNVs only
+#     zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_noncoding.TBRden_results.bed.gz | \
+#     awk -v OFS="\t" '{ if ($NF<=(0.05/26802)) print $0 }' > \
+#     ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_noncoding.Bonferroni.bed
+#     #Split into partitions of 1k permutations each (x100 per comparison)
+#     for i in $( seq -w 001 100 ); do
+#       echo ${i}
+#       #Coding + noncoding CNVs
+#       if ! [ -e ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i} ]; then
+#         mkdir ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}
+#       fi
+#       bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.all.1k_permute.${i} -u nobody \
+#       "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 1000000 -N 1000 \
+#       -o ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_all.permuted.${i}.bed \
+#       -p ${group}_vs_CTRL_${CNV}_all \
+#       ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
+#       ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
+#       ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.Bonferroni.bed"
+#       #Coding CNVs only
+#       bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.coding.1k_permute.${i} -u nobody \
+#       "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 100000 -N 1000 \
+#       -o ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_coding.permuted.${i}.bed \
+#       -p ${group}_vs_CTRL_${CNV}_coding \
+#       -c -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
+#       ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
+#       ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
+#       ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_coding.Bonferroni.bed"
+#       #Noncoding CNVs only
+#       bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.noncoding.1k_permute.${i} -u nobody \
+#       "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 100000 -N 1000 \
+#       -o ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_noncoding.permuted.${i}.bed \
+#       -p ${group}_vs_CTRL_${CNV}_noncoding \
+#       -n -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
+#       ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
+#       ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
+#       ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_noncoding.Bonferroni.bed"
+#     done
+#   done
+# done
 
 
 
