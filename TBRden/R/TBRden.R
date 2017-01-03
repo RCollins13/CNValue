@@ -56,7 +56,7 @@ TBRden <- function(controls,         #Path to TBRden_pileup.sh output for the co
 
   #Report minimum p-value for each TBR between left and right comparisons
   fisher <- as.data.frame(cbind(fisher.L,fisher.R,fisher.M))
-  fisher[,7] <- apply(fisher[,c(1,3)],1,min,na.rm=T)
+  fisher[,7] <- apply(fisher[,c(1,3,5)],1,min,na.rm=T)
   names(fisher) <- c("p.Left","OR.Left","p.Right","OR.Right",
                      "p.Combined","OR.Combined","p.Min")
 
