@@ -164,6 +164,24 @@ fi
 
 #Calculates observed dCNVs for all sites
 OBSERVED=`mktemp`
+if [ ${CODING} -eq 1 ]; then
+  paste <( bedtools intersect -u -wa -a ${CASE} -b ${EXONS} | \
+  bedtools intersect -c -a ${BIN} -b - | awk '{ print $NF }' ) \
+  <( bedtools intersect -u -wa -a ${CTRL} -b ${EXONS} | \
+  bedtools intersect -c -a ${BIN} -b - | awk '{ print $NF }' ) | \
+  awk -v OFS="\t" '{ print $1-$2 }' | paste <( fgrep -v "#" ${BINS} ) - > ${OBSERVED}
+elif [ ${NONCODING} -eq 1 ]; then
+  paste <( bedtools intersect -v -wa -a ${CASE} -b ${EXONS} | \
+  bedtools intersect -c -a ${BIN} -b - | awk '{ print $NF }' ) \
+  <( bedtools intersect -v -wa -a ${CTRL} -b ${EXONS} | \
+  bedtools intersect -c -a ${BIN} -b - | awk '{ print $NF }' ) | \
+  awk -v OFS="\t" '{ print $1-$2 }' | paste <( fgrep -v "#" ${BINS} ) - > ${OBSERVED}
+else
+  paste <( fgrep -v "#" ${CTRL} ) ${DIRECTION} | awk -v OFS="\t" \
+  '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
+  awk -v OFS="\t" '{ if ($2>=0) print }' > ${CTRL_SHUF}
+fi
+
 paste <( bedtools intersect -c -a ${BIN} -b ${CASE} | awk '{ print $NF }' ) \
 <( bedtools intersect -c -a ${BIN} -b ${CTRL} | awk '{ print $NF }' ) | \
 awk -v OFS="\t" '{ print $1-$2 }' | paste <( fgrep -v "#" ${BINS} ) - > ${OBSERVED}

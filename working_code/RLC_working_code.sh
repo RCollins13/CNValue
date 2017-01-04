@@ -2334,11 +2334,12 @@ while read anno skip; do
 done < ${WRKDIR}/lists/annotations_exonExclusion.all.list > \
 ${TMPDIR}/noncoding_anno_results.txt
 
-#####Run protein-coding exon pileups
+#####Run protein-coding exon pileups for noncoding rCNVs in flanks
+#Prep list of 50kb flanks
 for group in CTRL DD SCZ DD_SCZ CNCR; do
   for CNV in DEL DUP CNV; do
     #Parallelize intersections (LSF)
-    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_exon_pileup \
+    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_exon_burden \
     "${WRKDIR}/bin/rCNVmap/bin/TBRden_pileup.sh -z -d 1000000 \
     -o ${WRKDIR}/analysis/EXON_CNV_pileups/${group}.${CNV}.TBRden_exon_pileup.bed \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
