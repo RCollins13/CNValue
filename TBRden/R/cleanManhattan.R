@@ -43,8 +43,10 @@ cleanManhattan <- function (df,              #three-column data frame of chrom, 
   df.plot[,2] <- as.numeric(as.character(df.plot[,2]))
   df.plot[,3] <- as.numeric(as.character(df.plot[,3]))
   #Prepare plotting window
+  ymax <- -log10(df[which(!(is.na(df[,3]))),3])
+  ymax <- max(ymax[which(!(is.infinite(ymax)))])
   par(mar=c(2.1,3.1,0.6,0.6))
-  plot(x=c(0,max(indexes[,4])),y=c(0,1.1*max(-log10(df[,3]))),
+  plot(x=c(0,max(indexes[,4])),y=c(0,1.1*ymax),
        type="n",xaxs="i",yaxs="i",xaxt="n",yaxt="n",xlab="",ylab="")
   rect(xleft=rep(par("usr")[1],3),xright=rep(par("usr")[2],3),
        ybottom=c(par("usr")[3],-log10(nominal),-log10(adjusted)),
