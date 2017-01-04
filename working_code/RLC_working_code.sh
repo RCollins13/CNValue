@@ -792,6 +792,19 @@ for group in DD SCZ DD_SCZ CNCR; do
   done
 done
 
+#TRIAL NEW PERMUTATION STRATEGY
+for group in DD SCZ DD_SCZ CNCR; do
+  zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_CNV_all.TBRden_results.bed.gz | \
+  awk -v OFS="\t" '{ if ($NF<=0.05) print $0 }' > \
+  ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.Nominal.bed
+  bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_exon_flanking_burden \
+  "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -N 1000 -z -t upper \
+    -p ${group}_CNV_all_permTrial \
+    ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
+    ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
+    ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.Nominal.bed \
+    ${WRKDIR}/${group}_CNV_all_permTrial/"
+
 #####Run 10k CNV shift permutation tests for all comparisons
 #Note: initial p-value cutoff used: 0.05/26802 = 1.865532e-06
 #This corresponds to the number of non-overlapping autosomal 100kb bins we tested (after blacklisting N-mask, etc)
@@ -2346,7 +2359,7 @@ for group in DD SCZ DD_SCZ CNCR; do
   for CNV in DEL DUP CNV; do
     #Parallelize intersections (LSF)
     bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_exon_flanking_burden \
-    "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -N 10 -n -z -t upper \
+    "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -N 500 -n -z -t upper \
     -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
     -p ${group}_${CNV}_noncoding_exonFlanks \
     ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \

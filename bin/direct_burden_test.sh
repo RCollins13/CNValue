@@ -177,9 +177,9 @@ elif [ ${NONCODING} -eq 1 ]; then
   bedtools intersect -c -a ${BIN} -b - | awk '{ print $NF }' ) | \
   awk -v OFS="\t" '{ print $1-$2 }' | paste <( fgrep -v "#" ${BINS} ) - > ${OBSERVED}
 else
-  paste <( fgrep -v "#" ${CTRL} ) ${DIRECTION} | awk -v OFS="\t" \
-  '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
-  awk -v OFS="\t" '{ if ($2>=0) print }' > ${OBSERVED}
+  paste <( bedtools intersect -c -a ${BIN} -b ${CASE} | awk '{ print $NF }' ) \
+  <( bedtools intersect -c -a ${BIN} -b ${CTRL} | awk '{ print $NF }' ) | \
+  awk -v OFS="\t" '{ print $1-$2 }' | paste <( fgrep -v "#" ${BINS} ) - > ${OBSERVED}
 fi
 
 #Get counts of number of case & control CNVs
