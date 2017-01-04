@@ -155,7 +155,7 @@ GZI_BINS=0
 if [ $( file ${BINS} | fgrep "gzip compressed" | wc -l ) -gt 0 ]; then
   GZI_BINS=1
   BIN=`mktemp`; mv ${BIN} ${BIN}.gz; BIN=${BIN}.gz
-  cp ${BIN} ${BIN}
+  cp ${BINS} ${BIN}
   gunzip ${BIN}
   BIN=$( echo "${CASE}" | sed 's/\.gz/\t/g' | cut -f1 )
 else

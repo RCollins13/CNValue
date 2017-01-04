@@ -2336,14 +2336,23 @@ ${TMPDIR}/noncoding_anno_results.txt
 
 #####Run protein-coding exon pileups for noncoding rCNVs in flanks
 #Prep list of 50kb flanks
+distance=50000
+awk -v OFS="\t" -v d=${distance} '{ print $1, $2-d, $3+d, $4 }' \
+${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed > \
+${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.50kb_windows.bed
+#Launch tests
 for group in CTRL DD SCZ DD_SCZ CNCR; do
   for CNV in DEL DUP CNV; do
     #Parallelize intersections (LSF)
-    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_exon_burden \
-    "${WRKDIR}/bin/rCNVmap/bin/TBRden_pileup.sh -z -d 1000000 \
-    -o ${WRKDIR}/analysis/EXON_CNV_pileups/${group}.${CNV}.TBRden_exon_pileup.bed \
-    ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
-    ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed"
+    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_exon_flanking_burden \
+    "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -N 10000 -n -z -t upper \
+    -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
+    -p ${group}_${CNV}_noncoding_exonFlanks \
+    -o ${WRKDIR}/analysis/EXON_CNV_burdens/${group}.${CNV}.TBRden_exon_burdens.bed \
+    ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.noncoding.bed.gz
+    ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.noncoding.bed.gz \
+    ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.50kb_windows.bed \
+    ${WRKDIR}/analysis/EXON_CNV_burdens/"
   done
 done
 
