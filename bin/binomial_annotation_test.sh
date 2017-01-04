@@ -15,7 +15,7 @@
 usage(){
 cat <<EOF
 usage: binomial_annotation_test.sh [-h] [-N TIMES] [-x EXCLUDE] [-a ALTERNATIVE]
-                                   [-p prefix] [-z] LOCI ALL_BINS ANNO OUTDIR 
+                                   [-p prefix] LOCI ALL_BINS ANNO OUTDIR 
 
 Binomial test of genomic annotation enrichment against a set of loci of interest
 
@@ -31,17 +31,16 @@ Optional arguments:
   -x  EXCLUDE       BED intervals used to blacklist annotation file
   -a  ALTERNATIVE   Alternative hypothesis to test; either "greater" or "less"
   -p  PREFIX        Prefix for all output files (default: TBRden_binomial_annotation_test)
-  -z  GZIP          Gzip output
 EOF
 }
 
 #Parse arguments
 TIMES=1000
 EXCLUDE=0
-ALT="upper"
+ALT="greater"
 PREFIX="TBRden_binomial_annotation_test"
 GZ=0
-while getopts ":N:x:a:p:zh" opt; do
+while getopts ":N:x:a:p:h" opt; do
   case "$opt" in
     h)
       usage
@@ -58,9 +57,6 @@ while getopts ":N:x:a:p:zh" opt; do
       ;;
     p)
       PREFIX=${OPTARG}
-      ;;
-    z)
-      GZ=1
       ;;
   esac
 done
@@ -153,8 +149,6 @@ for i in $( seq 1 ${TIMES} ); do
 done > ${TMPDIR}/perm_results.txt
 
 #Run helper R script to calculate P value and plot results
-
-#Run statistical modeling & print results to outfile
 ${TBRden_bin}/TBRden_run_binomialHelper.R \
 $( awk '{ if ($NF>0) print $0 }' ${OBSERVED} | wc -l ) \
 ${nLOCI} \

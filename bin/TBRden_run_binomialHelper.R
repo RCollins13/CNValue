@@ -18,5 +18,5 @@ library(TBRden)
 args <- commandArgs(trailingOnly=T)
 
 #Run TBRden
-binomialHelper(obs=args[1],n=args[2],perm=args[3],
-	alt=args[4],OUTDIR=args[5],prefix=args[6])
+binomialHelper(obs=as.integer(args[1]),n=as.integer(args[2]),
+	perm=args[3],alt=args[4],OUTDIR=args[5],prefix=args[6])
