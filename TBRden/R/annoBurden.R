@@ -57,22 +57,41 @@ annoBurden <- function(anno,             #Path to all annotated bins (genome-wid
                   intern=T,wait=T),split="\\t")),ncol=4,byrow=T))
   colnames(loci.test) <- c("chr","start","end","bins")
 
+  #Get statistics for test set
+  observed.stats <- as.data.frame(t(apply(loci.test,1,function(coordinates){
+    bins.contained <- bins.all[which(bins.all[,1]==coordinates[1] &
+                                       bins.all[,2]>=coordinates[2] &
+                                       bins.all[,3]<=coordinates[3]),]
+    if(any(bins.contained[,5]>0)){
+      binary <- 1
+    }else{
+      binary <- 0
+    }
+    return(c(binary,mean(bins.contained[,5])))
+  })))
+
   #Parameterize null distribution
   permuted.stats <- as.data.frame(t(sapply(1:perm,function(i){
     #Nucleate new loci
     starts <- sample(1:nrow(bins.all),nrow(loci.test),replace=F)
-    #Gather all non-overlapping sampled bins
-    sampled.bins <- bins.all[sort(unlist(sapply(1:length(starts),function(j){
-      binidx <- sapply(1:loci.test[j,4],function(k){
-        return(starts[j]+((k-1)*stepsize.bins))
-      })
-      return(binidx)
-    }))),]
-    #Count successes, stdev of successes, mean, and stdev of values
-    binary.counts <- sampled.bins[,5]
-    binary.counts[which(binary.counts>0)] <- 1
-    return(c(mean(binary.counts,na.rm=T),sd(binary.counts,na.rm=T),
-             mean(sampled.bins[,5],na.rm=T),sd(sampled.bins[,5],na.rm=T)))
+    sizes <- loci.test[,3]-loci.test[,2]
+    sampled.loci <- bins.all[starts,1:3]
+    sampled.loci[,3] <- sampled.loci[,2]+sizes
+    #Gather annotations for each locus
+    perm.bin.annos <- as.data.frame(t(apply(sampled.loci,1,function(coordinates){
+      bins.contained <- bins.all[which(bins.all[,1]==coordinates[1] &
+                                         bins.all[,2]>=coordinates[2] &
+                                         bins.all[,3]<=coordinates[3]),]
+      if(any(bins.contained[,5]>0)){
+        binary <- 1
+      }else{
+        binary <- 0
+      }
+      return(c(binary,mean(bins.contained[,5])))
+    })))
+    #Return summary annotations across all loci
+    return(c(mean(perm.bin.annos[,1]),sd(perm.bin.annos[,1]),
+           mean(perm.bin.annos[,2]),sd(perm.bin.annos[,2])))
   })))
 
   #
