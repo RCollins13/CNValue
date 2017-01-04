@@ -179,12 +179,8 @@ elif [ ${NONCODING} -eq 1 ]; then
 else
   paste <( fgrep -v "#" ${CTRL} ) ${DIRECTION} | awk -v OFS="\t" \
   '{ printf "%s\t%i\t%i\n", $1, $2+($NF*($3-$2)), $3+($NF*($3-$2)) }' | \
-  awk -v OFS="\t" '{ if ($2>=0) print }' > ${CTRL_SHUF}
+  awk -v OFS="\t" '{ if ($2>=0) print }' > ${OBSERVED}
 fi
-
-paste <( bedtools intersect -c -a ${BIN} -b ${CASE} | awk '{ print $NF }' ) \
-<( bedtools intersect -c -a ${BIN} -b ${CTRL} | awk '{ print $NF }' ) | \
-awk -v OFS="\t" '{ print $1-$2 }' | paste <( fgrep -v "#" ${BINS} ) - > ${OBSERVED}
 
 #Get counts of number of case & control CNVs
 nCASE=$( fgrep -v "#" ${CASE} | wc -l )

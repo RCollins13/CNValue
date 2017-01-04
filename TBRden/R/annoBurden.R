@@ -7,8 +7,8 @@
 # versus a specific subset of bins (e.g. those passing TBRden permutation
 # for a significant case:control enrichment of CNVs)
 
-annoBurden <- function(anno,             #Path to TBRden_pileup.sh output for the control group. BED format required
-                       testBins,         #Path to TBRden_pileup.sh output for the comparison group. BED format required
+annoBurden <- function(anno,             #Path to all annotated bins (genome-wide)
+                       testBins,         #Path to set of significant bins to test
                        perm=10000,       #Number of permutations
                        measure="mean",   #Measurement to use (options: mean, count; count computes only 0 | non-0)
                        alt="greater",    #Alternative hypothesis: test bins are (greater|less) than random. Two-tailed test: two.sided
@@ -30,39 +30,65 @@ annoBurden <- function(anno,             #Path to TBRden_pileup.sh output for th
     stop("Argument 'measure' must be either 'mean' or 'count'")
   }
 
-  #Load library
-  require(plotrix)
+  # #Print warning about inputting overlapping test bins
+  # warning("Reminder: Do not feed this script overlapping test bins. Overlapping bins will skew the null distribution.")
+#
+#   #Set tail for hypergeometric test
+#   if(alt=="greater"){
+#     lower.tail <- F
+#   }else{
+#     lower.tail <- T
+#   }
 
   #Read data
-  anno <- read.table(anno,header=F,sep="\t")
-  bins <- read.table(testBins,header=F,sep="\t")[,1:3]
+  bins.all <- read.table(anno,header=F,sep="\t")
+  bins.test <- read.table(testBins,header=F,sep="\t")[,1:3]
 
-  #Get annotation values corresponding to test bins
-  anno.t <- merge(anno,bins,by=1:3,sort=F)
+  #Infer bin size & step size
+  binsize <- bins.all[1,3]-bins.all[1,2]
+  stepsize <- bins.all[2,2]-bins.all[1,2]
+  stepsize.bins <- binsize/stepsize
 
-  #Sanity check to ensure the number of test bins matches number of test annotation bins
-  if(nrow(anno.t) != nrow(bins)){
-    warning(paste("Annotation bins do not match all test bins; only ",nrow(anno.t),
-                  " of ",nrow(bins)," matched",sep=""))
-  }
+  #Add annotations to test bins
+  bins.test <- merge(bins.all,bins.test,by=1:3,sort=F)
 
-  #Slice annotation vector for test bins
-  anno.t <- anno.t[,column]
+  #System call to bedtools merge to count number of non-overlapping bins in test set
+  loci.test <- as.data.frame(matrix(unlist(strsplit(system(paste("bedtools merge -c 4 -o count_distinct -i ",testBins,"",paste=""),
+                  intern=T,wait=T),split="\\t")),ncol=4,byrow=T))
+  colnames(loci.test) <- c("chr","start","end","bins")
+
+  #Parameterize null distribution
+  permuted.stats <- as.data.frame(t(sapply(1:perm,function(i){
+    #Nucleate new loci
+    starts <- sample(1:nrow(bins.all),nrow(loci.test),replace=F)
+    #Gather all non-overlapping sampled bins
+    sampled.bins <- bins.all[sort(unlist(sapply(1:length(starts),function(j){
+      binidx <- sapply(1:loci.test[j,4],function(k){
+        return(starts[j]+((k-1)*stepsize.bins))
+      })
+      return(binidx)
+    }))),]
+    #Count successes, stdev of successes, mean, and stdev of values
+    binary.counts <- sampled.bins[,5]
+    binary.counts[which(binary.counts>0)] <- 1
+    return(c(mean(binary.counts,na.rm=T),sd(binary.counts,na.rm=T),
+             mean(sampled.bins[,5],na.rm=T),sd(sampled.bins[,5],na.rm=T)))
+  })))
+
+  #
+
 
   #Compute baseline statistics
   if(measure=="mean"){
-    #Run t-test against background of all possible bins
-    base <- t.test(anno.t,anno[,column],alternative=alt)
+    #Run t-test against background of all remaining bins that don't overlap test bins
+    base <- t.test(anno.t,anno[-overlapping.bins,column],alternative=alt)
   }else{
-    #Run binomial test against background of all possible bins
+    #Run hypergeometric test against background of all possible bins
     x <- data.frame("nonzero"=c(length(which(anno.t>0)),
                                 length(which(anno[,column]>0))),
                     "zero"=c(length(which(anno.t==0)),
                              length(which(anno[,column]==0))))
-    base <- binom.test(x=x[1,1],
-                       n=sum(x[1,]),
-                       p=x[2,1]/sum(x[2,]),
-                       alternative=alt)
+    base <- phyper(x[1,1],x[2,1],x[2,2],sum(x[1,]),lower.tail=lower.tail)
   }
 
   #Apply over number of permutations
