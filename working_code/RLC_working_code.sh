@@ -792,7 +792,6 @@ for group in DD SCZ DD_SCZ CNCR; do
   done
 done
 
-
 #####Run 10k CNV shift permutation tests for all comparisons
 #Note: initial p-value cutoff used: 0.05/26802 = 1.865532e-06
 #This corresponds to the number of non-overlapping autosomal 100kb bins we tested (after blacklisting N-mask, etc)
