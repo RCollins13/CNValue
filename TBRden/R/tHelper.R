@@ -119,7 +119,7 @@ tHelper <- function(obs,                            #Single-column text file con
     res <- data.frame("Loci_Tested"=n,"Observed_Mean"=mean(obs),"Expected_Mean"=mean(perm),
                       "Fold_Change"=fold,"Fold_Change_95pct_Lower"=obs.CI[1],"Fold_Change_95pct_Upper"=obs.CI[2],
                       "tTest_p"=p,"Perm_p"=p.perm)
-    write.table(res,paste(OUTDIR,"/",prefix,".TBRden__annotation_test.results.txt",sep=""),
+    write.table(res,paste(OUTDIR,"/",prefix,".TBRden_ttest_annotation_test.results.txt",sep=""),
                 col.names=T,row.names=F,quote=F,sep="\t")
   }
 }
