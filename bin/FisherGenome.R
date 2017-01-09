@@ -104,6 +104,8 @@ runFisherGenome <- function(case.path,control.path,outfile,gzip=T){
   merged.df <- merge.case.control(case,control)
   #Run Fisher
   results <- fisher.bins(merged.df)
+  #Add hash to first column name for bedtools compatability
+  names(results)[1] <- "#Chr"
   #Write results to file
   write.table(results,outfile,col.names=T,row.names=F,sep="\t",quote=F)
   #Gzip (if optioned)
