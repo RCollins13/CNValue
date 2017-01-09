@@ -66,27 +66,31 @@ fisher.bins <- function(df){
   #Get medians of cases and controls
   case.med <- median(df[,case.idx],na.rm=T)
   control.med <- median(df[,control.idx],na.rm=T)
-  #Stop calculations if cases or controls have median of zero CNVs per bin
-  if(case.med==0 | control.med==0){
-    stop("Cases or controls have median of zero CNVs per bin")
+  #Warn if cases or controls have median of zero CNVs per bin genome-wide
+  if(case.med==0){
+    warning("Cases have genome-wide median of zero CNVs per bin")
   }
-  #Calculate odds ratios per bin if both case & control medians > 0
-  if(case.med>0 & control.med>0){
-    df$OR <- sapply(1:nrow(df),function(i){
-      OR <- (df[i,case.idx]/case.med)/(df[i,control.idx]/control.med)
-      return(OR)
-    })
+  if(control.med==0){
+    warning("Controls have genome-wide median of zero CNVs per bin")
   }
-  #Get list of bins where case CNV count > 0
-  test.bins.idx <- which(df[,case.idx]>0)
+  #Determine bins to analyze (where case CNVs > 0)
+  analysis.bins <- which(df[,case.idx]>0)
+  #Overwrite medians after restricting to bins where case CNVs > 0
+  case.med <- median(df[analysis.bins,case.idx],na.rm=T)
+  control.med <- median(df[analysis.bins,control.idx],na.rm=T)
+  #Calculate odds ratios for all bins
+  df$OR <- sapply(1:nrow(df),function(i){
+    OR <- (df[i,case.idx]/case.med)/(df[i,control.idx]/control.med)
+    return(OR)
+  })
   #Run Fisher's exact on all bins with > 0 case CNVs
-  pvals.nom <- as.vector(unlist(sapply(test.bins.idx,function(i){
+  pvals.nom <- as.vector(unlist(sapply(analysis.bins,function(i){
     mat <- data.frame(c(control.med,case.med),
                       c(df[i,control.idx],df[i,case.idx]))
     p <- fisher.test(mat,alternative="greater")$p.value
     return(p)
   })))
-  df[test.bins.idx,]$Fisher.p <- pvals.nom
+  df[analysis.bins,]$Fisher.p <- pvals.nom
   #Return data frame
   return(df)
 }
