@@ -29,6 +29,7 @@ SFARI_ANNO=/data/talkowski/Samples/SFARI/ASC_analysis/annotations
 #####Create directory tree
 mkdir ${WRKDIR}/lists
 mkdir ${WRKDIR}/bin
+mkdir ${WRKDIR}/bin/LSF
 mkdir ${WRKDIR}/data
 mkdir ${WRKDIR}/data/CNV
 mkdir ${WRKDIR}/data/CNV/CNV_RAW
@@ -37,6 +38,7 @@ mkdir ${WRKDIR}/data/CNV/CNV_DENSITY
 mkdir ${WRKDIR}/data/plot_data
 mkdir ${WRKDIR}/data/unfiltered_annotations
 mkdir ${WRKDIR}/data/filtered_annotations
+mkdir ${WRKDIR}/data/misc
 mkdir ${WRKDIR}/analysis
 mkdir ${WRKDIR}/analysis/BIN_CNV_pileups
 mkdir ${WRKDIR}/analysis/BIN_CNV_burdens
@@ -1480,6 +1482,9 @@ sort -Vk1,1 -k2,2n -k3,3n | uniq > ${WRKDIR}/data/unfiltered_annotations/Talkows
 gzip -f ${WRKDIR}/data/unfiltered_annotations/*.boundaries.bed
 
 #####Launch unfiltered hotspot functional enrichment tests (both binomial and t-test)
+if ! [ -e ${WRKDIR}/bin/LSF/hotspot_enrichments_unfiltered ]; then
+  mkdir ${WRKDIR}/bin/LSF/hotspot_enrichments_unfiltered
+fi
 while read anno; do
   if ! [ -e ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/ ]; then
     mkdir ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/
@@ -1488,16 +1493,14 @@ while read anno; do
     for CNV in ANY_CNV CNV DEL DUP; do
       for filt in ANY_FILTER all coding noncoding; do 
         #Binomial test
-        bsub -q short -sla miket_sc -J ${group}_${CNV}_${filt}_${anno}_binomialEnrichment -u nobody \
-        "${WRKDIR}/bin/rCNVmap/bin/hotspot_annotation_test.sh -N 1000 -a greater -t binomial \
+        echo -e "${WRKDIR}/bin/rCNVmap/bin/hotspot_annotation_test.sh -N 1000 -a greater -t binomial \
         -p ${group}_${CNV}_${filt}.${anno}.unfiltered_binomial \
         ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed.gz \
         ${WRKDIR}/analysis/BIN_CNV_pileups/DD.DEL.TBRden_binned_pileup.bed.gz \
         ${WRKDIR}/data/unfiltered_annotations/${anno}.boundaries.bed.gz \
         ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/"
         #t test
-        bsub -q short -sla miket_sc -J ${group}_${CNV}_${filt}_${anno}_ttestEnrichment -u nobody \
-        "${WRKDIR}/bin/rCNVmap/bin/hotspot_annotation_test.sh -N 1000 -a greater -t t \
+        echo -e "${WRKDIR}/bin/rCNVmap/bin/hotspot_annotation_test.sh -N 1000 -a greater -t t \
         -p ${group}_${CNV}_${filt}.${anno}.unfiltered_t \
         ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed.gz \
         ${WRKDIR}/analysis/BIN_CNV_pileups/DD.DEL.TBRden_binned_pileup.bed.gz \
@@ -1505,7 +1508,10 @@ while read anno; do
         ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/"
       done
     done
-  done
+  done > ${WRKDIR}/bin/LSF/hotspot_enrichments_unfiltered/${anno}.submit.sh
+  chmod a+x ${WRKDIR}/bin/LSF/hotspot_enrichments_unfiltered/${anno}.submit.sh
+  bsub -q short -sla miket_sc -J hotspot_unfiltered_enrichment_${anno} -u nobody \
+  "sh ${WRKDIR}/bin/LSF/hotspot_enrichments_unfiltered/${anno}.submit.sh"
 done < <( l ${WRKDIR}/data/unfiltered_annotations/*boundaries.bed.gz | \
         awk '{ print $9 }' | sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/\.boundaries\.bed\.gz//g' )
 
@@ -1526,25 +1532,25 @@ done < <( l ${WRKDIR}/data/unfiltered_annotations/*boundaries.bed.gz | \
         awk '{ print $9 }' | xargs -I {} basename {} | sed 's/\.boundaries\.bed\.gz//g' )
 
 #####Launch filtered hotspot functional enrichment tests (both binomial and t-test)
+if ! [ -e ${WRKDIR}/bin/LSF/hotspot_enrichments_filtered ]; then
+  mkdir ${WRKDIR}/bin/LSF/hotspot_enrichments_filtered
+fi
 while read anno; do
-  if [ -e ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/ ]; then
-    rm -rf ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/
+  if ! [ -e ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/ ]; then
+    mkdir ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/
   fi
-  mkdir ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/
   for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
     for CNV in ANY_CNV CNV DEL DUP; do
       for filt in ANY_FILTER all coding noncoding; do 
         #Binomial test
-        bsub -q short -sla miket_sc -J ${group}_${CNV}_${filt}_${anno}_binomialEnrichment -u nobody \
-        "${WRKDIR}/bin/rCNVmap/bin/hotspot_annotation_test.sh -N 1000 -a greater -t binomial \
+        echo -e "${WRKDIR}/bin/rCNVmap/bin/hotspot_annotation_test.sh -N 1000 -a greater -t binomial \
         -p ${group}_${CNV}_${filt}.${anno}.filtered_binomial \
         ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed.gz \
         ${WRKDIR}/analysis/BIN_CNV_pileups/DD.DEL.TBRden_binned_pileup.bed.gz \
         ${WRKDIR}/data/filtered_annotations/${anno}.boundaries.bed.gz \
         ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/"
         #t test
-        bsub -q short -sla miket_sc -J ${group}_${CNV}_${filt}_${anno}_ttestEnrichment -u nobody \
-        "${WRKDIR}/bin/rCNVmap/bin/hotspot_annotation_test.sh -N 1000 -a greater -t t \
+        echo -e "${WRKDIR}/bin/rCNVmap/bin/hotspot_annotation_test.sh -N 1000 -a greater -t t \
         -p ${group}_${CNV}_${filt}.${anno}.filtered_t \
         ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed.gz \
         ${WRKDIR}/analysis/BIN_CNV_pileups/DD.DEL.TBRden_binned_pileup.bed.gz \
@@ -1552,18 +1558,318 @@ while read anno; do
         ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/"
       done
     done
-  done
+  done > ${WRKDIR}/bin/LSF/hotspot_enrichments_filtered/${anno}.submit.sh
+  chmod a+x ${WRKDIR}/bin/LSF/hotspot_enrichments_filtered/${anno}.submit.sh
+  bsub -q short -sla miket_sc -J hotspot_filtered_enrichment_${anno} -u nobody \
+  "sh ${WRKDIR}/bin/LSF/hotspot_enrichments_filtered/${anno}.submit.sh"
 done < <( l ${WRKDIR}/data/filtered_annotations/*boundaries.bed.gz | \
         awk '{ print $9 }' | sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/\.boundaries\.bed\.gz//g' )
 
+#####Collect results from unfiltered enrichment tests
+if ! [ -e ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/RESULTS ]; then
+  mkdir ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/RESULTS
+fi
+#Print headers to output files
+for dummy in 1; do
+  for prefix in binomial_OR binomial_CI_min binomial_CI_max binomial_p \
+  t_fold t_CI_min t_CI_max t_p; do
+    for dummy in 2; do
+      echo "annotation"
+      for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+        for CNV in ANY_CNV CNV DEL DUP; do
+          for filt in ANY_FILTER all coding noncoding; do
+            echo -e "${group}_${CNV}_${filt}"
+          done
+        done
+      done | paste -s
+    done | paste - - > ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/RESULTS/hotspot_unfiltered_annotations.${prefix}.txt
+  done
+done
+while read anno; do
+  echo ${anno}
+  #Binomial odds ratio
+  for dummy in 1; do
+    echo ${anno}
+    for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+      for CNV in ANY_CNV CNV DEL DUP; do
+        for filt in ANY_FILTER all coding noncoding; do
+          outfile=${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/${group}_${CNV}_${filt}.${anno}.unfiltered_binomial.TBRden_binomial_annotation_test.results.txt
+          if [ -e ${outfile} ]; then
+            cut -f4 ${outfile} | tail -n1
+          else
+            echo "NA"
+          fi
+        done | paste -s
+      done | paste -s
+    done | paste -s
+  done | paste - - >> ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/RESULTS/hotspot_unfiltered_annotations.binomial_OR.txt
+  #Binomial odds ratio CI min
+  for dummy in 1; do
+    echo ${anno}
+    for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+      for CNV in ANY_CNV CNV DEL DUP; do
+        for filt in ANY_FILTER all coding noncoding; do
+          outfile=${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/${group}_${CNV}_${filt}.${anno}.unfiltered_binomial.TBRden_binomial_annotation_test.results.txt
+          if [ -e ${outfile} ]; then
+            cut -f5 ${outfile} | tail -n1
+          else
+            echo "NA"
+          fi
+        done | paste -s
+      done | paste -s
+    done | paste -s
+  done | paste - - >> ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/RESULTS/hotspot_unfiltered_annotations.binomial_CI_min.txt
+  #Binomial odds ratio CI max
+  for dummy in 1; do
+    echo ${anno}
+    for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+      for CNV in ANY_CNV CNV DEL DUP; do
+        for filt in ANY_FILTER all coding noncoding; do
+          outfile=${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/${group}_${CNV}_${filt}.${anno}.unfiltered_binomial.TBRden_binomial_annotation_test.results.txt
+          if [ -e ${outfile} ]; then
+            cut -f6 ${outfile} | tail -n1
+          else
+            echo "NA"
+          fi
+        done | paste -s
+      done | paste -s
+    done | paste -s
+  done | paste - - >> ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/RESULTS/hotspot_unfiltered_annotations.binomial_CI_max.txt
+  #Binomial p value
+  for dummy in 1; do
+    echo ${anno}
+    for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+      for CNV in ANY_CNV CNV DEL DUP; do
+        for filt in ANY_FILTER all coding noncoding; do
+          outfile=${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/${group}_${CNV}_${filt}.${anno}.unfiltered_binomial.TBRden_binomial_annotation_test.results.txt
+          if [ -e ${outfile} ]; then
+            cut -f7 ${outfile} | tail -n1
+          else
+            echo "NA"
+          fi
+        done | paste -s
+      done | paste -s
+    done | paste -s
+  done | paste - - >> ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/RESULTS/hotspot_unfiltered_annotations.binomial_p.txt
+  #t-test fold-enrichment
+  for dummy in 1; do
+    echo ${anno}
+    for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+      for CNV in ANY_CNV CNV DEL DUP; do
+        for filt in ANY_FILTER all coding noncoding; do
+          outfile=${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/${group}_${CNV}_${filt}.${anno}.unfiltered_t.TBRden_ttest_annotation_test.results.txt
+          if [ -e ${outfile} ]; then
+            cut -f4 ${outfile} | tail -n1
+          else
+            echo "NA"
+          fi
+        done | paste -s
+      done | paste -s
+    done | paste -s
+  done | paste - - >> ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/RESULTS/hotspot_unfiltered_annotations.t_fold.txt
+  #t-test CI min
+  for dummy in 1; do
+    echo ${anno}
+    for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+      for CNV in ANY_CNV CNV DEL DUP; do
+        for filt in ANY_FILTER all coding noncoding; do
+          outfile=${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/${group}_${CNV}_${filt}.${anno}.unfiltered_t.TBRden_ttest_annotation_test.results.txt
+          if [ -e ${outfile} ]; then
+            cut -f5 ${outfile} | tail -n1
+          else
+            echo "NA"
+          fi
+        done | paste -s
+      done | paste -s
+    done | paste -s
+  done | paste - - >> ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/RESULTS/hotspot_unfiltered_annotations.t_CI_min.txt
+  #t-test CI max
+  for dummy in 1; do
+    echo ${anno}
+    for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+      for CNV in ANY_CNV CNV DEL DUP; do
+        for filt in ANY_FILTER all coding noncoding; do
+          outfile=${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/${group}_${CNV}_${filt}.${anno}.unfiltered_t.TBRden_ttest_annotation_test.results.txt
+          if [ -e ${outfile} ]; then
+            cut -f6 ${outfile} | tail -n1
+          else
+            echo "NA"
+          fi
+        done | paste -s
+      done | paste -s
+    done | paste -s
+  done | paste - - >> ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/RESULTS/hotspot_unfiltered_annotations.t_CI_max.txt
+  #t-test p value
+  for dummy in 1; do
+    echo ${anno}
+    for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+      for CNV in ANY_CNV CNV DEL DUP; do
+        for filt in ANY_FILTER all coding noncoding; do
+          outfile=${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/${group}_${CNV}_${filt}.${anno}.unfiltered_t.TBRden_ttest_annotation_test.results.txt
+          if [ -e ${outfile} ]; then
+            cut -f7 ${outfile} | tail -n1
+          else
+            echo "NA"
+          fi
+        done | paste -s
+      done | paste -s
+    done | paste -s
+  done | paste - - >> ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/RESULTS/hotspot_unfiltered_annotations.t_p.txt
+done < <( l ${WRKDIR}/data/unfiltered_annotations/*boundaries.bed.gz | \
+        awk '{ print $9 }' | sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/\.boundaries\.bed\.gz//g' )
 
-
-
-
-
-
-
-
+#####Collect results from filtered enrichment tests
+if ! [ -e ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/RESULTS ]; then
+  mkdir ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/RESULTS
+fi
+#Print headers to output files
+for dummy in 1; do
+  for prefix in binomial_OR binomial_CI_min binomial_CI_max binomial_p \
+  t_fold t_CI_min t_CI_max t_p; do
+    for dummy in 2; do
+      echo "annotation"
+      for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+        for CNV in ANY_CNV CNV DEL DUP; do
+          for filt in ANY_FILTER all coding noncoding; do
+            echo -e "${group}_${CNV}_${filt}"
+          done
+        done
+      done | paste -s
+    done | paste - - > ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/RESULTS/hotspot_filtered_annotations.${prefix}.txt
+  done
+done
+while read anno; do
+  echo ${anno}
+  #Binomial odds ratio
+  for dummy in 1; do
+    echo ${anno}
+    for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+      for CNV in ANY_CNV CNV DEL DUP; do
+        for filt in ANY_FILTER all coding noncoding; do
+          outfile=${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/${group}_${CNV}_${filt}.${anno}.filtered_binomial.TBRden_binomial_annotation_test.results.txt
+          if [ -e ${outfile} ]; then
+            cut -f4 ${outfile} | tail -n1
+          else
+            echo "NA"
+          fi
+        done | paste -s
+      done | paste -s
+    done | paste -s
+  done | paste - - >> ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/RESULTS/hotspot_filtered_annotations.binomial_OR.txt
+  #Binomial odds ratio CI min
+  for dummy in 1; do
+    echo ${anno}
+    for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+      for CNV in ANY_CNV CNV DEL DUP; do
+        for filt in ANY_FILTER all coding noncoding; do
+          outfile=${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/${group}_${CNV}_${filt}.${anno}.filtered_binomial.TBRden_binomial_annotation_test.results.txt
+          if [ -e ${outfile} ]; then
+            cut -f5 ${outfile} | tail -n1
+          else
+            echo "NA"
+          fi
+        done | paste -s
+      done | paste -s
+    done | paste -s
+  done | paste - - >> ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/RESULTS/hotspot_filtered_annotations.binomial_CI_min.txt
+  #Binomial odds ratio CI max
+  for dummy in 1; do
+    echo ${anno}
+    for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+      for CNV in ANY_CNV CNV DEL DUP; do
+        for filt in ANY_FILTER all coding noncoding; do
+          outfile=${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/${group}_${CNV}_${filt}.${anno}.filtered_binomial.TBRden_binomial_annotation_test.results.txt
+          if [ -e ${outfile} ]; then
+            cut -f6 ${outfile} | tail -n1
+          else
+            echo "NA"
+          fi
+        done | paste -s
+      done | paste -s
+    done | paste -s
+  done | paste - - >> ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/RESULTS/hotspot_filtered_annotations.binomial_CI_max.txt
+  #Binomial p value
+  for dummy in 1; do
+    echo ${anno}
+    for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+      for CNV in ANY_CNV CNV DEL DUP; do
+        for filt in ANY_FILTER all coding noncoding; do
+          outfile=${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/${group}_${CNV}_${filt}.${anno}.filtered_binomial.TBRden_binomial_annotation_test.results.txt
+          if [ -e ${outfile} ]; then
+            cut -f7 ${outfile} | tail -n1
+          else
+            echo "NA"
+          fi
+        done | paste -s
+      done | paste -s
+    done | paste -s
+  done | paste - - >> ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/RESULTS/hotspot_filtered_annotations.binomial_p.txt
+  #t-test fold-enrichment
+  for dummy in 1; do
+    echo ${anno}
+    for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+      for CNV in ANY_CNV CNV DEL DUP; do
+        for filt in ANY_FILTER all coding noncoding; do
+          outfile=${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/${group}_${CNV}_${filt}.${anno}.filtered_t.TBRden_ttest_annotation_test.results.txt
+          if [ -e ${outfile} ]; then
+            cut -f4 ${outfile} | tail -n1
+          else
+            echo "NA"
+          fi
+        done | paste -s
+      done | paste -s
+    done | paste -s
+  done | paste - - >> ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/RESULTS/hotspot_filtered_annotations.t_fold.txt
+  #t-test CI min
+  for dummy in 1; do
+    echo ${anno}
+    for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+      for CNV in ANY_CNV CNV DEL DUP; do
+        for filt in ANY_FILTER all coding noncoding; do
+          outfile=${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/${group}_${CNV}_${filt}.${anno}.filtered_t.TBRden_ttest_annotation_test.results.txt
+          if [ -e ${outfile} ]; then
+            cut -f5 ${outfile} | tail -n1
+          else
+            echo "NA"
+          fi
+        done | paste -s
+      done | paste -s
+    done | paste -s
+  done | paste - - >> ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/RESULTS/hotspot_filtered_annotations.t_CI_min.txt
+  #t-test CI max
+  for dummy in 1; do
+    echo ${anno}
+    for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+      for CNV in ANY_CNV CNV DEL DUP; do
+        for filt in ANY_FILTER all coding noncoding; do
+          outfile=${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/${group}_${CNV}_${filt}.${anno}.filtered_t.TBRden_ttest_annotation_test.results.txt
+          if [ -e ${outfile} ]; then
+            cut -f6 ${outfile} | tail -n1
+          else
+            echo "NA"
+          fi
+        done | paste -s
+      done | paste -s
+    done | paste -s
+  done | paste - - >> ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/RESULTS/hotspot_filtered_annotations.t_CI_max.txt
+  #t-test p value
+  for dummy in 1; do
+    echo ${anno}
+    for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+      for CNV in ANY_CNV CNV DEL DUP; do
+        for filt in ANY_FILTER all coding noncoding; do
+          outfile=${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/${group}_${CNV}_${filt}.${anno}.filtered_t.TBRden_ttest_annotation_test.results.txt
+          if [ -e ${outfile} ]; then
+            cut -f7 ${outfile} | tail -n1
+          else
+            echo "NA"
+          fi
+        done | paste -s
+      done | paste -s
+    done | paste -s
+  done | paste - - >> ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/RESULTS/hotspot_filtered_annotations.t_p.txt
+done < <( l ${WRKDIR}/data/filtered_annotations/*boundaries.bed.gz | \
+        awk '{ print $9 }' | sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/\.boundaries\.bed\.gz//g' )
 
 #####Gather data for positive control functional enrichments (Fig1f)
 #Get ORs
