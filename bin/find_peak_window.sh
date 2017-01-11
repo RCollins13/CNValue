@@ -38,7 +38,7 @@ while read chr start end; do
   head -n1 | sed 's/\t/\n/g' | awk -v OFS="\t" '{ print NR, $1 }' | fgrep -w $( echo -e "${group}.${CNV}.${filt}.obs_p" ) | cut -f1 )
   bedtools intersect -wa -u -b <( echo -e "${chr}\t${start}\t${end}" ) \
   -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed.gz | \
-  sort -nk${col},${col} | head -n1 | cut -f1-4
+  cut -f1-4,${col} | sort -nk5,5 | head -n1 | cut -f1-4
 done < <( bedtools intersect -u -wa \
   -a ${WRKDIR}/analysis/Final_Loci/significant/ANY_DISEASE/ANY_DISEASE.ANY_CNV.ANY_FILTER.perm_signif_loci.bed.gz \
   -b ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed.gz | \

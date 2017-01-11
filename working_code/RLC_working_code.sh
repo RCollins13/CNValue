@@ -1078,7 +1078,7 @@ for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
       -a ${WRKDIR}/analysis/Final_Loci/significant/ANY_DISEASE/ANY_DISEASE.ANY_CNV.ANY_FILTER.perm_signif_loci.bed.gz \
       -b <( zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed.gz | cut -f1-3 ) | \
       bedtools intersect -wa -u -b - \
-      -a <( cut -f1,4-5 ${SFARI_ANNO}/misc/PathogenicCNVs_allSources_nonredundant_hg19.bed | sed '1d' ) | wc -l
+      -a <( cut -f1,4- ${SFARI_ANNO}/misc/PathogenicCNVs_allSources_nonredundant_hg19.bed | sed '1d' ) | wc -l
     done
   done
 done | awk '{ print "=\""$1"/260\"" }'
@@ -1090,7 +1090,7 @@ for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
       -a ${WRKDIR}/analysis/Final_Loci/significant/ANY_DISEASE/ANY_DISEASE.ANY_CNV.ANY_FILTER.perm_signif_loci.bed.gz \
       -b ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed.gz | \
       bedtools intersect -wa -u -b - \
-      -a /data/talkowski/Samples/SFARI/EcoFinal/annotation_files/rCNVs/talkowski_highQual_rCNVs.bed
+      -a <( cut -f1,4- ${SFARI_ANNO}/misc/PathogenicCNVs_allSources_nonredundant_hg19.bed | sed '1d' )
   done | sort -Vk1,1 -k2,2n -k3,3n | uniq
 done
 

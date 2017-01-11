@@ -45,9 +45,9 @@ ${WRKDIR}/bin/rCNVmap/bin/filter_master_burden_file.R \
 -o ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed \
 ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed.gz ${list}
 rm ${list}
-#Make list of loci (±20kb merge distance & min 20kb size)
+#Make list of loci (±40kb merge distance & min 20kb size)
 ncol=$( head -n1 ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed | awk '{ print NF }' )
-bedtools merge -header -c $( seq 4 ${ncol} | paste -s -d, ) -o distinct -d 20000 \
+bedtools merge -header -c $( seq 4 ${ncol} | paste -s -d, ) -o distinct -d 40000 \
 -i ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed | \
 awk '{ if ($3-$2>20000) print $0 }' > \
 ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed
