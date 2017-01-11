@@ -37,7 +37,7 @@ echo -e "${group}.${CNV}.${filt}.obs_p" > ${list}
 ${WRKDIR}/bin/rCNVmap/bin/filter_master_burden_file.R \
 -o ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.obs_nom_signif_bins.bed \
 ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed.gz ${list}
-${WRKDIR}/bin/rCNVmap/bin/filter_master_burden_file.R -t 0.0.0000003818461 \
+${WRKDIR}/bin/rCNVmap/bin/filter_master_burden_file.R -t 0.0000003818461 \
 -o ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.obs_Bonf_signif_bins.bed \
 ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed.gz ${list}
 echo -e "${group}.${CNV}.${filt}.perm_p" > ${list}

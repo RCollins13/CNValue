@@ -127,7 +127,7 @@ for CNV in DEL DUP; do
     for times in $( seq 1 ${n} ); do
       echo -e "${chr}\t${start}\t${end}\tID\t${CNV}\tCTRL\t${PMID}"
     done
-  done < <( zcat /scratch/miket/rlc47temp/DGV_CNVs_all/Itsara_CNVs/Itsara.DUP.raw.bed.gz ) | \
+  done < <( zcat /scratch/miket/rlc47temp/DGV_CNVs_all/Itsara_CNVs/Itsara.${CNV}.raw.bed.gz | sed '1d' ) | \
   sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v CNV=${CNV} \
   '{ print $1, $2, $3, "Itsara_CTRL_"CNV"_"NR, $5, $6 }' >> \
   ${WRKDIR}/data/CNV/CNV_RAW/Itsara_CNVs/Itsara_CTRL.${CNV}.raw.bed
@@ -146,7 +146,7 @@ for CNV in DEL DUP; do
     for times in $( seq 1 ${n} ); do
       echo -e "${chr}\t${start}\t${end}\tID\t${CNV}\tCTRL\t${PMID}"
     done
-  done < <( zcat /scratch/miket/rlc47temp/DGV_CNVs_all/Shaikh_CNVs/Shaikh.DUP.raw.bed.gz ) | \
+  done < <( zcat /scratch/miket/rlc47temp/DGV_CNVs_all/Shaikh_CNVs/Shaikh.${CNV}.raw.bed.gz | sed '1d' ) | \
   sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v CNV=${CNV} \
   '{ print $1, $2, $3, "Shaikh_CTRL_"CNV"_"NR, $5, $6 }' >> \
   ${WRKDIR}/data/CNV/CNV_RAW/Shaikh_CNVs/Shaikh_CTRL.${CNV}.raw.bed
@@ -165,7 +165,7 @@ for CNV in DEL DUP; do
     for times in $( seq 1 ${n} ); do
       echo -e "${chr}\t${start}\t${end}\tID\t${CNV}\tCTRL\t${PMID}"
     done
-  done < <( zcat /scratch/miket/rlc47temp/DGV_CNVs_all/Suktitipat_Thai_CNVs/Suktitipat.DUP.raw.bed.gz ) | \
+  done < <( zcat /scratch/miket/rlc47temp/DGV_CNVs_all/Suktitipat_Thai_CNVs/Suktitipat.${CNV}.raw.bed.gz | sed '1d' ) | \
   sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v CNV=${CNV} \
   '{ print $1, $2, $3, "Suktitipat_CTRL_"CNV"_"NR, $5, $6 }' >> \
   ${WRKDIR}/data/CNV/CNV_RAW/Suktitipat_CNVs/Suktitipat_CTRL.${CNV}.raw.bed
@@ -184,7 +184,7 @@ for CNV in DEL DUP; do
     for times in $( seq 1 ${n} ); do
       echo -e "${chr}\t${start}\t${end}\tID\t${CNV}\tCTRL\t${PMID}"
     done
-  done < <( zcat /scratch/miket/rlc47temp/DGV_CNVs_all/Uddin_Ontario_CNVs/Uddin.DUP.raw.bed.gz ) | \
+  done < <( zcat /scratch/miket/rlc47temp/DGV_CNVs_all/Uddin_Ontario_CNVs/Uddin.${CNV}.raw.bed.gz | sed '1d' ) | \
   sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v CNV=${CNV} \
   '{ print $1, $2, $3, "Uddin_CTRL_"CNV"_"NR, $5, $6 }' >> \
   ${WRKDIR}/data/CNV/CNV_RAW/Uddin_CNVs/Uddin_CTRL.${CNV}.raw.bed
@@ -203,7 +203,7 @@ for CNV in DEL DUP; do
     for times in $( seq 1 ${n} ); do
       echo -e "${chr}\t${start}\t${end}\tID\t${CNV}\tCTRL\t${PMID}"
     done
-  done < <( zcat /scratch/miket/rlc47temp/DGV_CNVs_all/Vogler_CNVs/Vogler.DUP.raw.bed.gz ) | \
+  done < <( zcat /scratch/miket/rlc47temp/DGV_CNVs_all/Vogler_CNVs/Vogler.${CNV}.raw.bed.gz | sed '1d' ) | \
   sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v CNV=${CNV} \
   '{ print $1, $2, $3, "Vogler_CTRL_"CNV"_"NR, $5, $6 }' >> \
   ${WRKDIR}/data/CNV/CNV_RAW/Vogler_CNVs/Vogler_CTRL.${CNV}.raw.bed
@@ -222,7 +222,7 @@ for CNV in DEL DUP; do
     for times in $( seq 1 ${n} ); do
       echo -e "${chr}\t${start}\t${end}\tID\t${CNV}\tDD\t${PMID}"
     done
-  done < <( zcat /scratch/miket/rlc47temp/DGV_CNVs_all/Coe_et_al_2014_CNVs/Coe.DUP.raw.bed.gz ) | \
+  done < <( zcat /scratch/miket/rlc47temp/DGV_CNVs_all/Coe_et_al_2014_CNVs/Coe.${CNV}.raw.bed.gz | sed '1d' ) | \
   sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v CNV=${CNV} \
   '{ print $1, $2, $3, "Coe_DD_"CNV"_"NR, $5, $6 }' >> \
   ${WRKDIR}/data/CNV/CNV_RAW/Coe_CNVs/Coe_DD.${CNV}.raw.bed
@@ -368,8 +368,9 @@ for CNV in DEL DUP; do
   #Run bedcluster
   cut -f4 ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.pre_merge.bed > \
   ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.VIDs.list
-  bsub -q normal -sla miket_sc -J all_germline_${CNV}_merge \
-  "/data/talkowski/rlc47/code/svcf/scripts/bedcluster -p all_germline_${CNV} -m \
+  bsub -q big -R 'rusage[mem=50000]' -M 50000 -sla miket_sc -J all_germline_${CNV}_merge \
+  "source /apps/lab/miket/anaconda/4.0.5/envs/collins_py3/bin/activate collins_py3; \
+  /data/talkowski/rlc47/code/svcf/scripts/bedcluster -p all_germline_${CNV} -m \
   ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.VIDs.list \
   ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.pre_merge.all_vs_all.bed \
   ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.merged.bed"
@@ -392,7 +393,8 @@ for CNV in DEL DUP; do
   cut -f4 ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/cancer_${CNV}.pre_merge.bed > \
   ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/cancer_${CNV}.VIDs.list
   bsub -q normal -sla miket_sc -J all_cancer_${CNV}_merge \
-  "/data/talkowski/rlc47/code/svcf/scripts/bedcluster -p all_cancer_${CNV} -m \
+  "source /apps/lab/miket/anaconda/4.0.5/envs/collins_py3/bin/activate collins_py3; \
+  /data/talkowski/rlc47/code/svcf/scripts/bedcluster -p all_cancer_${CNV} -m \
   ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/cancer_${CNV}.VIDs.list \
   ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/cancer_${CNV}.pre_merge.all_vs_all.bed \
   ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/cancer_${CNV}.merged.bed"
@@ -410,8 +412,7 @@ for CNV in DEL DUP; do
   ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.merged.bed > \
   ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/germline_${CNV}.merged.maxVF.bed
   #Cancer
-  awk -v max_VF=${max_VF} '{ if (($9/10844)<max_VF) print $0 }' \
-  ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/cancer_${CNV}.merged.bed > \
+  cat ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/cancer_${CNV}.merged.bed > \
   ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/cancer_${CNV}.merged.maxVF.bed
 done
 
@@ -429,7 +430,9 @@ for CNV in DEL DUP; do
     fgrep "${study}_${CNV}" | awk -v OFS="\t" -v PMID=${PMID} -v CNV=${CNV} -v pheno=${pheno} \
     '{ print $1, $2, $3, $4, CNV, pheno, PMID }' | sort -Vk1,1 -k2,2n -k3,3n >> \
     ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.bed
-  done < ${WRKDIR}/lists/Studies_SampleSizes.list
+  done < <( fgrep -v "TCGA" ${WRKDIR}/lists/Studies_SampleSizes.list )
+  cat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/cancer_${CNV}.merged.maxVF.bed > \
+  ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/TCGA_CNCR_${CNV}.merged.maxVF.maxVF.bed
 done
 
 #####Split merged CNVs to match original reported coordinates
@@ -841,7 +844,7 @@ for group in DD SCZ DD_SCZ CNCR; do
     awk -v OFS="\t" '{ if ($NF<=(0.05/130942.8) && $NF!="NA") print $0 }' | sort -Vk1,1 -k2,2n -k3,3n > \
     ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.Bonferroni.bed
     bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.all.10k_permute -u nobody \
-    "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -z -N 10000 -t upper \
+    "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -z -N 1000 -t upper \
     -p ${group}_vs_CTRL_${CNV}_all \
     ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
@@ -852,7 +855,7 @@ for group in DD SCZ DD_SCZ CNCR; do
     awk -v OFS="\t" '{ if ($NF<=(0.05/130942.8) && $NF!="NA") print $0 }' | sort -Vk1,1 -k2,2n -k3,3n > \
     ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_coding.Bonferroni.bed
     bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.coding.10k_permute -u nobody \
-    "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -z -c -N 10000 -t upper \
+    "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -z -c -N 1000 -t upper \
     -p ${group}_vs_CTRL_${CNV}_coding \
     -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
     ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
@@ -864,7 +867,7 @@ for group in DD SCZ DD_SCZ CNCR; do
     awk -v OFS="\t" '{ if ($NF<=(0.05/130942.8) && $NF!="NA") print $0 }' | sort -Vk1,1 -k2,2n -k3,3n > \
     ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_noncoding.Bonferroni.bed
     bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.noncoding.10k_permute -u nobody \
-    "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -z -n -N 10000 -t upper \
+    "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -z -n -N 1000 -t upper \
     -p ${group}_vs_CTRL_${CNV}_noncoding \
     -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
     ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
@@ -911,37 +914,37 @@ done
 
 #####Collect results from permutation tests
 #Collect results across all permutations per group
-for group in DD SCZ DD_SCZ CNCR; do
-  for CNV in CNV DEL DUP; do
-    for filt in all coding noncoding; do
-      for i in $( seq -w 001 100 ); do
-        zcat ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_${filt}.permuted.${i}.bed.gz | \
-        fgrep -v "#" | cut -f7 | paste -s
-      done > ${TMPDIR}/${group}_${CNV}_${filt}_perm.in.txt
-      Rscript -e "options(scipen=100);\
-      d <- apply(read.table(\"${TMPDIR}/${group}_${CNV}_${filt}_perm.in.txt\",header=F),2,sum);\
-      write.table(data.frame(\"perms_less_sig\"=10000-d,\"perms_as_or_more_sig\"=d,\"perm_p\"=(d+1)/10001),\
-        \"${TMPDIR}/${group}_${CNV}_${filt}_perm.out.txt\",row.names=F,col.names=T,sep=\"\t\",quote=F)"
-      paste <( zcat ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/001/${group}_vs_CTRL_${CNV}_${filt}.permuted.001.bed.gz | cut -f1-5 ) \
-      ${TMPDIR}/${group}_${CNV}_${filt}_perm.out.txt > \
-      ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.permuted.merged.bed
-    done
-  done
-done
+# for group in DD SCZ DD_SCZ CNCR; do
+#   for CNV in CNV DEL DUP; do
+#     for filt in all coding noncoding; do
+#       for i in $( seq -w 001 100 ); do
+#         zcat ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_${filt}.permuted.${i}.bed.gz | \
+#         fgrep -v "#" | cut -f7 | paste -s
+#       done > ${TMPDIR}/${group}_${CNV}_${filt}_perm.in.txt
+#       Rscript -e "options(scipen=100);\
+#       d <- apply(read.table(\"${TMPDIR}/${group}_${CNV}_${filt}_perm.in.txt\",header=F),2,sum);\
+#       write.table(data.frame(\"perms_less_sig\"=10000-d,\"perms_as_or_more_sig\"=d,\"perm_p\"=(d+1)/10001),\
+#         \"${TMPDIR}/${group}_${CNV}_${filt}_perm.out.txt\",row.names=F,col.names=T,sep=\"\t\",quote=F)"
+#       paste <( zcat ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/001/${group}_vs_CTRL_${CNV}_${filt}.permuted.001.bed.gz | cut -f1-5 ) \
+#       ${TMPDIR}/${group}_${CNV}_${filt}_perm.out.txt > \
+#       ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.permuted.merged.bed
+#     done
+#   done
+# done
 #Compose table of all bins for each comparison
 for group in DD SCZ DD_SCZ CNCR; do
   for CNV in CNV DEL DUP; do
     for filt in all coding noncoding; do
       cat <( zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.TBRden_results.bed.gz | \
       sed '1d' | bedtools intersect -wb -f 1 -r -a - \
-      -b ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.permuted.merged.bed | \
-      cut -f1-17,23-25 ) \
+      -b <( zcat ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.TBRden_direct_test_results.bed.gz | sed '1d' ) | \
+      cut -f1-17,26 ) \
       <( zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.TBRden_results.bed.gz | \
       sed '1d' | bedtools intersect -v -f 1 -r -a - \
-      -b ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.permuted.merged.bed | \
-      awk -v OFS="\t" '{ print $0, "NA\tNA\tNA" }' ) | sort -Vk1,1 -k2,2n -k3,3n | \
+      -b <( zcat ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.TBRden_direct_test_results.bed.gz | sed '1d' ) | \
+      awk -v OFS="\t" '{ print $0, "NA" }' ) | sort -Vk1,1 -k2,2n -k3,3n | \
       cat <( paste <( zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_${filt}.TBRden_results.bed.gz | \
-        head -n1 | awk '{ print "#"$0 }' ) <( echo -e "perms_less_sig\tperms_as_or_more_sig\tperm_p" ) ) - > \
+        head -n1 | awk '{ print "#"$0 }' ) <( echo -e "perm_sim_p" ) ) - > \
       ${WRKDIR}/analysis/Final_Loci/${group}_vs_CTRL_${CNV}_${filt}.results.all_bins.bed
       gzip -f ${WRKDIR}/analysis/Final_Loci/${group}_vs_CTRL_${CNV}_${filt}.results.all_bins.bed
     done
@@ -951,6 +954,8 @@ done
 for dummy in 1; do
   for group in CTRL DD SCZ CNCR; do
     for CNV in DEL DUP; do
+      zcat ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.${filt}.bed.gz | \
+      fgrep -v "#" | cut -f5 > ${TMPDIR}/${group}.${CNV}.all.CNVcounts.tmp
       for filt in coding noncoding; do
         zcat ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.${filt}.bed.gz | \
         fgrep -v "#" | cut -f5 > ${TMPDIR}/${group}.${CNV}.${filt}.CNVcounts.tmp
@@ -962,7 +967,7 @@ for dummy in 1; do
     for CNV in CNV DEL DUP; do
       for filt in all coding noncoding; do
         zcat ${WRKDIR}/analysis/Final_Loci/${group}_vs_CTRL_${CNV}_${filt}.results.all_bins.bed.gz | \
-        fgrep -v "#" | cut -f17,20 > ${TMPDIR}/${group}.${CNV}.${filt}.pvals.tmp
+        fgrep -v "#" | cut -f17-18 > ${TMPDIR}/${group}.${CNV}.${filt}.pvals.tmp
         echo ${TMPDIR}/${group}.${CNV}.${filt}.pvals.tmp
       done
     done
@@ -1008,28 +1013,33 @@ for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
     echo ${CNV}
     for filt in ANY_FILTER all coding noncoding; do
       echo ${filt}
-      list=`mktemp`
-      echo -e "${group}.${CNV}.${filt}.obs_p" > ${list}
-      ${WRKDIR}/bin/rCNVmap/bin/filter_master_burden_file.R \
-      -o ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.obs_nom_signif_bins.bed \
-      ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed.gz ${list}
-      ${WRKDIR}/bin/rCNVmap/bin/filter_master_burden_file.R -t 0.000001865532 \
-      -o ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.obs_Bonf_signif_bins.bed \
-      ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed.gz ${list}
-      echo -e "${group}.${CNV}.${filt}.perm_p" > ${list}
-      ${WRKDIR}/bin/rCNVmap/bin/filter_master_burden_file.R \
-      -o ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed \
-      ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed.gz ${list}
-      rm ${list}
-      #Make list of loci (±300kb merge distance)
-      ncol=$( head -n1 ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed | awk '{ print NF }' )
-      bedtools merge -header -c $( seq 4 ${ncol} | paste -s -d, ) -o distinct -d 300000 \
-      -i ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed > \
-      ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed
-      gzip -f ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.obs_nom_signif_bins.bed
-      gzip -f ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.obs_Bonf_signif_bins.bed
-      gzip -f ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed
-      gzip -f ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed
+      #Parallelize:
+      bsub -q short -sla miket_sc -J ${group}_${CNV}_${filt}_filterMasterBurden \
+      "${WRKDIR}/bin/rCNVmap/bin/filter_master_burden_file_parallelized.sh \
+      ${group} ${CNV} ${filt}"
+      # list=`mktemp`
+      # echo -e "${group}.${CNV}.${filt}.obs_p" > ${list}
+      # ${WRKDIR}/bin/rCNVmap/bin/filter_master_burden_file.R \
+      # -o ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.obs_nom_signif_bins.bed \
+      # ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed.gz ${list}
+      # ${WRKDIR}/bin/rCNVmap/bin/filter_master_burden_file.R -t 0.0.0000003818461 \
+      # -o ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.obs_Bonf_signif_bins.bed \
+      # ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed.gz ${list}
+      # echo -e "${group}.${CNV}.${filt}.perm_p" > ${list}
+      # ${WRKDIR}/bin/rCNVmap/bin/filter_master_burden_file.R \
+      # -o ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed \
+      # ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed.gz ${list}
+      # rm ${list}
+      # #Make list of loci (±20kb merge distance & min 20kb size)
+      # ncol=$( head -n1 ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed | awk '{ print NF }' )
+      # bedtools merge -header -c $( seq 4 ${ncol} | paste -s -d, ) -o distinct -d 20000 \
+      # -i ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed | \
+      # awk '{ if ($3-$2>20000) print $0 }' > \
+      # ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed
+      # gzip -f ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.obs_nom_signif_bins.bed
+      # gzip -f ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.obs_Bonf_signif_bins.bed
+      # gzip -f ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed
+      # gzip -f ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed
     done
   done
 done
