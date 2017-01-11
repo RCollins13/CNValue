@@ -398,24 +398,21 @@ for CNV in DEL DUP; do
   ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/cancer_${CNV}.merged.bed"
 done
 
-#####Filter merged CNVs across cohort (min size & max VF)
+#####Filter merged CNVs across cohort (max VF)
 if [ -e ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV ]; then
   rm -rf ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/
 fi
 mkdir ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/
-min_size=20000
 max_VF=0.01
 for CNV in DEL DUP; do
   #Germline
-  awk -v min_size=${min_size} -v max_VF=${max_VF} \
-  '{ if ($3-$2>min_size && ($9/112053)<max_VF) print $0 }' \
+  awk -v max_VF=${max_VF} '{ if (($9/112053)<max_VF) print $0 }' \
   ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.merged.bed > \
-  ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/germline_${CNV}.merged.minSize_maxVF.bed
+  ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/germline_${CNV}.merged.maxVF.bed
   #Cancer
-  awk -v min_size=${min_size} -v max_VF=${max_VF} \
-  '{ if ($3-$2>min_size && ($9/10844)<max_VF) print $0 }' \
+  awk -v max_VF=${max_VF} '{ if (($9/10844)<max_VF) print $0 }' \
   ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/cancer_${CNV}.merged.bed > \
-  ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/cancer_${CNV}.merged.minSize_maxVF.bed
+  ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/cancer_${CNV}.merged.maxVF.bed
 done
 
 #####Filter merged CNVs per study (max VF per study)
@@ -423,15 +420,43 @@ max_VF=0.01
 for CNV in DEL DUP; do
   while read study n PMID; do
     echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
-    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.minSize_maxVF.maxVF.bed
+    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.bed
     pheno=$( echo ${study} | sed 's/_/\t/g' | awk '{ print $NF }' )
-    cat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*.minSize_maxVF.bed | fgrep "${study}_${CNV}" | \
+    cat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*.maxVF.bed | fgrep "${study}_${CNV}" | \
     cut -f7 | sort | uniq -c | awk -v OFS="\t" '{ print $2, $1 }' | \
     awk -v max_VF=${max_VF} -v n=${n} '{ if (($2/n)<max_VF) print $1 }' | \
-    fgrep -wf - <( cat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*.minSize_maxVF.bed ) | \
+    fgrep -wf - <( cat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*.maxVF.bed ) | \
     fgrep "${study}_${CNV}" | awk -v OFS="\t" -v PMID=${PMID} -v CNV=${CNV} -v pheno=${pheno} \
     '{ print $1, $2, $3, $4, CNV, pheno, PMID }' | sort -Vk1,1 -k2,2n -k3,3n >> \
-    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.minSize_maxVF.maxVF.bed
+    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.bed
+  done < ${WRKDIR}/lists/Studies_SampleSizes.list
+done
+
+#####Split merged CNVs to match original reported coordinates
+for CNV in DEL DUP; do
+  while read study n PMID; do
+    pheno=$( echo ${study} | sed 's/_/\t/g' | awk '{ print $NF }' )
+    study_base=$( echo "${study}" | cut -f1 -d_ )
+    echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
+    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.bed
+    fgrep -v "#" ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.bed | \
+    cut -f4 | fgrep -wf - <( zcat ${WRKDIR}/data/CNV/CNV_RAW/${study_base}_CNVs/${study}.${CNV}.raw.bed.gz ) | \
+    awk -v OFS="\t" -v PMID=${PMID} -v CNV=${CNV} -v pheno=${pheno} \
+    '{ print $1, $2, $3, $4, CNV, pheno, PMID }' | sort -Vk1,1 -k2,2n -k3,3n >> \
+    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.bed
+  done < ${WRKDIR}/lists/Studies_SampleSizes.list
+done
+
+#####Filter merged CNVs on minimum size
+min_size=20000
+for CNV in DEL DUP; do
+  while read study n PMID; do
+    echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
+    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.bed
+    awk -v min_size=${min_size} '{ if ($3-$2>min_size) print $0 }' \
+    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.bed | \
+    bedtools intersect -v -f 0.5 -a - -b ${WRKDIR}/lists/rCNVmap_excluded_loci.CNVs.bed >> \
+    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.bed
   done < ${WRKDIR}/lists/Studies_SampleSizes.list
 done
 
@@ -439,12 +464,12 @@ done
 for CNV in DEL DUP; do
   while read study n PMID; do
     echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
-    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.minSize_maxVF.maxVF.blacklisted.bed
+    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.bed
     sed -e 's/^x/X/g' -e 's/^y/Y/g' -e 's/^MT/M/g' -e 's/^5_/5/g' -e 's/^16_/16/g' \
-    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.minSize_maxVF.maxVF.bed | \
+    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.bed | \
     bedtools intersect -v -f 0.5 -a - \
     -b ${WRKDIR}/lists/rCNVmap_excluded_loci.CNVs.bed >> \
-    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.minSize_maxVF.maxVF.blacklisted.bed
+    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.bed
   done < ${WRKDIR}/lists/Studies_SampleSizes.list
 done
 
@@ -453,12 +478,14 @@ max_size=5000000
 for CNV in DEL DUP; do
   while read study n PMID; do
     echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
-    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.minSize_maxVF.maxVF.blacklisted.maxSize.bed
-    fgrep -v "#" ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.minSize_maxVF.maxVF.blacklisted.bed | \
+    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.maxSize.bed
+    fgrep -v "#" ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.bed | \
     awk -v max_size=${max_size} '{ if ($3-$2<max_size) print $0 }' >> \
-    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.minSize_maxVF.maxVF.blacklisted.maxSize.bed
+    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.maxSize.bed
   done < ${WRKDIR}/lists/Studies_SampleSizes.list
 done
+#Gzip all filtered CNV files
+gzip ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*
 
 #####Final merger per cohort, filtered on max size & unfiltered on max size
 if [ -e ${WRKDIR}/data/CNV/CNV_MASTER/ ]; then
@@ -470,13 +497,13 @@ for group in DD SCZ CNCR CTRL; do
     #Filtered on max size (main CNV set)
     echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed
-    cat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*_${group}_${CNV}.merged.minSize_maxVF.maxVF.blacklisted.maxSize.bed | \
+    zcat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*_${group}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.maxSize.bed.gz | \
     fgrep -v "#" | sort -Vk1,1 -k2,2n -k3,3n | sed -e 's/^5_/5/g' -e 's/^y/Y/g' -e 's/^16_/16/g' -e 's/^x_/X/g' >> \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed
     #Unfiltered on max size (used for size distribs)
     echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.noMaxSize.GRCh37.bed
-    cat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*_${group}_${CNV}.merged.minSize_maxVF.maxVF.blacklisted.bed | \
+    zcat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*_${group}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.maxSize.bed.gz | \
     fgrep -v "#" | sort -Vk1,1 -k2,2n -k3,3n | sed -e 's/^5_/5/g' -e 's/^y/Y/g' -e 's/^16_/16/g' -e 's/^x_/X/g' >> \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.noMaxSize.GRCh37.bed
   done
@@ -584,7 +611,7 @@ for group in CTRL DD SCZ DD_SCZ CNCR; do
 done
 
 #####Gather distributions of CNV per cohort per phenotype
-for CNV in CNV DEL DUP; do
+for CNV in DEL DUP CNV; do
   echo -e "\n${CNV}\n"
   for pheno in CTRL DD SCZ CNCR; do
     while read cohort; do
@@ -615,7 +642,7 @@ for CNV in CNV DEL DUP; do
   done
 done | awk -v OFS="\t" '{ print $1, $2, $3, $4, $6, $8, $5, $7, $9 }'
 #Get median sizes of all CNVs by class & germline/all
-for CNV in CNV DEL DUP; do
+for CNV in DEL DUP CNV; do
   echo -e "\n${CNV}\n"
   for dummy in 1; do
     for pheno in DD SCZ CTRL; do
@@ -727,24 +754,24 @@ awk -v OFS="\t" '{ print $1, $2-1000000, $3+1000000 }' | awk -v OFS="\t" '{ if (
 cat - /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
 <( grep -e 'X\|Y\|M' ${WRKDIR}/lists/rCNVmap_excluded_loci.CNVs.bed | cut -f1-3 ) | \
 sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > ${WRKDIR}/lists/rCNVmap_excluded_loci.bins.bed 
-#Run TBRden pileups
+#Run TBRden pileups (5kb bins, 5kb step)
 for group in CTRL DD SCZ DD_SCZ CNCR; do
   for CNV in DEL DUP CNV; do
     #Parallelize intersections (LSF)
     bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_binned_pileup \
-    "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 100000 -s 25000 -d 1000000 \
+    "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 5000 -s 5000 -d 1000000 \
     -o ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.bed \
     -x ${WRKDIR}/lists/rCNVmap_excluded_loci.bins.bed  \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
     /data/talkowski/rlc47/src/GRCh37.genome"
     bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_binned_pileup_noncoding \
-    "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 100000 -s 25000 -d 1000000 \
+    "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 5000 -s 5000 -d 1000000 \
     -o ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.noncoding.bed \
     -x ${WRKDIR}/lists/rCNVmap_excluded_loci.bins.bed  \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.noncoding.bed.gz \
     /data/talkowski/rlc47/src/GRCh37.genome"
     bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_binned_pileup_coding \
-    "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 100000 -s 25000 -d 1000000 \
+    "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 5000 -s 5000 -d 1000000 \
     -o ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.coding.bed \
     -x ${WRKDIR}/lists/rCNVmap_excluded_loci.bins.bed  \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.coding.bed.gz \
@@ -795,9 +822,11 @@ for group in DD SCZ DD_SCZ CNCR; do
   done
 done
 
-#####Run 10k CNV shift permutation tests for all comparisons
-#Note: initial p-value cutoff used: 0.05/26802 = 1.865532e-06
-#This corresponds to the number of non-overlapping autosomal 100kb bins we tested (after blacklisting N-mask, etc)
+#####Run 1k CNV shift direct permutation tests for all comparisons
+#Note: changed from old 100k matched Fisher permutation
+#Note: initial p-value cutoff used: 0.05/130942.8 = 3.818461e-07
+#This corresponds to the number of non-overlapping 20kb bins we tested (after blacklisting N-mask, etc)
+#20kb chosen since minimum CNV size = 20kb, so max # independent tests = size of genome / 20kb
 for group in DD SCZ DD_SCZ CNCR; do
   echo ${group}
   if [ -e ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL ]; then
@@ -807,18 +836,18 @@ for group in DD SCZ DD_SCZ CNCR; do
   mkdir ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split
   for CNV in DEL DUP CNV; do
     echo ${CNV}
-    #Coding + noncoding CNVs
-    zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.TBRden_results.bed.gz | \
-    awk -v OFS="\t" '{ if ($NF<=(0.05/26802)) print $0 }' > \
-    ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.Bonferroni.bed
-    #Coding CNVs only
-    zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_coding.TBRden_results.bed.gz | \
-    awk -v OFS="\t" '{ if ($NF<=(0.05/26802)) print $0 }' > \
-    ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_coding.Bonferroni.bed
-    #Noncoding CNVs only
-    zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_noncoding.TBRden_results.bed.gz | \
-    awk -v OFS="\t" '{ if ($NF<=(0.05/26802)) print $0 }' > \
-    ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_noncoding.Bonferroni.bed
+    # #Coding + noncoding CNVs
+    # zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.TBRden_results.bed.gz | \
+    # awk -v OFS="\t" '{ if ($NF<=(0.05/130942.8)) print $0 }' > \
+    # ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.Bonferroni.bed
+    # #Coding CNVs only
+    # zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_coding.TBRden_results.bed.gz | \
+    # awk -v OFS="\t" '{ if ($NF<=(0.05/130942.8)) print $0 }' > \
+    # ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_coding.Bonferroni.bed
+    # #Noncoding CNVs only
+    # zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_noncoding.TBRden_results.bed.gz | \
+    # awk -v OFS="\t" '{ if ($NF<=(0.05/130942.8)) print $0 }' > \
+    # ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_noncoding.Bonferroni.bed
     #Split into partitions of 1k permutations each (x100 per comparison)
     for i in $( seq -w 001 100 ); do
       echo ${i}
@@ -854,6 +883,41 @@ for group in DD SCZ DD_SCZ CNCR; do
     done
   done
 done
+# #OLD CODE USED FOR FISHER PERMUTATION
+#Split into partitions of 1k permutations each (x100 per comparison)
+# for i in $( seq -w 001 100 ); do
+#   echo ${i}
+#   #Coding + noncoding CNVs
+#   if ! [ -e ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i} ]; then
+#     mkdir ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}
+#   fi
+#   bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.all.1k_permute.${i} -u nobody \
+#   "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 1000000 -N 100 \
+#   -o ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_all.permuted.${i}.bed \
+#   -p ${group}_vs_CTRL_${CNV}_all \
+#   ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
+#   ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
+#   ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.Bonferroni.bed"
+#   #Coding CNVs only
+#   bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.coding.1k_permute.${i} -u nobody \
+#   "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 100000 -N 100 \
+#   -o ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_coding.permuted.${i}.bed \
+#   -p ${group}_vs_CTRL_${CNV}_coding \
+#   -c -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
+#   ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
+#   ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
+#   ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_coding.Bonferroni.bed"
+#   #Noncoding CNVs only
+#   bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.noncoding.1k_permute.${i} -u nobody \
+#   "${WRKDIR}/bin/rCNVmap/bin/CNV_shift_test.sh -z -d 5 -b 100000 -N 100 \
+#   -o ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/perm_split/${i}/${group}_vs_CTRL_${CNV}_noncoding.permuted.${i}.bed \
+#   -p ${group}_vs_CTRL_${CNV}_noncoding \
+#   -n -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
+#   ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
+#   ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
+#   ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_noncoding.Bonferroni.bed"
+# done
+
 
 #####Collect results from permutation tests
 #Collect results across all permutations per group

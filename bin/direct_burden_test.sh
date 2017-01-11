@@ -150,16 +150,14 @@ else
   CASE=${CASES}
 fi
 
-#Unzip input bins file if gzipped
+#Unzip input bins file if gzipped and truncate to 4 columns (at most)
 GZI_BINS=0
+BIN=`mktemp`
 if [ $( file ${BINS} | fgrep "gzip compressed" | wc -l ) -gt 0 ]; then
   GZI_BINS=1
-  BIN=`mktemp`; mv ${BIN} ${BIN}.gz; BIN=${BIN}.gz
-  cp ${BINS} ${BIN}
-  gunzip ${BIN}
-  BIN=$( echo "${CASE}" | sed 's/\.gz/\t/g' | cut -f1 )
+  zcat ${BINS} | cut -f1-4 > ${BIN}
 else
-  BIN=${BINS}
+  cut -f1-4 ${BINS} > ${BIN}
 fi
 
 #Calculates observed dCNVs for all sites
@@ -169,17 +167,17 @@ if [ ${CODING} -eq 1 ]; then
   bedtools intersect -c -a ${BIN} -b - | awk '{ print $NF }' ) \
   <( bedtools intersect -u -wa -a ${CTRL} -b ${EXONS} | \
   bedtools intersect -c -a ${BIN} -b - | awk '{ print $NF }' ) | \
-  awk -v OFS="\t" '{ print $1-$2 }' | paste <( fgrep -v "#" ${BINS} ) - > ${OBSERVED}
+  awk -v OFS="\t" '{ print $1-$2 }' | paste <( fgrep -v "#" ${BIN} ) - > ${OBSERVED}
 elif [ ${NONCODING} -eq 1 ]; then
   paste <( bedtools intersect -v -wa -a ${CASE} -b ${EXONS} | \
   bedtools intersect -c -a ${BIN} -b - | awk '{ print $NF }' ) \
   <( bedtools intersect -v -wa -a ${CTRL} -b ${EXONS} | \
   bedtools intersect -c -a ${BIN} -b - | awk '{ print $NF }' ) | \
-  awk -v OFS="\t" '{ print $1-$2 }' | paste <( fgrep -v "#" ${BINS} ) - > ${OBSERVED}
+  awk -v OFS="\t" '{ print $1-$2 }' | paste <( fgrep -v "#" ${BIN} ) - > ${OBSERVED}
 else
   paste <( bedtools intersect -c -a ${BIN} -b ${CASE} | awk '{ print $NF }' ) \
   <( bedtools intersect -c -a ${BIN} -b ${CTRL} | awk '{ print $NF }' ) | \
-  awk -v OFS="\t" '{ print $1-$2 }' | paste <( fgrep -v "#" ${BINS} ) - > ${OBSERVED}
+  awk -v OFS="\t" '{ print $1-$2 }' | paste <( fgrep -v "#" ${BIN} ) - > ${OBSERVED}
 fi
 
 #Get counts of number of case & control CNVs
