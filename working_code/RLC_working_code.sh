@@ -1078,10 +1078,10 @@ for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
       -a ${WRKDIR}/analysis/Final_Loci/significant/ANY_DISEASE/ANY_DISEASE.ANY_CNV.ANY_FILTER.perm_signif_loci.bed.gz \
       -b <( zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed.gz | cut -f1-3 ) | \
       bedtools intersect -wa -u -b - \
-      -a /data/talkowski/Samples/SFARI/EcoFinal/annotation_files/rCNVs/talkowski_highQual_rCNVs.bed | wc -l
+      -a <( cut -f1,4-5 ${SFARI_ANNO}/misc/PathogenicCNVs_allSources_nonredundant_hg19.bed | sed '1d' ) | wc -l
     done
   done
-done | awk '{ print "=\""$1"/38\"" }'
+done | awk '{ print "=\""$1"/260\"" }'
 #Print overlaps with syndromic CNV intervals for non-coding CNVs
 for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
   echo -e "\n${group}\n"
@@ -1312,6 +1312,9 @@ for filt in ANY_FILTER coding noncoding; do
 done
 
 #####Data for contrasts between deletion and duplication hotspots (Fig 1e)
+if [ -e ${WRKDIR}/data/plot_data/del_vs_dup ]; then
+  rm -rf ${WRKDIR}/data/plot_data/del_vs_dup
+fi
 mkdir ${WRKDIR}/data/plot_data/del_vs_dup
 #Get list of loci that are DEL only
 bedtools intersect -u \
@@ -1485,6 +1488,12 @@ while read tissue; do
   ${WRKDIR}/data/unfiltered_annotations/GTEx_eQTLs_${tissue}.boundaries.bed
 done < <( l ${SFARI_ANNO}/misc/GTEx_eQTLs/*snpgenes | awk '{ print $9 }' | \
   sed -e 's/GTEx_eQTLs\//\t/g' -e 's/_Analysis\.snpgenes//g' | awk '{ print $2 }' )
+while read tissue; do
+  grep -ve '^GL\|^X\|^Y\|^M' ${SFARI_ANNO}/misc/GTEx_eQTLs/${tissue}/${tissue}.signif_eQTLs.bed
+done < <( l ${SFARI_ANNO}/misc/GTEx_eQTLs/*snpgenes | awk '{ print $9 }' | \
+  sed -e 's/GTEx_eQTLs\//\t/g' -e 's/_Analysis\.snpgenes//g' | awk '{ print $2 }' ) | \
+  sort -Vk1,1 -k2,2n -k3,3n | uniq > \
+  ${WRKDIR}/data/unfiltered_annotations/GTEx_eQTLs_AllTissues.boundaries.bed
 #COSMIC variants
 zcat ${SFARI_ANNO}/misc/COSMIC_variants.bed.gz | grep -ve '^GL\|^X\|^Y\|^M' | sort -Vk1,1 -k2,2n -k3,3n | uniq > \
 ${WRKDIR}/data/unfiltered_annotations/COSMIC_variants.boundaries.bed
@@ -1542,6 +1551,9 @@ done
 #Talkowski 36 rCNV loci (count)
 grep -ve '^GL\|^X\|^Y\|^M' /data/talkowski/Samples/SFARI/EcoFinal/annotation_files/rCNVs/talkowski_highQual_rCNVs.bed | \
 sort -Vk1,1 -k2,2n -k3,3n | uniq > ${WRKDIR}/data/unfiltered_annotations/Talkowski_rCNVs_HQ.boundaries.bed
+#Claire's new rCNV list
+grep -ve '^GL\|^X\|^Y\|^M' /data/talkowski/Samples/SFARI/ASC_analysis/annotations/misc/PathogenicCNVs_allSources_nonredundant_hg19.bed | \
+cut -f1,4-5 | sort -Vk1,1 -k2,2n -k3,3n | uniq > ${WRKDIR}/data/unfiltered_annotations/Redin_PathogenicCNVs_allSources.boundaries.bed
 #Gzip all annotations
 gzip -f ${WRKDIR}/data/unfiltered_annotations/*.boundaries.bed
 
@@ -1550,9 +1562,10 @@ if ! [ -e ${WRKDIR}/bin/LSF/hotspot_enrichments_unfiltered ]; then
   mkdir ${WRKDIR}/bin/LSF/hotspot_enrichments_unfiltered
 fi
 while read anno; do
-  if ! [ -e ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/ ]; then
-    mkdir ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/
+  if [ -e ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/ ]; then
+    rm -rf ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/
   fi
+  mkdir ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/
   for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
     for CNV in ANY_CNV CNV DEL DUP; do
       for filt in ANY_FILTER all coding noncoding; do 
@@ -1576,8 +1589,12 @@ while read anno; do
   chmod a+x ${WRKDIR}/bin/LSF/hotspot_enrichments_unfiltered/${anno}.submit.sh
   bsub -q short -sla miket_sc -J hotspot_unfiltered_enrichment_${anno} -u nobody \
   "sh ${WRKDIR}/bin/LSF/hotspot_enrichments_unfiltered/${anno}.submit.sh"
+# done < <( l ${WRKDIR}/data/unfiltered_annotations/*boundaries.bed.gz | \
+#         awk '{ print $9 }' | sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/\.boundaries\.bed\.gz//g' )
+#optional: exclude ENCODE, GTEx, Enhancer, Super Enhancer, and TAD datasets
 done < <( l ${WRKDIR}/data/unfiltered_annotations/*boundaries.bed.gz | \
-        awk '{ print $9 }' | sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/\.boundaries\.bed\.gz//g' )
+        awk '{ print $9 }' | sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/\.boundaries\.bed\.gz//g' | \
+        grep -ve 'GTEx\|ENCODE\|Enhancer\|TBRs_' )
 
 #####Filter all annotations by excluding elements within 10kb of a protein-coding exon
 while read anno; do
