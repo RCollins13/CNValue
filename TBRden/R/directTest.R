@@ -81,6 +81,7 @@ directTest <- function(observed,         #Observed dCNVs for all elements
   }
 
   #Clean output data frame and write to file
+  names(res)[1] <- "#chr"
   write.table(res,paste(OUTDIR,"/",prefix,".TBRden_direct_test_results.bed",sep=""),
               col.names=T,row.names=F,sep="\t",quote=F)
   if(gzip==T){
