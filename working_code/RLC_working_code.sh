@@ -825,7 +825,7 @@ for group in DD SCZ DD_SCZ CNCR; do
   done
 done
 
-#####Run 10k CNV shift direct permutation tests for all comparisons
+#####Run 1k CNV shift direct permutation tests for all comparisons
 #Note: changed from old 100k matched Fisher permutation
 #Note: initial p-value cutoff used: 0.05/130942.8 = 3.818461e-07
 #This corresponds to the number of non-overlapping 20kb bins we tested (after blacklisting N-mask, etc)
@@ -843,7 +843,7 @@ for group in DD SCZ DD_SCZ CNCR; do
     zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.TBRden_results.bed.gz | \
     awk -v OFS="\t" '{ if ($NF<=(0.05/130942.8) && $NF!="NA") print $0 }' | sort -Vk1,1 -k2,2n -k3,3n > \
     ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.Bonferroni.bed
-    bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.all.10k_permute -u nobody \
+    bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.all.1k_permute -u nobody \
     "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -z -N 1000 -t upper \
     -p ${group}_vs_CTRL_${CNV}_all \
     ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
@@ -854,25 +854,25 @@ for group in DD SCZ DD_SCZ CNCR; do
     zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_coding.TBRden_results.bed.gz | \
     awk -v OFS="\t" '{ if ($NF<=(0.05/130942.8) && $NF!="NA") print $0 }' | sort -Vk1,1 -k2,2n -k3,3n > \
     ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_coding.Bonferroni.bed
-    bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.coding.10k_permute -u nobody \
+    bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.coding.1k_permute -u nobody \
     "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -z -c -N 1000 -t upper \
     -p ${group}_vs_CTRL_${CNV}_coding \
     -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
     ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
-    ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.Bonferroni.bed \
+    ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_coding.Bonferroni.bed \
     ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/"
     #Noncoding CNVs only
     zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_noncoding.TBRden_results.bed.gz | \
     awk -v OFS="\t" '{ if ($NF<=(0.05/130942.8) && $NF!="NA") print $0 }' | sort -Vk1,1 -k2,2n -k3,3n > \
     ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_noncoding.Bonferroni.bed
-    bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.noncoding.10k_permute -u nobody \
+    bsub -q short -sla miket_sc -J ${group}_vs_CTRL.${CNV}.noncoding.1k_permute -u nobody \
     "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -z -n -N 1000 -t upper \
     -p ${group}_vs_CTRL_${CNV}_noncoding \
     -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
     ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
-    ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_all.Bonferroni.bed \
+    ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/${group}_vs_CTRL_${CNV}_noncoding.Bonferroni.bed \
     ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL/"
   done
 done
