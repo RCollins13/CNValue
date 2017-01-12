@@ -83,7 +83,7 @@ for CNV in DEL DUP; do
   awk -v CNV=${CNV} -v OFS="\t" '{ print $1, $2, $3, "SSC_DD_"CNV"_"NR, CNV, "DD", "26402605" }' ) > \
   ${WRKDIR}/data/CNV/CNV_RAW/SSC_CNVs/SSC_DD.${CNV}.raw.bed
 done
-gzip ${WRKDIR}/data/CNV/CNV_RAW/SSC_CNVs/*.bed
+gzip -f ${WRKDIR}/data/CNV/CNV_RAW/SSC_CNVs/*.bed
 
 #####Gather all raw DGV CNVs (including studies not used in analysis)
 while read study; do
@@ -630,6 +630,9 @@ for CNV in DEL DUP CNV; do
       awk '{ print $3-$2 }' | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
     done < <( zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.bed.gz | \
       fgrep -v "#" | cut -f4 | cut -f1 -d_ | sort | uniq ) | paste - - - - - - -
+    echo -e ""
+  done
+  for pheno in CTRL DD SCZ CNCR; do
     for dummy in 1; do
       echo -e "ALL\t${pheno}\t${CNV}"
       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.bed.gz | fgrep -v "#" | wc -l
@@ -749,6 +752,28 @@ sort -Vk1,1 -k2,2n -k3,3n | cut -f1-3 | bedtools merge -i - | bedtools coverage 
 -b <( grep -ve 'X\|Y\|M' /data/talkowski/rlc47/src/GRCh37.genome | awk -v OFS="\t" \
   '{ print $1, "1", $2 }' | bedtools subtract -a - -b /data/talkowski/rlc47/src/GRCh37_Nmask.bed ) | \
 awk -v gsize=${gsize} '{ sum+=$5 }END{ print sum/gsize }'
+#Cancer only
+zcat ${WRKDIR}/data/CNV/CNV_MASTER/CNCR.CNV.GRCh37.bed.gz | fgrep -v "#" | \
+sort -Vk1,1 -k2,2n -k3,3n | cut -f1-3 | bedtools merge -i - | bedtools coverage -a - \
+-b <( grep -ve 'X\|Y\|M' /data/talkowski/rlc47/src/GRCh37.genome | awk -v OFS="\t" \
+  '{ print $1, "1", $2 }' | bedtools subtract -a - -b /data/talkowski/rlc47/src/GRCh37_Nmask.bed ) | \
+awk -v gsize=${gsize} '{ sum+=$5 }END{ print sum/gsize }'
+#Germline cases only
+zcat ${WRKDIR}/data/CNV/CNV_MASTER/DD.CNV.GRCh37.bed.gz \
+${WRKDIR}/data/CNV/CNV_MASTER/SCZ.CNV.GRCh37.bed.gz | fgrep -v "#" | \
+sort -Vk1,1 -k2,2n -k3,3n | cut -f1-3 | bedtools merge -i - | bedtools coverage -a - \
+-b <( grep -ve 'X\|Y\|M' /data/talkowski/rlc47/src/GRCh37.genome | awk -v OFS="\t" \
+  '{ print $1, "1", $2 }' | bedtools subtract -a - -b /data/talkowski/rlc47/src/GRCh37_Nmask.bed ) | \
+awk -v gsize=${gsize} '{ sum+=$5 }END{ print sum/gsize }'
+
+#####Get files of rCNV sizes for t-test between cases and controls
+mkdir ${WRKDIR}/data/plot_data/CNV_sizes
+for group in CTRL DD SCZ CNCR; do
+  for CNV in DEL DUP; do
+    zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz | \
+    awk '{ print $3-$2 }' > ${WRKDIR}/data/plot_data/CNV_sizes/${group}.${CNV}.sizes.txt
+  done
+done
 
 #####Run TBRden pileup for all tissue types and all phenotypes (coding & noncoding CNVs)
 #Create master mask of N-masked regions and 1Mb flanking telomeres/centromeres
@@ -1022,7 +1047,7 @@ for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
       # ${WRKDIR}/bin/rCNVmap/bin/filter_master_burden_file.R \
       # -o ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.obs_nom_signif_bins.bed \
       # ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed.gz ${list}
-      # ${WRKDIR}/bin/rCNVmap/bin/filter_master_burden_file.R -t 0.0.0000003818461 \
+      # ${WRKDIR}/bin/rCNVmap/bin/filter_master_burden_file.R -t 0.05 \
       # -o ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.obs_Bonf_signif_bins.bed \
       # ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed.gz ${list}
       # echo -e "${group}.${CNV}.${filt}.perm_p" > ${list}
@@ -1030,9 +1055,9 @@ for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
       # -o ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed \
       # ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed.gz ${list}
       # rm ${list}
-      # #Make list of loci (±20kb merge distance & min 20kb size)
+      # #Make list of loci (±40kb merge distance & min 20kb size)
       # ncol=$( head -n1 ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed | awk '{ print NF }' )
-      # bedtools merge -header -c $( seq 4 ${ncol} | paste -s -d, ) -o distinct -d 20000 \
+      # bedtools merge -header -c $( seq 4 ${ncol} | paste -s -d, ) -o distinct -d 40000 \
       # -i ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_bins.bed | \
       # awk '{ if ($3-$2>20000) print $0 }' > \
       # ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.bed
