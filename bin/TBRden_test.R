@@ -18,4 +18,4 @@ library(TBRden)
 args <- commandArgs(trailingOnly=T)
 
 #Run TBRden
-TBRden(args[1],args[2],OUTDIR=args[3],prefix=args[4],adjusted=0.05/26802,manColor=args[5])
+TBRden(args[1],args[2],OUTDIR=args[3],prefix=args[4],adjusted=args[5],manColor=args[6])

@@ -48,8 +48,9 @@ mkdir ${WRKDIR}/analysis/Final_Loci/significant
 mkdir ${WRKDIR}/analysis/hotspot_enrichments
 mkdir ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations
 mkdir ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations
-mkdir ${WRKDIR}/analysis/EXON_CNV_pileups
 mkdir ${WRKDIR}/analysis/EXON_CNV_burdens
+mkdir ${WRKDIR}/analysis/TBR_CNV_pileups
+mkdir ${WRKDIR}/analysis/TBR_CNV_burdens
 
 #####Gather raw SSC CNVs
 mkdir ${WRKDIR}/data/CNV/CNV_RAW/SSC_CNVs
@@ -834,19 +835,19 @@ for group in DD SCZ DD_SCZ CNCR; do
     ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL.${CNV}.TBRden_binned_pileup.bed.gz \
     ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.bed.gz \
     ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/ \
-    ${group}_vs_CTRL_${CNV}_all ${color}"
+    ${group}_vs_CTRL_${CNV}_all 0.05/26802 ${color}"
     bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_coding_TBRden_analysis \
     "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
     ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL.${CNV}.TBRden_binned_pileup.coding.bed.gz \
     ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.coding.bed.gz \
     ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/ \
-    ${group}_vs_CTRL_${CNV}_coding ${color}"
+    ${group}_vs_CTRL_${CNV}_coding 0.05/26802 ${color}"
     bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_noncoding_TBRden_analysis \
     "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
     ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL.${CNV}.TBRden_binned_pileup.noncoding.bed.gz \
     ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.noncoding.bed.gz \
     ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/ \
-    ${group}_vs_CTRL_${CNV}_noncoding ${color}"
+    ${group}_vs_CTRL_${CNV}_noncoding 0.05/26802 ${color}"
   done
 done
 
@@ -1120,10 +1121,11 @@ for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
 done
 
 #####Print top-5 most significant noncoding loci per comparison
-for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+# for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
+for group in DD SCZ CNCR; do
   echo -e "\n${group}\n"
   while read chr start end; do
-    col=$( zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.noncoding.perm_signif_loci.bed.gz | \
+    col=$( zcat ${WRKDIR}/analysis/Final_Loci/MASTER.p_values.all_bins.bed.gz | \
     head -n1 | sed 's/\t/\n/g' | awk -v OFS="\t" '{ print NR, $1 }' | fgrep -w $( echo -e "${group}.ANY_CNV.noncoding.obs_p" ) | cut -f1 )
     bedtools intersect -wa -u -b <( echo -e "${chr}\t${start}\t${end}" ) \
     -a ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.noncoding.perm_signif_bins.bed.gz | \
@@ -1440,6 +1442,15 @@ while read chr start end skip; do
 done < ${TMPDIR}/DEL_and_DUP.loci.bed > \
 ${WRKDIR}/data/plot_data/del_vs_dup/DEL_and_DUP.peakORs.txt
 
+#####Count number of autosomal significant loci that don't overlap with consensus syndromic list
+for group in DD SCZ DD_SCZ; do
+  zcat ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.ANY_CNV.ANY_FILTER.perm_signif_bins.bed.gz | \
+  fgrep -v "#" | cut -f1-3
+done | sort -Vk1,1 -k2,2n -k3,3n | uniq | bedtools intersect -u -wa -b - \
+-a ${WRKDIR}/analysis/Final_Loci/significant/ANY_DISEASE/ANY_DISEASE.ANY_CNV.ANY_FILTER.perm_signif_loci.bed.gz | \
+cut -f1-3 | bedtools intersect -u -a - \
+-b ${WRKDIR}/data/unfiltered_annotations/CollinsFocal_PathogenicCNVs_allSources.boundaries.bed.gz | wc -l
+
 #####Prepare unfiltered annotation files for enrichment tests
 #SFARI gene sets
 while read genes; do
@@ -1574,11 +1585,43 @@ for tissue in Brain hNSC; do
   sort -Vk1,1 -k2,2n -k3,3n | uniq > ${WRKDIR}/data/unfiltered_annotations/CotneyCHD8_${tissue}_peaks.boundaries.bed
 done
 #Talkowski 36 rCNV loci (count)
-grep -ve '^GL\|^X\|^Y\|^M' /data/talkowski/Samples/SFARI/EcoFinal/annotation_files/rCNVs/talkowski_highQual_rCNVs.bed | \
+grep -ve '^GL\|^X\|^Y\|^M' ${SFARI_ANNO}/rCNVs/talkowski_highQual_rCNVs.bed | \
 sort -Vk1,1 -k2,2n -k3,3n | uniq > ${WRKDIR}/data/unfiltered_annotations/Talkowski_rCNVs_HQ.boundaries.bed
 #Claire's new rCNV list
-grep -ve '^GL\|^X\|^Y\|^M' /data/talkowski/Samples/SFARI/ASC_analysis/annotations/misc/PathogenicCNVs_allSources_nonredundant_hg19.bed | \
+grep -ve '^GL\|^X\|^Y\|^M' ${SFARI_ANNO}/misc/PathogenicCNVs_allSources_nonredundant_hg19_CER.bed | \
 cut -f1,4-5 | sort -Vk1,1 -k2,2n -k3,3n | uniq > ${WRKDIR}/data/unfiltered_annotations/Redin_PathogenicCNVs_allSources.boundaries.bed
+#Final consensus rCNV list
+fgrep -v "#" ${SFARI_ANNO}/misc/PathogenicCNVs_allSources_hg19_RLC.bed | \
+awk -v OFS="\t" '{ print $1, $2, $3, $4"_"NR, $4, "CNV" }' | \
+sort -Vk1,1 -k2,2n -k3,3n > ${TMPDIR}/PathogenicCNVs_allSources_hg19_RLC.bed
+bedtools intersect -r -f 0.5 -wa -wb \
+-a ${TMPDIR}/PathogenicCNVs_allSources_hg19_RLC.bed \
+-b ${TMPDIR}/PathogenicCNVs_allSources_hg19_RLC.bed > \
+${TMPDIR}/PathogenicCNVs_allSources_hg19_RLC.selfIntersect.bed
+cut -f4 ${TMPDIR}/PathogenicCNVs_allSources_hg19_RLC.bed > ${TMPDIR}/CNV_interval_IDs.list
+source /apps/lab/miket/anaconda/4.0.5/envs/collins_py3/bin/activate collins_py3
+/data/talkowski/rlc47/code/svcf/scripts/bedcluster -p PathogenicCNVs_allSources_nonredundant_hg19_RLC -m \
+${TMPDIR}/CNV_interval_IDs.list \
+${TMPDIR}/PathogenicCNVs_allSources_hg19_RLC.selfIntersect.bed \
+${TMPDIR}/PathogenicCNVs_allSources_hg19_RLC.merged.bed
+while read CNVID; do
+  awk -v OFS="\t" -v CNVID=${CNVID} '{ if ($7==CNVID) print $1, $2, $3, $5 }' \
+  ${TMPDIR}/PathogenicCNVs_allSources_hg19_RLC.merged.bed | \
+  bedtools merge -c 4 -o distinct -i - 
+done < <( fgrep -v "#" ${TMPDIR}/PathogenicCNVs_allSources_hg19_RLC.merged.bed | \
+  cut -f7 | sort -Vk1,1 | uniq ) | sort -Vk1,1 -k2,2n -k3,3n > \
+${SFARI_ANNO}/misc/PathogenicCNVs_allSources_nonredundant_hg19_RLC.bed
+grep -ve '^GL\|^X\|^Y\|^M' ${SFARI_ANNO}/misc/PathogenicCNVs_allSources_nonredundant_hg19_RLC.bed | \
+sort -Vk1,1 -k2,2n -k3,3n | uniq > ${WRKDIR}/data/unfiltered_annotations/CollinsFocal_PathogenicCNVs_allSources.boundaries.bed
+#rCNV list by source
+while read study; do
+  echo ${study}
+  awk -v study=${study} '{ if ($4==study) print $0 }' \
+  ${SFARI_ANNO}/misc/PathogenicCNVs_allSources_hg19_RLC.bed | \
+  sort -Vk1,1 -k2,2n -k3,3n > \
+  ${WRKDIR}/data/unfiltered_annotations/${study}_PathoCNVs.boundaries.bed
+done < <( fgrep -v "#" ${SFARI_ANNO}/misc/PathogenicCNVs_allSources_hg19_RLC.bed | \
+  cut -f4 | sort | uniq )
 #Gzip all annotations
 gzip -f ${WRKDIR}/data/unfiltered_annotations/*.boundaries.bed
 
@@ -1637,17 +1680,18 @@ while read anno; do
 done < <( l ${WRKDIR}/data/unfiltered_annotations/*boundaries.bed.gz | \
         awk '{ print $9 }' | xargs -I {} basename {} | sed 's/\.boundaries\.bed\.gz//g' )
 
-#####Launch filtered hotspot functional enrichment tests (both binomial and t-test)
+#####Launch filtered hotspot functional enrichment tests (both binomial and t-test) for noncoding sites only
 if ! [ -e ${WRKDIR}/bin/LSF/hotspot_enrichments_filtered ]; then
   mkdir ${WRKDIR}/bin/LSF/hotspot_enrichments_filtered
 fi
 while read anno; do
-  if ! [ -e ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/ ]; then
-    mkdir ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/
+  if [ -e ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/ ]; then
+    rm -rf ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/
   fi
+  mkdir ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/${anno}/
   for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
     for CNV in ANY_CNV CNV DEL DUP; do
-      for filt in ANY_FILTER all coding noncoding; do 
+      for filt in noncoding; do 
         #Binomial test
         echo -e "${WRKDIR}/bin/rCNVmap/bin/hotspot_annotation_test.sh -N 1000 -a greater -t binomial \
         -p ${group}_${CNV}_${filt}.${anno}.filtered_binomial \
@@ -1668,8 +1712,9 @@ while read anno; do
   chmod a+x ${WRKDIR}/bin/LSF/hotspot_enrichments_filtered/${anno}.submit.sh
   bsub -q short -sla miket_sc -J hotspot_filtered_enrichment_${anno} -u nobody \
   "sh ${WRKDIR}/bin/LSF/hotspot_enrichments_filtered/${anno}.submit.sh"
-done < <( l ${WRKDIR}/data/filtered_annotations/*boundaries.bed.gz | \
-        awk '{ print $9 }' | sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/\.boundaries\.bed\.gz//g' )
+done < <( l ${WRKDIR}/data/unfiltered_annotations/*boundaries.bed.gz | \
+        awk '{ print $9 }' | sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/\.boundaries\.bed\.gz//g' | \
+        grep -ve '250_500\|500_750' )
 
 #####Collect results from unfiltered enrichment tests
 if ! [ -e ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/RESULTS ]; then
@@ -1977,26 +2022,73 @@ while read anno; do
 done < <( l ${WRKDIR}/data/filtered_annotations/*boundaries.bed.gz | \
         awk '{ print $9 }' | sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/\.boundaries\.bed\.gz//g' )
 
-#####Gather data for positive control functional enrichments (Fig1f)
+#####Gather data for published CNV locus enrichments (Fig1f)
 #Get ORs
 for dummy in 1; do
   echo "group"
-  for anno in ClinGen_pathoCNVs ClinGen_HI_genes_count Petrovski2013_RVIS_1_genes_count \
-    essential_genes_count DDD_2016_genes_count Sanders2015_TADAq_0.3_genes_count COSMIC_all_genes_count \
-    AR_genes_count genes_protein_coding genes_all; do
-      echo "${anno}"
+  for anno in CollinsFocal_PathogenicCNVs_allSources ClinGen_2015_PathoCNVs Wapner_2012_PathoCNVs \
+  DDD_2016_PathoCNVs ACMG_2013_PathoCNVs \
+  Petrovski2013_RVIS_1 Clingen2015_Haploinsufficient Wang2015_essential Gencode_proteinCoding; do
+    echo "${anno}"
   done
 done | paste -s > ${WRKDIR}/data/plot_data/signif_loci_positive_control_enrichments.ORs.txt
 for group in ANY_DISEASE CNCR DD SCZ; do
   for dummy in 1; do
     echo ${group}
-    for anno in ClinGen_pathoCNVs ClinGen_HI_genes_count Petrovski2013_RVIS_1_genes_count \
-      essential_genes_count DDD_2016_genes_count Sanders2015_TADAq_0.3_genes_count COSMIC_all_genes_count \
-      AR_genes_count genes_protein_coding genes_all; do
-      tail -n1 ${WRKDIR}/analysis/Functional_Enrichments/${group}_ANY_CNV_coding/${anno}/${group}_ANY_CNV_coding_${anno}.annoBurden_results.txt | awk '{ print $1/$2 }'
+    for anno in CollinsFocal_PathogenicCNVs_allSources ClinGen_2015_PathoCNVs Wapner_2012_PathoCNVs DDD_2016_PathoCNVs ACMG_2013_PathoCNVs ; do
+      tail -n1 ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/${group}_ANY_CNV_ANY_FILTER.${anno}.unfiltered_binomial.TBRden_binomial_annotation_test.results.txt | \
+      cut -f4
+    done
+    for anno in Petrovski2013_RVIS_1 Clingen2015_Haploinsufficient Wang2015_essential Gencode_proteinCoding; do
+      tail -n1 ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/${group}_ANY_CNV_ANY_FILTER.${anno}.unfiltered_t.TBRden_ttest_annotation_test.results.txt | \
+      cut -f4
     done
   done | paste -s
 done >> ${WRKDIR}/data/plot_data/signif_loci_positive_control_enrichments.ORs.txt
+#Get lower CIs
+for dummy in 1; do
+  echo "group"
+  for anno in CollinsFocal_PathogenicCNVs_allSources ClinGen_2015_PathoCNVs Wapner_2012_PathoCNVs \
+  DDD_2016_PathoCNVs ACMG_2013_PathoCNVs \
+  Petrovski2013_RVIS_1 Clingen2015_Haploinsufficient Wang2015_essential Gencode_proteinCoding; do
+    echo "${anno}"
+  done
+done | paste -s > ${WRKDIR}/data/plot_data/signif_loci_positive_control_enrichments.lowerCI.txt
+for group in ANY_DISEASE CNCR DD SCZ; do
+  for dummy in 1; do
+    echo ${group}
+    for anno in CollinsFocal_PathogenicCNVs_allSources ClinGen_2015_PathoCNVs Wapner_2012_PathoCNVs DDD_2016_PathoCNVs ACMG_2013_PathoCNVs ; do
+      tail -n1 ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/${group}_ANY_CNV_ANY_FILTER.${anno}.unfiltered_binomial.TBRden_binomial_annotation_test.results.txt | \
+      cut -f5
+    done
+    for anno in Petrovski2013_RVIS_1 Clingen2015_Haploinsufficient Wang2015_essential Gencode_proteinCoding; do
+      tail -n1 ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/${group}_ANY_CNV_ANY_FILTER.${anno}.unfiltered_t.TBRden_ttest_annotation_test.results.txt | \
+      cut -f5
+    done
+  done | paste -s
+done >> ${WRKDIR}/data/plot_data/signif_loci_positive_control_enrichments.lowerCI.txt
+#Get upper CIs
+for dummy in 1; do
+  echo "group"
+  for anno in CollinsFocal_PathogenicCNVs_allSources ClinGen_2015_PathoCNVs Wapner_2012_PathoCNVs \
+  DDD_2016_PathoCNVs ACMG_2013_PathoCNVs \
+  Petrovski2013_RVIS_1 Clingen2015_Haploinsufficient Wang2015_essential Gencode_proteinCoding; do
+    echo "${anno}"
+  done
+done | paste -s > ${WRKDIR}/data/plot_data/signif_loci_positive_control_enrichments.upperCI.txt
+for group in ANY_DISEASE CNCR DD SCZ; do
+  for dummy in 1; do
+    echo ${group}
+    for anno in CollinsFocal_PathogenicCNVs_allSources ClinGen_2015_PathoCNVs Wapner_2012_PathoCNVs DDD_2016_PathoCNVs ACMG_2013_PathoCNVs ; do
+      tail -n1 ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/${group}_ANY_CNV_ANY_FILTER.${anno}.unfiltered_binomial.TBRden_binomial_annotation_test.results.txt | \
+      cut -f6
+    done
+    for anno in Petrovski2013_RVIS_1 Clingen2015_Haploinsufficient Wang2015_essential Gencode_proteinCoding; do
+      tail -n1 ${WRKDIR}/analysis/hotspot_enrichments/unfiltered_annotations/${anno}/${group}_ANY_CNV_ANY_FILTER.${anno}.unfiltered_t.TBRden_ttest_annotation_test.results.txt | \
+      cut -f6
+    done
+  done | paste -s
+done >> ${WRKDIR}/data/plot_data/signif_loci_positive_control_enrichments.upperCI.txt
 
 #####Prepare annotation files for functional enrichment analyses
 #Make master bin file
@@ -2007,27 +2099,6 @@ gzip -f ${WRKDIR}/data/annotations/GRCh37.master_bins.bed
 zcat ${WRKDIR}/data/annotations/GRCh37.master_bins.bed.gz | fgrep -v "X" | fgrep -v "Y" | sed '1d' > \
 ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed
 gzip -f ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed
-# #Genes (all) count
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-# -b <( grep -v -e "^GL" ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed )  | \
-# sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.genes_all.bed
-# #Genes (all) nearest
-# bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-# -b <( grep -v -e "^GL\|^M\|^X\|^Y" ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed ) | cut -f1-4,9 > \
-# ${WRKDIR}/data/annotations/GRCh37.autosomes.genes_all.nearest.bed
-# #Genes (protein-coding) count
-# fgrep "protein_coding" ${SFARI_ANNO}/gencode/gencode.v25lift37.annotation.GRCh37.gtf | \
-# awk '{ if ($3=="gene") print $0 }' | sed 's/\;/\n/g' | fgrep "gene_name" | awk '{ print $NF }' | \
-# tr -d "\"" | sort | uniq | fgrep -wf - ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | \
-# grep -v -e "^GL" | bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.genes_protein_coding.bed
-# #Genes (protein-coding) nearest
-# fgrep "protein_coding" ${SFARI_ANNO}/gencode/gencode.v25lift37.annotation.GRCh37.gtf | \
-# awk '{ if ($3=="gene") print $0 }' | sed 's/\;/\n/g' | fgrep "gene_name" | awk '{ print $NF }' | \
-# tr -d "\"" | sort | uniq | fgrep -wf - ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | \
-# grep -v -e "^GL\|^M\|X\|^Y" | bedtools closest -d -t first -b - \
-# -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | \
-# sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 > ${WRKDIR}/data/annotations/GRCh37.autosomes.genes_protein_coding.nearest.bed
 #Exons (all) count
 bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
 -b <( grep -v -e "^GL" ${SFARI_ANNO}/gencode/gencode.v25lift37.exons_and_UTRs.bed ) | \
@@ -2060,173 +2131,6 @@ sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 > ${WRKDIR}/data/annotations/GRCh37.auto
 #GC content
 bedtools nuc -fi ${h37} -bed ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | \
 cut -f1-5 | sed '1d' > ${WRKDIR}/data/annotations/GRCh37.autosomes.GC_pct.bed
-# #Essential genes (distance)
-# fgrep -wf ${SFARI_ANNO}/genelists/Wang2015_essential.genes.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL\|^X\|^Y\|^M" | \
-# bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 > ${WRKDIR}/data/annotations/GRCh37.autosomes.essential_genes_distance.bed
-# #Essential genes (count)
-# fgrep -wf ${SFARI_ANNO}/genelists/Wang2015_essential.genes.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL" | \
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.essential_genes_count.bed
-# #Constrained genes (RVIS + pLI union) count, tier 1 (10%)
-# cat ${SFARI_ANNO}/genelists/Petrovski2013_RVIS_10.genes.list ${SFARI_ANNO}/genelists/Lek2015_pLI_0.9.genes.list | \
-# sort | uniq | fgrep -wf - ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL" | \
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.intolerant_tier1_genes_count.bed
-# #Constrained genes (RVIS + pLI union) count, tier 2 (5% RVIS, 1% pLI)
-# cat ${SFARI_ANNO}/genelists/Petrovski2013_RVIS_5.genes.list ${SFARI_ANNO}/genelists/Lek2015_pLI_0.99.genes.list | \
-# sort | uniq | fgrep -wf - ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL" | \
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.intolerant_tier2_genes_count.bed
-# #Constrained genes (RVIS + pLI union) distance, tier 1 (10%) distance
-# cat ${SFARI_ANNO}/genelists/Petrovski2013_RVIS_10.genes.list ${SFARI_ANNO}/genelists/Lek2015_pLI_0.9.genes.list | \
-# sort | uniq | fgrep -wf - ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL\|^X\|^Y\|^M" | \
-# bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 > ${WRKDIR}/data/annotations/GRCh37.autosomes.intolerant_tier1_genes_distance.bed
-# #Constrained genes (RVIS + pLI union) distance, tier 2 (5% RVIS, 1% pLI) distance
-# cat ${SFARI_ANNO}/genelists/Petrovski2013_RVIS_5.genes.list ${SFARI_ANNO}/genelists/Lek2015_pLI_0.99.genes.list | \
-# sort | uniq | fgrep -wf - ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL\|^X\|^Y\|^M" | \
-# bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 > ${WRKDIR}/data/annotations/GRCh37.autosomes.intolerant_tier2_genes_distance.bed
-# #Autosomal dominant genes (count)
-# fgrep -wf ${SFARI_ANNO}/genelists/Berg2013Bekhman2008_autosomalDominant.genes.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL" | \
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.AD_genes_count.bed
-# #Autosomal dominant genes (distance)
-# fgrep -wf ${SFARI_ANNO}/genelists/Berg2013Bekhman2008_autosomalDominant.genes.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL\|^X\|^Y\|^M" | \
-# bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 > ${WRKDIR}/data/annotations/GRCh37.autosomes.AD_genes_distance.bed
-# #Autosomal recessive genes (count)
-# fgrep -wf ${SFARI_ANNO}/genelists/Berg2013Bekhman2008_autosomalRecessive.genes.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL" | \
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.AR_genes_count.bed
-# #Autosomal recessive genes (distance)
-# fgrep -wf ${SFARI_ANNO}/genelists/Berg2013Bekhman2008_autosomalRecessive.genes.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL\|^X\|^Y\|^M" | \
-# bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 > ${WRKDIR}/data/annotations/GRCh37.autosomes.AR_genes_distance.bed
-# #ClinGen HI genes (count)
-# fgrep -wf ${SFARI_ANNO}/genelists/Clingen2015_Haploinsufficient.genes.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL" | \
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.ClinGen_HI_genes_count.bed
-# #ClinGen HI genes (distance)
-# fgrep -wf ${SFARI_ANNO}/genelists/Clingen2015_Haploinsufficient.genes.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL\|^X\|^Y\|^M" | \
-# bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 > ${WRKDIR}/data/annotations/GRCh37.autosomes.ClinGen_HI_genes_distance.bed
-# #ClinVar Disease-Associated (count)
-# fgrep -wf ${SFARI_ANNO}/genelists/Landrum2014_clinvar_diseaseAssociated.genes.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL" | \
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.ClinVar_DiseaseAssociated_genes_count.bed
-# #ClinVar Disease-Associated (distance)
-# fgrep -wf ${SFARI_ANNO}/genelists/Landrum2014_clinvar_diseaseAssociated.genes.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL\|^X\|^Y\|^M" | \
-# bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 > ${WRKDIR}/data/annotations/GRCh37.autosomes.ClinVar_DiseaseAssociated_genes_distance.bed
-# #GWAS Catalogue Genes (count)
-# fgrep -wf ${SFARI_ANNO}/genelists/Welter2014_GWAScatalog.genes.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL" | \
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.GWAS_genes_count.bed
-# #GWAS Catalogue Genes (distance)
-# fgrep -wf ${SFARI_ANNO}/genelists/Welter2014_GWAScatalog.genes.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL\|^X\|^Y\|^M" | \
-# bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 > ${WRKDIR}/data/annotations/GRCh37.autosomes.GWAS_genes_distance.bed
-# #Tumor Suppressor Genes (count)
-# fgrep -wf ${SFARI_ANNO}/genelists/COSMIC_census_TSC.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL" | \
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.COSMIC_TumorSuppressors_genes_count.bed
-# #Tumor Suppressor Genes (distance)
-# fgrep -wf ${SFARI_ANNO}/genelists/COSMIC_census_TSC.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL\|^X\|^Y\|^M" | \
-# bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 | awk -v OFS="\t" '{ if ($5==".") $5=="NA"; print }' > \
-# ${WRKDIR}/data/annotations/GRCh37.autosomes.COSMIC_TumorSuppressors_genes_distance.bed
-# #Oncogenes (count)
-# fgrep -wf ${SFARI_ANNO}/genelists/COSMIC_census_oncogene.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL" | \
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.COSMIC_Oncogenes_genes_count.bed
-# #Oncogenes (distance)
-# fgrep -wf ${SFARI_ANNO}/genelists/COSMIC_census_oncogene.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL\|^X\|^Y\|^M" | \
-# bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 > ${WRKDIR}/data/annotations/GRCh37.autosomes.COSMIC_Oncogenes_genes_distance.bed
-# #COSMIC cancer genes (count)
-# fgrep -wf ${SFARI_ANNO}/genelists/COSMIC_census_all.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL" | \
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.COSMIC_all_genes_count.bed
-# #COSMIC cancer genes (distance)
-# fgrep -wf ${SFARI_ANNO}/genelists/COSMIC_census_all.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL\|^X\|^Y\|^M" | \
-# bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 > ${WRKDIR}/data/annotations/GRCh37.autosomes.COSMIC_all_genes_distance.bed
-# #HPA Druggable (count)
-# fgrep -wf ${SFARI_ANNO}/genelists/Uhlen2015_HumanProteinAtlas_FDADruggableGenes.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL" | \
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.Uhlen2015_HumanProteinAtlas_FDADruggableGenes_genes_count.bed
-# #HPA Druggable (distance)
-# fgrep -wf ${SFARI_ANNO}/genelists/Uhlen2015_HumanProteinAtlas_FDADruggableGenes.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL\|^X\|^Y\|^M" | \
-# bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 > ${WRKDIR}/data/annotations/GRCh37.autosomes.Uhlen2015_HumanProteinAtlas_FDADruggableGenes_genes_distance.bed
-# #T2D Genes (count)
-# fgrep -wf ${SFARI_ANNO}/genelists/Kim2010_T2D.genes.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL" | \
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.Kim2010_T2D_genes_count.bed
-# #T2D Genes (distance)
-# fgrep -wf ${SFARI_ANNO}/genelists/Kim2010_T2D.genes.list \
-# ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL\|^X\|^Y\|^M" | \
-# bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-# sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 | awk -v OFS="\t" '{ if ($5==".") $5=="NA"; print }' > \
-# ${WRKDIR}/data/annotations/GRCh37.autosomes.Kim2010_T2D_genes_distance.bed
-# #Bulk SFARI gene annotations
-# while read list; do
-#   echo ${list}
-#   #Count
-#   fgrep -wf ${SFARI_ANNO}/genelists/${list}.genes.list \
-#   ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL" | \
-#   bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-#   sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.${list}_genes_count.bed
-#   #Distance
-#   fgrep -wf ${SFARI_ANNO}/genelists/${list}.genes.list \
-#   ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL\|^X\|^Y\|^M" | \
-#   bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-#   sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 | awk -v OFS="\t" '{ if ($5==".") $5=="NA"; print }' > \
-#   ${WRKDIR}/data/annotations/GRCh37.autosomes.${list}_genes_distance.bed
-# done < <( echo -e "Sugathan2014_CHD8\nPetrovski2013_RVIS_10\nPetrovski2013_RVIS_5\nPetrovski2013_RVIS_1\n\
-# Lek2015_pLI_0.9\nLek2015_pLI_0.99\nLek2015_pLI_0.99999\nLee2016_RBFOX1\nLiu2014_DAWN\nSanders2015_TADAq_0.1\n\
-# Sanders2015_TADAq_0.3\nCotney2015_CHD8_hNSC\nCotney2015_CHD8_Brain\nCHD8_union\nCHD8_intersection\n\
-# Gencode_FMRP\nPawson2014_GPCR\nWelter2014_GWAScatalog\nRVIS1_pLI0.99999.Constrained_HC_union\n\
-# RVIS10_pLI0.9.Constrained_union\nDDD_2016\nDAWN_TADAq0.3_ASD_ID_EPI_MC_DDD2016.NDD_union" )
-# #Old SFARI ASD, EPI & ID gene lists
-# for group in ASD EPI ID; do
-#   for level in HC MC LC; do
-#     #Count
-#     fgrep -wf /data/talkowski/Samples/SFARI/EcoFinal/annotation_files/genes/${group}_${level}.list \
-#     ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL" | \
-#     bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-#     sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.${group}_${level}_genes_count.bed
-#     #Distance
-#     fgrep -wf /data/talkowski/Samples/SFARI/EcoFinal/annotation_files/genes/${group}_${level}.list \
-#     ${SFARI_ANNO}/gencode/gencode.GRCh37.gene_boundaries.bed | grep -v -e "^GL\|^X\|^Y\|^M" | \
-#     bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -b - | \
-#     sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 | awk -v OFS="\t" '{ if ($5==".") $5=="NA"; print }' > \
-#     ${WRKDIR}/data/annotations/GRCh37.autosomes.${group}_${level}_genes_distance.bed
-#   done
-# done
 #ENCODE DNAseH1 - Any
 bedtools coverage -b ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
 -a <( grep -v -e "^GL" ${SFARI_ANNO}/noncoding/ENCODE2012_DNAse1_raw.bed ) | \
@@ -2242,36 +2146,6 @@ bedtools coverage -b ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed
 -a <( grep -v -e "^GL" ${SFARI_ANNO}/noncoding/ENCODE2012_DNAse1_90pct_celltypes.bed ) | \
 awk -v OFS="\t" '{ print $1, $2, $3, $4, $NF }' | sort -Vk1,1 -k2,2n -k3,3n > \
 ${WRKDIR}/data/annotations/GRCh37.autosomes.DNAseH1_90pct_coverage.bed
-# #UCNEs (distance)
-# bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-# -b <( grep -ve "^X\|^Y\|^M\|^GL"  ${SFARI_ANNO}/noncoding/Dimitrieva2013_UCNE.bed ) | \
-# sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 > \
-# ${WRKDIR}/data/annotations/GRCh37.autosomes.UCNE_distance.bed
-# #UCNEs (count)
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-# -b ${SFARI_ANNO}/noncoding/Dimitrieva2013_UCNE.bed | sort -Vk1,1 -k2,2n -k3,3n > \
-# ${WRKDIR}/data/annotations/GRCh37.autosomes.UCNE_count.bed
-# #RepeatMasker by class
-# for class in LINE SINE LTR Satellite Simple_repeat Low_complexity; do
-#   bedtools coverage -b ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-#   -a <( grep -v -e "^GL" /data/talkowski/rlc47/src/GRCh37.${class}.RMSK.bed ) | \
-#   awk -v OFS="\t" '{ print $1, $2, $3, $4, $NF }' | sort -Vk1,1 -k2,2n -k3,3n > \
-#   ${WRKDIR}/data/annotations/GRCh37.autosomes.RM_${class}_coverage.bed
-# done
-# #HARs (count)
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-# -b ${SFARI_ANNO}/noncoding/Doan2016_HAR.bed | sort -Vk1,1 -k2,2n -k3,3n > \
-# ${WRKDIR}/data/annotations/GRCh37.autosomes.HAR_count.bed
-# #HARs (distance)
-# bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-# -b <( grep -ve "^X\|^Y\|^M\|^GL" ${SFARI_ANNO}/noncoding/Doan2016_HAR.bed | sort -Vk1,1 -k2,2n -k3,3n ) | \
-# sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 > \
-# ${WRKDIR}/data/annotations/GRCh37.autosomes.HAR_distance.bed
-# #SegDups
-# bedtools coverage -b ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-# -a <( grep -v -e "^GL" ${SFARI_ANNO}/noncoding/SegmentalDuplications_GRCh37.bed ) | \
-# awk -v OFS="\t" '{ print $1, $2, $3, $4, $NF }' | sort -Vk1,1 -k2,2n -k3,3n > \
-# ${WRKDIR}/data/annotations/GRCh37.autosomes.SegDup_coverage.bed
 #GM12878 histone marks
 for mark in H3k27ac H3k4me1 H3k4me2 H3k4me3 H2az H3k36me3 H3k9ac H3k9me3; do
   ${SFARI_ANNO}/noncoding/ENCODE/bigWigAverageOverBed \
@@ -2309,114 +2183,6 @@ paste ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed \
 <( awk '{ print $5 }' ${WRKDIR}/data/annotations/GRCh37.autosomes.Nucleosome_Density.tab ) > \
 ${WRKDIR}/data/annotations/GRCh37.autosomes.Nucleosome_Density.bed
 rm ${WRKDIR}/data/annotations/GRCh37.autosomes.Nucleosome_Density.tab
-# #ENCODE TF ChIP peaks (count)
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-# -b <( zcat ${SFARI_ANNO}/noncoding/ENCODE/wgEncodeRegTfbsClusteredV3.bed.gz | sed 's/^chr//g' | cut -f1-3 ) | \
-# sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.TF_ChIP_peaks.bed
-# #ENCODE TF ChIP peaks (count by TF)
-# mkdir ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/all_TF
-# zcat ${SFARI_ANNO}/noncoding/ENCODE/wgEncodeRegTfbsClusteredV3.bed.gz | sed 's/^chr//g' > \
-# ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/all_TF/all_TF.ENCODE_peaks.all.bed
-# zcat ${SFARI_ANNO}/noncoding/ENCODE/wgEncodeRegTfbsClusteredV3.bed.gz | \
-# awk '{ if ($5<250) print $0 }' | sed 's/^chr//g' > \
-# ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/all_TF/all_TF.ENCODE_peaks.0_250.bed
-# zcat ${SFARI_ANNO}/noncoding/ENCODE/wgEncodeRegTfbsClusteredV3.bed.gz | \
-# awk '{ if ($5>=250 && $5<500) print $0 }' | sed 's/^chr//g' > \
-# ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/all_TF/all_TF.ENCODE_peaks.250_500.bed
-# zcat ${SFARI_ANNO}/noncoding/ENCODE/wgEncodeRegTfbsClusteredV3.bed.gz | \
-# awk '{ if ($5>=500 && $5<750) print $0 }' | sed 's/^chr//g' > \
-# ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/all_TF/all_TF.ENCODE_peaks.500_750.bed
-# zcat ${SFARI_ANNO}/noncoding/ENCODE/wgEncodeRegTfbsClusteredV3.bed.gz | \
-# awk '{ if ($5>=750) print $0 }' | sed 's/^chr//g' > \
-# ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/all_TF/all_TF.ENCODE_peaks.750_1000.bed
-# gzip ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/all_TF/*
-# while read TF; do
-#   echo ${TF}
-#   mkdir ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/${TF}
-#   zcat ${SFARI_ANNO}/noncoding/ENCODE/wgEncodeRegTfbsClusteredV3.bed.gz | \
-#   awk -v TF=${TF} '{ if ($4==TF) print $0 }' | sed 's/^chr//g' > \
-#   ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/${TF}/${TF}.ENCODE_peaks.all.bed
-#   zcat ${SFARI_ANNO}/noncoding/ENCODE/wgEncodeRegTfbsClusteredV3.bed.gz | \
-#   awk -v TF=${TF} '{ if ($4==TF && $5<250) print $0 }' | sed 's/^chr//g' > \
-#   ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/${TF}/${TF}.ENCODE_peaks.0_250.bed
-#   zcat ${SFARI_ANNO}/noncoding/ENCODE/wgEncodeRegTfbsClusteredV3.bed.gz | \
-#   awk -v TF=${TF} '{ if ($4==TF && $5>=250 && $5<500) print $0 }' | sed 's/^chr//g' > \
-#   ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/${TF}/${TF}.ENCODE_peaks.250_500.bed
-#   zcat ${SFARI_ANNO}/noncoding/ENCODE/wgEncodeRegTfbsClusteredV3.bed.gz | \
-#   awk -v TF=${TF} '{ if ($4==TF && $5>=500 && $5<750) print $0 }' | sed 's/^chr//g' > \
-#   ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/${TF}/${TF}.ENCODE_peaks.500_750.bed
-#   zcat ${SFARI_ANNO}/noncoding/ENCODE/wgEncodeRegTfbsClusteredV3.bed.gz | \
-#   awk -v TF=${TF} '{ if ($4==TF && $5>=750) print $0 }' | sed 's/^chr//g' > \
-#   ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/${TF}/${TF}.ENCODE_peaks.750_1000.bed
-#   gzip ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/${TF}/*
-# done < <( zcat ${SFARI_ANNO}/noncoding/ENCODE/wgEncodeRegTfbsClusteredV3.bed.gz | cut -f4 | sort | uniq )
-# while read TF; do
-#   echo ${TF}
-#   bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-#   -b ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/${TF}/${TF}.ENCODE_peaks.all.bed.gz | \
-#   sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.ENCODE_${TF}_peaks_all.bed
-#   bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-#   -b ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/${TF}/${TF}.ENCODE_peaks.0_250.bed.gz | \
-#   sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.ENCODE_${TF}_peaks_0_250.bed
-#   bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-#   -b ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/${TF}/${TF}.ENCODE_peaks.250_500.bed.gz | \
-#   sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.ENCODE_${TF}_peaks_250_500.bed
-#   bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-#   -b ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/${TF}/${TF}.ENCODE_peaks.500_750.bed.gz | \
-#   sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.ENCODE_${TF}_peaks_500_750.bed
-#   bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-#   -b ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/${TF}/${TF}.ENCODE_peaks.750_1000.bed.gz | \
-#   sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.ENCODE_${TF}_peaks_750_1000.bed
-# done < <( zcat ${SFARI_ANNO}/noncoding/ENCODE/wgEncodeRegTfbsClusteredV3.bed.gz | cut -f4 | sort | uniq | \
-#   cat <( echo -e "all_TF" ) - )
-# #ClinGen Pathogenic CNV Regions (distance)
-# bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-# -b <( zcat ${SFARI_ANNO}/misc/ClinGen_PathogenicCNVs.bed.gz | grep -ve "^X\|^Y\|^M\|^GL" | sort -Vk1,1 -k2,2n -k3,3n ) | \
-# sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,9 > \
-# ${WRKDIR}/data/annotations/GRCh37.autosomes.ClinGen_pathoCNVs_distance.bed
-# #ClinGen Pathogenic CNV Regions (count)
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-# -b ${SFARI_ANNO}/misc/ClinGen_PathogenicCNVs.bed.gz | sort -Vk1,1 -k2,2n -k3,3n > \
-# ${WRKDIR}/data/annotations/GRCh37.autosomes.ClinGen_pathoCNVs.bed
-# #GWAS catalog variants (count)
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-# -b ${SFARI_ANNO}/misc/GWAS_Catalog_variants.merged_simple.bed.gz | sort -Vk1,1 -k2,2n -k3,3n > \
-# ${WRKDIR}/data/annotations/GRCh37.autosomes.GWAS_loci.bed
-# #GTEx eQTLs (count & distance)
-# while read tissue; do
-#   echo ${tissue}
-#   mkdir ${SFARI_ANNO}/misc/GTEx_eQTLs/${tissue}
-#   sed '1d' ${SFARI_ANNO}/misc/GTEx_eQTLs/${tissue}_Analysis.snpgenes | \
-#   awk -v OFS="\t" '{ print $14, $15, $15+1 }' > \
-#   ${SFARI_ANNO}/misc/GTEx_eQTLs/${tissue}/${tissue}.signif_eQTLs.bed
-# done < <( l ${SFARI_ANNO}/misc/GTEx_eQTLs/*snpgenes | awk '{ print $9 }' | \
-#   sed -e 's/GTEx_eQTLs\//\t/g' -e 's/_Analysis\.snpgenes//g' | awk '{ print $2 }' )
-# while read tissue; do
-#   echo ${tissue}
-#   #Count
-#   bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-#   -b ${SFARI_ANNO}/misc/GTEx_eQTLs/${tissue}/${tissue}.signif_eQTLs.bed | \
-#   sort -Vk1,1 -k2,2n -k3,3n > \
-#   ${WRKDIR}/data/annotations/GRCh37.autosomes.GTEx_eQTLs_${tissue}_count.bed
-#   #Distance
-#   bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-#   -b <( grep -ve "^X\|^Y\|^M\|^GL" ${SFARI_ANNO}/misc/GTEx_eQTLs/${tissue}/${tissue}.signif_eQTLs.bed | \
-#     sort -Vk1,1 -k2,2n -k3,3n ) | sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4,8 > \
-#   ${WRKDIR}/data/annotations/GRCh37.autosomes.GTEx_eQTLs_${tissue}_distance.bed
-# done < <( l ${SFARI_ANNO}/misc/GTEx_eQTLs/*snpgenes | awk '{ print $9 }' | \
-#   sed -e 's/GTEx_eQTLs\//\t/g' -e 's/_Analysis\.snpgenes//g' | awk '{ print $2 }' )
-# #COSMIC variants (count)
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-# -b ${SFARI_ANNO}/misc/COSMIC_variants.bed.gz | sort -Vk1,1 -k2,2n -k3,3n > \
-# ${WRKDIR}/data/annotations/GRCh37.autosomes.COSMIC_variants.bed
-# #Affy6 Probes (count)
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-# -b ${SFARI_ANNO}/misc/Affy6_Probes.bed.gz | sort -Vk1,1 -k2,2n -k3,3n > \
-# ${WRKDIR}/data/annotations/GRCh37.autosomes.Affy6_Probes.bed
-# #Illumina 1MDuo Probes (count)
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-# -b ${SFARI_ANNO}/misc/Illumina_1MDuo_Probes.bed.gz | sort -Vk1,1 -k2,2n -k3,3n > \
-# ${WRKDIR}/data/annotations/GRCh37.autosomes.Illumina_1MDuo_Probes.bed
 #PhyloP 100-way conservation
 ${SFARI_ANNO}/noncoding/ENCODE/bigWigAverageOverBed \
 /scratch/miket/rlc47temp/DOSAGE/hg19.100way.phyloP100way.bw \
@@ -2426,10 +2192,6 @@ paste ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed \
 <( awk '{ print $5 }' ${WRKDIR}/data/annotations/GRCh37.autosomes.PhyloP_Conservation.tab ) > \
 ${WRKDIR}/data/annotations/GRCh37.autosomes.PhyloP_Conservation.bed
 rm ${WRKDIR}/data/annotations/GRCh37.autosomes.PhyloP_Conservation.tab
-# #dbSNP 142 variants (count)
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-# -b /scratch/miket/rlc47temp/DOSAGE/snp142_SNVs_MNPs.bed | sort -Vk1,1 -k2,2n -k3,3n > \
-# ${WRKDIR}/data/annotations/GRCh37.autosomes.dbSNP142_vars.bed
 #Replication timing
 bedtools map -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -o mean -c 4 \
 -b <( fgrep -v "X" /scratch/miket/rlc47temp/DOSAGE/hg19_repTiming.bed | fgrep -v "Y" ) | \
@@ -2485,14 +2247,6 @@ while read tissue; do #curate binwise expression levels
   ${WRKDIR}/data/annotations/GRCh37.autosomes.GTEx_maxExpression_${tissue}.bed
 done < <( head -n1 ${SFARI_ANNO}/misc/GTEx_expression/GTEx_Expression.master_matrix.cleaned.bed | \
   cut -f4- | sed 's/\t/\n/g' | sed '1d' )
-# while read tissue; do #curate counts of highly expressed genes
-#   echo ${tissue}
-#   bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-#   -b ${SFARI_ANNO}/misc/GTEx_expression/GTEx_Expression.${tissue}.highExpressorGenes.bed.gz | \
-#   sort -Vk1,1 -k2,2n -k3,3n > \
-#   ${WRKDIR}/data/annotations/GRCh37.autosomes.GTEx_highExpressors_${tissue}.bed
-# done < <( head -n1 ${SFARI_ANNO}/misc/GTEx_expression/GTEx_Expression.master_matrix.cleaned.bed | \
-#   cut -f4- | sed 's/\t/\n/g' | sed '1d' )
 #Schmitt compartment - Fibroblast & LCL
 for cell in BL AO AD tro SX SB RV PO PA OV npc msc mes LV LI LG imr90 HC h1 GM12878 CO; do
   ${SFARI_ANNO}/noncoding/ENCODE/bigWigAverageOverBed \
@@ -2504,487 +2258,112 @@ for cell in BL AO AD tro SX SB RV PO PA OV npc msc mes LV LI LG imr90 HC h1 GM12
   ${WRKDIR}/data/annotations/GRCh37.autosomes.${cell}_compartment.bed
   rm ${WRKDIR}/data/annotations/GRCh37.autosomes.${cell}_compartment.tab
 done
-# #Schmitt TBRs
-# while read tissue; do
-#   echo -e "${tissue}"
-#   #Count
-#   bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-#   -b /data/talkowski/rlc47/TAD_intolerance/data/nuc/TBR/${tissue}.TBR.bed | sort -Vk1,1 -k2,2n -k3,3n > \
-#   ${WRKDIR}/data/annotations/GRCh37.autosomes.${tissue}_TBRs.bed
-#   #Distance
-#   bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-#   -b <( grep -ve "^X\|^Y\|^M\|^GL" /data/talkowski/rlc47/TAD_intolerance/data/nuc/TBR/${tissue}.TBR.bed | \
-#     sort -Vk1,1 -k2,2n -k3,3n ) | cut -f1-4,9 > \
-#   ${WRKDIR}/data/annotations/GRCh37.autosomes.${tissue}_TBRs_distance.bed
-# done < <( cat <( echo "MERGED" ) /data/talkowski/rlc47/TAD_intolerance/lists/Schmitt_tissues.list )
-# while read tissue; do
-#   cat /data/talkowski/rlc47/TAD_intolerance/data/nuc/TBR/${tissue}.TBR.bed
-# done < /data/talkowski/rlc47/TAD_intolerance/lists/Schmitt_tissues.list | sort -Vk1,1 -k2,2n -k3,3n | \
-# bedtools intersect -c -b - \
-# -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | \
-# sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.ALL_TBRs.bed
-# while read tissue; do
-#   cat /data/talkowski/rlc47/TAD_intolerance/data/nuc/TBR/${tissue}.TBR.bed
-# done < /data/talkowski/rlc47/TAD_intolerance/lists/Schmitt_tissues.list | grep -ve "^X\|^Y\|^M\|^GL" | \
-# sort -Vk1,1 -k2,2n -k3,3n | bedtools closest -d -t first -b - \
-# -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | sort -Vk1,1 -k2,2n -k3,3n | \
-# cut -f1-4,9 > ${WRKDIR}/data/annotations/GRCh37.autosomes.ALL_TBRs_distance.bed
-# #Super enhancers
-# while read tissue; do
-#   echo ${tissue}
-#   bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-#   -b ${SFARI_ANNO}/noncoding/superEnhancers/cleaned/${tissue}_superEnhancer.bed | sort -Vk1,1 -k2,2n -k3,3n > \
-#   ${WRKDIR}/data/annotations/GRCh37.autosomes.${tissue}_superEnhancer.bed
-# done < <( ls -l ${SFARI_ANNO}/noncoding/superEnhancers/*bed | \
-#   awk '{ print $9 }' | sed 's/superEnhancers\//\t/g' | sed 's/\.bed/\t/g' | cut -f2 )
-# #Tissue-specific enhancers
-# while read tissue; do
-#   echo ${tissue}
-#   bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-#   -b <( cat ${SFARI_ANNO}/noncoding/TissueEnhancers/cleaned/${tissue}_enhancers.bed | uniq ) | \
-#   sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.${tissue}_enhancerAtlas.bed
-# done < <( ls -l ${SFARI_ANNO}/noncoding/TissueEnhancers/*txt | \
-#   awk '{ print $9 }' | sed 's/TissueEnhancers\//\t/g' | sed 's/_EP/\t/g' | cut -f2 )
-# #Brain enhancer RNAs (count)
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-# -b ${SFARI_ANNO}/noncoding/Yao2015_BrainEnhancerRNA.bed | sort -Vk1,1 -k2,2n -k3,3n > \
-# ${WRKDIR}/data/annotations/GRCh37.autosomes.BrainEnhancerRNAs.bed
-# #FMRP targets
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-# -b ${SFARI_ANNO}/noncoding/Ascano2012_FMRP.bed | sort -Vk1,1 -k2,2n -k3,3n > \
-# ${WRKDIR}/data/annotations/GRCh37.autosomes.FMRP_targets.bed
-# #FANTOM5 NPC, fetal brain, and adult brain enhancers
-# for tissue in NPC AdultBrain FetalBrain; do
-#   bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-#   -b ${SFARI_ANNO}/noncoding/FANTOM52015_${tissue}_TPM5.bed | sort -Vk1,1 -k2,2n -k3,3n > \
-#   ${WRKDIR}/data/annotations/GRCh37.autosomes.FANTOM5_${tissue}_enhancer.bed
-# done
-# #Cotney CHD8 peaks
-# for tissue in Brain hNSC; do
-#   bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-#   -b ${SFARI_ANNO}/noncoding/Cotney2015_CHD8_${tissue}_peaks.bed | sort -Vk1,1 -k2,2n -k3,3n > \
-#   ${WRKDIR}/data/annotations/GRCh37.autosomes.CHD8_${tissue}_targets.bed
-# done
-# #Talkowski 36 rCNV loci (count)
-# bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-# -b /data/talkowski/Samples/SFARI/EcoFinal/annotation_files/rCNVs/talkowski_highQual_rCNVs.bed | \
-# sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/GRCh37.autosomes.HCrCNVs.bed
-# #Talkowski 36 rCNV loci (distance)
-# bedtools closest -d -t first -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-# -b <( grep -ve "^X\|^Y" /data/talkowski/Samples/SFARI/EcoFinal/annotation_files/rCNVs/talkowski_highQual_rCNVs.bed ) | \
-# sort -Vk1,1 -k2,2n -k3,3n | awk -v FS="\t" -v OFS="\t" '{ print $1, $2, $3, $4, $NF }' > \
-# ${WRKDIR}/data/annotations/GRCh37.autosomes.HCrCNVs_distance.bed
 
-#####Check number of columns for each annotation file
-while read anno skip; do
-  zcat ${WRKDIR}/data/annotations/GRCh37.autosomes.${anno}.bed.gz | \
-  head -n1 | awk '{ print NF }'
-  echo "${anno}"
-done < ${WRKDIR}/lists/annotations.all.list | paste - - | sort -nk1,1
-
-#####Launch functional enrichment analyses of all significant windows
-for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
-  for CNV in ANY_CNV CNV DEL DUP; do
-    for filt in ANY_FILTER all coding noncoding; do
-      if [ -e ${WRKDIR}/analysis/Functional_Enrichments/${group}_${CNV}_${filt} ]; then
-        rm -r ${WRKDIR}/analysis/Functional_Enrichments/${group}_${CNV}_${filt}
-      fi
-      mkdir ${WRKDIR}/analysis/Functional_Enrichments/${group}_${CNV}_${filt}
-      while read anno measure; do
-        mkdir ${WRKDIR}/analysis/Functional_Enrichments/${group}_${CNV}_${filt}/${anno}
-        bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_${filt} \
-        "${WRKDIR}/bin/rCNVmap/bin/TBRden_annoBurden.R \
-        ${WRKDIR}/data/annotations/GRCh37.autosomes.${anno}.bed.gz \
-        ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.${filt}.perm_signif_loci.peak_windows.bed.gz \
-        ${measure} ${WRKDIR}/analysis/Functional_Enrichments/${group}_${CNV}_${filt}/${anno} \
-        ${group}_${CNV}_${filt}_${anno}"
-      done < ${WRKDIR}/lists/annotations.all.list
-    done
-  done
-done
-
-#####Recreate functional annotation tracks after restricting out elements near protein-coding exons
-#Make merged list of protein-coding exons
-fgrep -wf ${SFARI_ANNO}/genelists/Gencode_proteinCoding.genes.list \
-${SFARI_ANNO}/gencode/gencode.v25lift37.exons_minus_UTRs.lex.bed | \
-bedtools merge -c 4 -o distinct -i - | sort -Vk1,1 -k2,2n -k3,3n > \
-${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.merged.bed
-#Make list of protein-coding exons with ±10kb flanks
-awk -v OFS="\t" '{ print $1, $2-10000, $3+10000 }' \
-${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.merged.bed | \
-awk -v OFS="\t" '{ if ($2<1) $2=1; print }' | \
-awk -v OFS="\t" '{ if ($3<2) $3=2; print }' | \
-sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
-${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed
-#Make list of subtracted master bins
-bedtools subtract -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed \
--b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-awk -v OFS="\t" '{ print "chr"$0, NR }' > ${TMPDIR}/Subtracted_bins.bed
-#GC content
-bedtools subtract -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
--b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-bedtools nuc -fi ${h37} -bed - | cut -f1-5 | sed '1d' > ${TMPDIR}/GC.subtracted.bed
-${WRKDIR}/bin/rCNVmap/bin/subtractedBed_weightedMeans.R \
-${TMPDIR}/GC.subtracted.bed \
-${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.GC_pct.bed
-#ENCODE DNAseH1 - Any
-bedtools intersect -v -a <( grep -v -e "^GL" ${SFARI_ANNO}/noncoding/ENCODE2012_DNAse1_raw.bed ) \
--b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-bedtools coverage -b ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
--a - | awk -v OFS="\t" '{ print $1, $2, $3, $4, $NF }' | sort -Vk1,1 -k2,2n -k3,3n > \
-${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.DNAseH1_raw_coverage.bed
-#ENCODE DNAseH1 - 50% Cell Types
-bedtools intersect -v -a <( grep -v -e "^GL" ${SFARI_ANNO}/noncoding/ENCODE2012_DNAse1_50pct_celltypes.bed ) \
--b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-bedtools coverage -b ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
--a - | awk -v OFS="\t" '{ print $1, $2, $3, $4, $NF }' | sort -Vk1,1 -k2,2n -k3,3n > \
-${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.DNAseH1_50pct_coverage.bed
-#ENCODE DNAseH1 - 90% Cell Types
-bedtools intersect -v -a <( grep -v -e "^GL" ${SFARI_ANNO}/noncoding/ENCODE2012_DNAse1_90pct_celltypes.bed ) \
--b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-bedtools coverage -b ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
--a - | awk -v OFS="\t" '{ print $1, $2, $3, $4, $NF }' | sort -Vk1,1 -k2,2n -k3,3n > \
-${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.DNAseH1_90pct_coverage.bed
-#UCNEs
-bedtools intersect -v -a ${SFARI_ANNO}/noncoding/Dimitrieva2013_UCNE.bed \
--b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
--b - | sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.UCNE_count.bed
-#HARs
-bedtools intersect -v -a ${SFARI_ANNO}/noncoding/Doan2016_HAR.bed \
--b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
--b - | sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.HAR_count.bed
-#RepeatMasker by class
-for class in LINE SINE LTR Satellite Simple_repeat Low_complexity; do
-  echo "${class}"
-  bedtools intersect -v -a <( grep -v -e "^GL" /data/talkowski/rlc47/src/GRCh37.${class}.RMSK.bed ) \
-  -b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-  bedtools coverage -b ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-  -a - | awk -v OFS="\t" '{ print $1, $2, $3, $4, $NF }' | sort -Vk1,1 -k2,2n -k3,3n > \
-  ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.RM_${class}_coverage.bed
-done
-#SegDups
-bedtools intersect -v -a <( grep -v -e "^GL" ${SFARI_ANNO}/noncoding/SegmentalDuplications_GRCh37.bed ) \
--b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-bedtools coverage -b ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
--a - | awk -v OFS="\t" '{ print $1, $2, $3, $4, $NF }' | sort -Vk1,1 -k2,2n -k3,3n > \
-${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.SegDup_coverage.bed
-#GM12878 histone marks
-for mark in H3k27ac H3k4me1 H3k4me2 H3k4me3 H2az H3k36me3 H3k9ac H3k9me3; do
-  echo "${mark}"
-  bedtools subtract -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed \
-  -b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-  awk -v OFS="\t" '{ print "chr"$0, NR }' > ${TMPDIR}/${mark}.originalbins.bed
-  ${SFARI_ANNO}/noncoding/ENCODE/bigWigAverageOverBed \
-  ${SFARI_ANNO}/noncoding/ENCODE/wgEncodeBroadHistoneGm12878${mark}StdSig.bigWig \
-  <( cut -f1-3,5 ${TMPDIR}/${mark}.originalbins.bed ) \
-  ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.${mark}.tab
-  paste <( cut -f1-4 ${TMPDIR}/${mark}.originalbins.bed | sed 's/chr//g' ) \
-  <( awk '{ print $5 }' ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.${mark}.tab ) > \
-  ${TMPDIR}/${mark}.subtracted.bed
-  ${WRKDIR}/bin/rCNVmap/bin/subtractedBed_weightedMeans.R \
-  ${TMPDIR}/${mark}.subtracted.bed \
-  ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.${mark}.bed
-  rm ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.${mark}.tab
-done
-#ENCODE 100mer alignability & 35bp uniqueness
-${SFARI_ANNO}/noncoding/ENCODE/bigWigAverageOverBed \
-${SFARI_ANNO}/noncoding/ENCODE/wgEncodeCrgMapabilityAlign100mer.bigWig \
-<( cut -f1-3,5 ${TMPDIR}/Subtracted_bins.bed ) \
-${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.Align_100mer.tab
-paste <( cut -f1-4 ${TMPDIR}/Subtracted_bins.bed | sed 's/chr//g' ) \
-<( awk '{ print $5 }' ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.Align_100mer.tab ) > \
-${TMPDIR}/Align_100mer.subtracted.bed
-${WRKDIR}/bin/rCNVmap/bin/subtractedBed_weightedMeans.R \
-${TMPDIR}/Align_100mer.subtracted.bed \
-${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.Align_100mer.bed
-rm ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.Align_100mer.tab
-${SFARI_ANNO}/noncoding/ENCODE/bigWigAverageOverBed \
-${SFARI_ANNO}/noncoding/ENCODE/wgEncodeDukeMapabilityUniqueness35bp.bigWig \
-<( cut -f1-3,5 ${TMPDIR}/Subtracted_bins.bed ) \
-${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.Unique_35bp.tab
-paste <( cut -f1-4 ${TMPDIR}/Subtracted_bins.bed | sed 's/chr//g' ) \
-<( awk '{ print $5 }' ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.Unique_35bp.tab ) > \
-${TMPDIR}/Unique_35bp.subtracted.bed
-${WRKDIR}/bin/rCNVmap/bin/subtractedBed_weightedMeans.R \
-${TMPDIR}/Unique_35bp.subtracted.bed \
-${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.Unique_35bp.bed
-rm ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.Unique_35bp.tab
-#GM12878 nucleosome map
-${SFARI_ANNO}/noncoding/ENCODE/bigWigAverageOverBed \
-${SFARI_ANNO}/noncoding/ENCODE/wgEncodeSydhNsomeGm12878Sig.bigWig \
-<( cut -f1-3,5 ${TMPDIR}/Subtracted_bins.bed ) \
-${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.Nucleosome_Density.tab
-paste <( cut -f1-4 ${TMPDIR}/Subtracted_bins.bed | sed 's/chr//g' ) \
-<( awk '{ print $5 }' ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.Nucleosome_Density.tab ) > \
-${TMPDIR}/Nucleosome_Density.subtracted.bed
-${WRKDIR}/bin/rCNVmap/bin/subtractedBed_weightedMeans.R \
-${TMPDIR}/Nucleosome_Density.subtracted.bed \
-${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.Nucleosome_Density.bed
-rm ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.Nucleosome_Density.tab
-#ENCODE TF ChIP peaks (count)
-bedtools intersect -v -a <( zcat ${SFARI_ANNO}/noncoding/ENCODE/wgEncodeRegTfbsClusteredV3.bed.gz | sed 's/^chr//g' | cut -f1-3 ) \
--b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
--b - | sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.TF_ChIP_peaks.bed
-#ENCODE TF ChIP peaks (count by TF)
-while read TF; do
-  echo ${TF}
-  for slice in all 0_250 250_500 500_750 750_1000; do
-    bedtools intersect -v -a ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/${TF}/${TF}.ENCODE_peaks.${slice}.bed.gz \
-    -b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-    bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-    -b - | sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.ENCODE_${TF}_peaks_${slice}.bed
-  done
-done < <( zcat ${SFARI_ANNO}/noncoding/ENCODE/wgEncodeRegTfbsClusteredV3.bed.gz | cut -f4 | sort | uniq | \
-  cat <( echo -e "all_TF" ) - )
-#GWAS catalog variants (count)
-bedtools intersect -v -a ${SFARI_ANNO}/misc/GWAS_Catalog_variants.merged_simple.bed.gz \
--b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
--b - | sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.GWAS_loci.bed
-#GTEx eQTLs (count & distance)
-while read tissue; do
-  echo ${tissue}
-  #Count
-  bedtools intersect -v -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-  -b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-  bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-  -b - | sort -Vk1,1 -k2,2n -k3,3n > \
-  ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.GTEx_eQTLs_${tissue}_count.bed
-done < <( l ${SFARI_ANNO}/misc/GTEx_eQTLs/*snpgenes | awk '{ print $9 }' | \
-  sed -e 's/GTEx_eQTLs\//\t/g' -e 's/_Analysis\.snpgenes//g' | awk '{ print $2 }' )
-#COSMIC variants (count)
-bedtools intersect -v -a ${SFARI_ANNO}/misc/COSMIC_variants.bed.gz \
--b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
--b - | sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.COSMIC_variants.bed
-#Affy6 Probes (count)
-bedtools intersect -v -a ${SFARI_ANNO}/misc/Affy6_Probes.bed.gz \
--b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
--b - | sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.Affy6_Probes.bed
-#Illumina 1MDuo Probes (count)
-bedtools intersect -v -a ${SFARI_ANNO}/misc/Illumina_1MDuo_Probes.bed.gz \
--b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
--b - | sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.Illumina_1MDuo_Probes.bed
-#PhyloP 100-way conservation
-${SFARI_ANNO}/noncoding/ENCODE/bigWigAverageOverBed \
-/scratch/miket/rlc47temp/DOSAGE/hg19.100way.phyloP100way.bw \
-<( cut -f1-3,5 ${TMPDIR}/Subtracted_bins.bed ) \
-${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.PhyloP_Conservation.tab
-paste <( cut -f1-4 ${TMPDIR}/Subtracted_bins.bed | sed 's/chr//g' ) \
-<( awk '{ print $5 }' ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.PhyloP_Conservation.tab ) > \
-${TMPDIR}/PhyloP_Conservation.subtracted.bed
-${WRKDIR}/bin/rCNVmap/bin/subtractedBed_weightedMeans.R \
-${TMPDIR}/PhyloP_Conservation.subtracted.bed \
-${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.PhyloP_Conservation.bed
-rm ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.PhyloP_Conservation.tab
-#dbSNP 142 variants (count)
-bedtools intersect -v -a /scratch/miket/rlc47temp/DOSAGE/snp142_SNVs_MNPs.bed \
--b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
--b - | sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.dbSNP142_vars.bed
-#Replication timing
-bedtools map -a <( cut -f1-4 ${TMPDIR}/Subtracted_bins.bed | sed 's/chr//g' | sort -Vk1,1 -k2,2n -k3,3n ) -o mean -c 4 \
--b <( fgrep -v "X" /scratch/miket/rlc47temp/DOSAGE/hg19_repTiming.bed | fgrep -v "Y" ) | \
-awk -v OFS="\t" '{ if ($5==".") $5="NA"; print }' > ${TMPDIR}/hg19_repTiming.subtracted.bed
-${WRKDIR}/bin/rCNVmap/bin/subtractedBed_weightedMeans.R \
-${TMPDIR}/hg19_repTiming.subtracted.bed \
-${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.RepTiming.bed
-#Recombination frequency (deCODE)
-${SFARI_ANNO}/noncoding/ENCODE/bigWigAverageOverBed \
-${SFARI_ANNO}/noncoding/ENCODE/SexAveraged.bw \
-<( cut -f1-3,5 ${TMPDIR}/Subtracted_bins.bed ) \
-${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.Recomb_Freq.tab
-paste <( cut -f1-4 ${TMPDIR}/Subtracted_bins.bed | sed 's/chr//g' ) \
-<( awk '{ print $5 }' ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.Recomb_Freq.tab ) > \
-${TMPDIR}/Recomb_Freq.subtracted.bed
-${WRKDIR}/bin/rCNVmap/bin/subtractedBed_weightedMeans.R \
-${TMPDIR}/Recomb_Freq.subtracted.bed \
-${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.Recomb_Freq.bed
-rm ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.Recomb_Freq.tab
-#GTEx Expression
-while read tissue; do
-  echo ${tissue}
-  bedtools map -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -o mean -c 5 \
-  -b <( zcat ${SFARI_ANNO}/misc/GTEx_expression/GTEx_Expression.${tissue}.bed.gz | grep -v -e '^X\|^Y\|^M' ) | \
-  awk -v OFS="\t" '{ if ($5==".") $5="NA"; print }' | sort -Vk1,1 -k2,2n -k3,3n > \
-  ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.GTEx_avgExpression_${tissue}.bed
-  bedtools map -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz -o max -c 5 \
-  -b <( zcat ${SFARI_ANNO}/misc/GTEx_expression/GTEx_Expression.${tissue}.bed.gz | grep -v -e '^X\|^Y\|^M' ) | \
-  awk -v OFS="\t" '{ if ($5==".") $5="NA"; print }' | sort -Vk1,1 -k2,2n -k3,3n > \
-  ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.GTEx_maxExpression_${tissue}.bed
-done < <( head -n1 ${SFARI_ANNO}/misc/GTEx_expression/GTEx_Expression.master_matrix.cleaned.bed | \
-  cut -f4- | sed 's/\t/\n/g' | sed '1d' )
-#Schmitt compartment - Fibroblast & LCL
-for cell in BL AO AD tro SX SB RV PO PA OV npc msc mes LV LI LG imr90 HC h1 GM12878 CO; do
-  echo ${cell}
-  ${SFARI_ANNO}/noncoding/ENCODE/bigWigAverageOverBed \
-  ${SFARI_ANNO}/TADs/Schmitt2016/Compartment_primary_cohort/${cell}.pc.bw \
-  <( cut -f1-3,5 ${TMPDIR}/Subtracted_bins.bed ) \
-  ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.${cell}_compartment.tab
-  paste <( cut -f1-4 ${TMPDIR}/Subtracted_bins.bed | sed 's/chr//g' ) \
-  <( awk '{ print $5 }' ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.${cell}_compartment.tab ) > \
-  ${TMPDIR}/${cell}_compartment.subtracted.bed
-  ${WRKDIR}/bin/rCNVmap/bin/subtractedBed_weightedMeans.R \
-  ${TMPDIR}/${cell}_compartment.subtracted.bed \
-  ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.${cell}_compartment.bed
-  rm ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.${cell}_compartment.tab
-done
-#Schmitt TBRs
-while read tissue; do
-  #Count
-  bedtools intersect -v -a /data/talkowski/rlc47/TAD_intolerance/data/nuc/TBR/${tissue}.TBR.bed \
-  -b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-  bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-  -b - | sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.${tissue}_TBRs.bed
-  #Distance
-  grep -ve "^X\|^Y\|^M\|^GL" /data/talkowski/rlc47/TAD_intolerance/data/nuc/TBR/${tissue}.TBR.bed | \
-  bedtools intersect -v -a - -b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-  bedtools closest -d -t first -b - -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | cut -f1-4,9 > \
-  ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.${tissue}_TBRs_distance.bed
-done < <( cat <( echo "MERGED" ) /data/talkowski/rlc47/TAD_intolerance/lists/Schmitt_tissues.list )
-while read tissue; do
-  cat /data/talkowski/rlc47/TAD_intolerance/data/nuc/TBR/${tissue}.TBR.bed
-done < /data/talkowski/rlc47/TAD_intolerance/lists/Schmitt_tissues.list | sort -Vk1,1 -k2,2n -k3,3n | \
-bedtools intersect -v -a - \
--b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-bedtools intersect -c -b - \
--a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | \
-sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.ALL_TBRs.bed
-while read tissue; do
-  cat /data/talkowski/rlc47/TAD_intolerance/data/nuc/TBR/${tissue}.TBR.bed
-done < /data/talkowski/rlc47/TAD_intolerance/lists/Schmitt_tissues.list | grep -ve "^X\|^Y\|^M\|^GL" | \
-bedtools intersect -v -a - \
--b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-sort -Vk1,1 -k2,2n -k3,3n | bedtools closest -d -t first -b - \
--a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz | sort -Vk1,1 -k2,2n -k3,3n | \
-cut -f1-4,9 > ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.ALL_TBRs_distance.bed
-#Super enhancers
-while read tissue; do
-  echo ${tissue}
-  #Count
-  bedtools intersect -v -a ${SFARI_ANNO}/noncoding/superEnhancers/cleaned/${tissue}_superEnhancer.bed \
-  -b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-  bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-  -b - | sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.${tissue}_superEnhancer_count.bed
-done < <( ls -l ${SFARI_ANNO}/noncoding/superEnhancers/*bed | \
-  awk '{ print $9 }' | sed 's/superEnhancers\//\t/g' | sed 's/\.bed/\t/g' | cut -f2 )
-#Tissue-specific enhancers
-while read tissue; do
-  echo ${tissue}
-  cat ${SFARI_ANNO}/noncoding/TissueEnhancers/cleaned/${tissue}_enhancers.bed | sort -Vk1,1 -k2,2n -k3,3n | uniq | \
-  bedtools intersect -v -a - -b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-  bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-  -b - | sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.${tissue}_enhancerAtlas.bed
-done < <( ls -l ${SFARI_ANNO}/noncoding/TissueEnhancers/*txt | \
-  awk '{ print $9 }' | sed 's/TissueEnhancers\//\t/g' | sed 's/_EP/\t/g' | cut -f2 )
-#All enhancers
-cat ${SFARI_ANNO}/noncoding/TissueEnhancers/cleaned/*_enhancers.bed | \
-bedtools intersect -v -a - -b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-sort -Vk1,1 -k2,2n -k3,3n | uniq | \
-bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
--b - | sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.ALL_TISSUES_enhancerAtlas.bed
-#High-confidence enhancers (overlap with a strong TFBS)
-while read tissue; do
-  echo ${tissue}
-  cat ${SFARI_ANNO}/noncoding/TissueEnhancers/cleaned/${tissue}_enhancers.bed | sort -Vk1,1 -k2,2n -k3,3n | uniq | \
-  bedtools intersect -v -a - -b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-  bedtools intersect -u -a - -b ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/all_TF/all_TF.ENCODE_peaks.750_1000.bed.gz | \
-  bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-  -b - | sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.${tissue}_enhancerAtlas_strong.bed
-done < <( ls -l ${SFARI_ANNO}/noncoding/TissueEnhancers/*txt | \
-  awk '{ print $9 }' | sed 's/TissueEnhancers\//\t/g' | sed 's/_EP/\t/g' | cut -f2 )
-cat ${SFARI_ANNO}/noncoding/TissueEnhancers/cleaned/*_enhancers.bed | \
-bedtools intersect -v -a - -b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-bedtools intersect -u -a - -b ${SFARI_ANNO}/noncoding/ENCODE/split_TF_peaks/all_TF/all_TF.ENCODE_peaks.750_1000.bed.gz | \
-sort -Vk1,1 -k2,2n -k3,3n | uniq | \
-bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
--b - | sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.ALL_TISSUES_enhancerAtlas_strong.bed
-#Brain enhancer RNAs
-bedtools intersect -v -a ${SFARI_ANNO}/noncoding/Yao2015_BrainEnhancerRNA.bed \
--b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
--b - | sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.BrainEnhancerRNAs.bed
-#FMRP targets
-bedtools intersect -v -a ${SFARI_ANNO}/noncoding/Ascano2012_FMRP.bed \
--b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
--b - | sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.FMRP_targets.bed
-#FANTOM5 NPC, fetal brain, and adult brain enhancers
-for tissue in NPC AdultBrain FetalBrain; do
-  bedtools intersect -v -a ${SFARI_ANNO}/noncoding/FANTOM52015_${tissue}_TPM5.bed \
-  -b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-  bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-  -b - | sort -Vk1,1 -k2,2n -k3,3n > \
-  ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.FANTOM5_${tissue}_enhancer.bed
-done
-#Cotney CHD8 peaks
-for tissue in Brain hNSC; do
-  bedtools intersect -v -a ${SFARI_ANNO}/noncoding/Cotney2015_CHD8_${tissue}_peaks.bed \
-  -b ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.10kb_flanks.merged.bed | \
-  bedtools intersect -c -a ${WRKDIR}/data/annotations/GRCh37.autosomes.master_bins.bed.gz \
-  -b - | sort -Vk1,1 -k2,2n -k3,3n > \
-  ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.CHD8_${tissue}_targets.bed
-done
-
-#####Launch exon-excluded functional enrichment analyses of noncoding significant windows
-for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
-  for CNV in ANY_CNV CNV DEL DUP; do
-    if [ -e ${WRKDIR}/analysis/Functional_Enrichments_exonExclusion/${group}_${CNV}_noncoding ]; then
-      rm -r ${WRKDIR}/analysis/Functional_Enrichments_exonExclusion/${group}_${CNV}_noncoding
-    fi
-    mkdir ${WRKDIR}/analysis/Functional_Enrichments_exonExclusion/${group}_${CNV}_noncoding
-    while read anno measure; do
-      mkdir ${WRKDIR}/analysis/Functional_Enrichments_exonExclusion/${group}_${CNV}_noncoding/${anno}
-      bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_noncoding_exonExclusion \
-      "${WRKDIR}/bin/rCNVmap/bin/TBRden_annoBurden.R \
-      ${WRKDIR}/data/annotations/exonExclusion/GRCh37.autosomes.noExons.${anno}.bed.gz \
-      ${WRKDIR}/analysis/Final_Loci/significant/${group}/${group}.${CNV}.noncoding.perm_signif_bins.bed.gz \
-      ${measure} ${WRKDIR}/analysis/Functional_Enrichments_exonExclusion/${group}_${CNV}_noncoding/${anno} \
-      ${group}_${CNV}_noncoding_${anno}"
-    done < ${WRKDIR}/lists/annotations_exonExclusion.all.list
-  done
-done
-
-#####Collect master list of noncoding enrichments
-while read anno skip; do
-  for dummy in 1; do
-    echo ${anno}
-    for group in ANY_DISEASE DD SCZ DD_SCZ CNCR; do
-      if [ -e ${WRKDIR}/analysis/Functional_Enrichments_exonExclusion/${group}_ANY_CNV_noncoding/${anno}/${group}_ANY_CNV_noncoding_${anno}.annoBurden_results.txt ]; then
-        tail -n1 ${WRKDIR}/analysis/Functional_Enrichments_exonExclusion/${group}_ANY_CNV_noncoding/${anno}/${group}_ANY_CNV_noncoding_${anno}.annoBurden_results.txt | \
-        awk -v OFS="\t" '{ print $1/$2, $4 }' 2> /dev/null
-      else
-        echo -e "NA\nNA"
-      fi
-    done | paste -s 
-  done | paste -s
-done < ${WRKDIR}/lists/annotations_exonExclusion.all.list > \
-${TMPDIR}/noncoding_anno_results.txt
+#####Get noncoding TBR fold-enrichments for noncoding CNVs
+for group in ANY_DISEASE DD_SCZ CNCR; do
+  echo ${group}
+  for CNV in CNV DEL DUP; do
+    tail -n1 ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/TBRs_MERGED/${group}_${CNV}_noncoding.TBRs_MERGED.filtered_binomial.TBRden_binomial_annotation_test.results.txt | \
+    awk '{ print $2/$3 }'
+    tail -n1 ${WRKDIR}/analysis/hotspot_enrichments/filtered_annotations/TBRs_MERGED/${group}_${CNV}_noncoding.TBRs_MERGED.filtered_binomial.TBRden_binomial_annotation_test.results.txt | \
+    cut -f5,6
+  done | paste -s 
+done | paste - - > ${WRKDIR}/data/plot_data/Noncoding_rCNV_hotspot.noncoding_TBR_enrichments.txt
 
 #####Run protein-coding exon pileups for noncoding rCNVs in flanks
-#Prep list of 50kb flanks
-distance=50000
+#Prep list of 40kb flanks
+distance=40000
 awk -v OFS="\t" -v d=${distance} '{ print $1, $2-d, $3+d, $4 }' \
 ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed | \
 awk -v OFS="\t" '{ if ($2<0) $2=0; if ($3<1) $3=1; print }' > \
-${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.50kb_windows.bed
+${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.40kb_windows.bed
 #Launch tests
 for group in DD SCZ DD_SCZ CNCR; do
   for CNV in DEL DUP CNV; do
+    if [ -e ${WRKDIR}/analysis/EXON_CNV_burdens/${group}_${CNV}_noncoding_exonFlanks/ ]; then
+      rm -rf ${WRKDIR}/analysis/EXON_CNV_burdens/${group}_${CNV}_noncoding_exonFlanks/
+    fi
+    mkdir ${WRKDIR}/analysis/EXON_CNV_burdens/${group}_${CNV}_noncoding_exonFlanks/
     #Parallelize intersections (LSF)
     bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_exon_flanking_burden \
-    "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -N 500 -n -z -t upper \
+    "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -N 1000 -n -z -t upper \
     -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
     -p ${group}_${CNV}_noncoding_exonFlanks \
     ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
-    ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.50kb_windows.bed \
+    ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.40kb_windows.bed \
     ${WRKDIR}/analysis/EXON_CNV_burdens/${group}_${CNV}_noncoding_exonFlanks/"
+  done
+done
+
+#####Run TBRden TBR CNV pileups
+for group in CTRL DD SCZ DD_SCZ CNCR; do
+  for CNV in DEL DUP CNV; do
+    if [ -e ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/ ]; then
+      rm -rf ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/
+    fi
+    mkdir ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/
+    #Parallelize intersections (LSF)
+    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBR_pileup_all \
+    "${WRKDIR}/bin/rCNVmap/bin/TBRden_pileup.sh -z \
+    -o ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/${group}_${CNV}_all_TBR_pileups.bed \
+    ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
+    ${WRKDIR}/data/unfiltered_annotations/TBRs_MERGED.boundaries.bed.gz"
+    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBR_pileup_noncoding \
+    "${WRKDIR}/bin/rCNVmap/bin/TBRden_pileup.sh -z \
+    -o ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/${group}_${CNV}_noncoding_TBR_pileups.bed \
+    ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.noncoding.bed.gz \
+    ${WRKDIR}/data/unfiltered_annotations/TBRs_MERGED.boundaries.bed.gz"
+  done
+done
+
+#####Run TBRden TBR CNV burden tests
+for group in CTRL DD SCZ DD_SCZ CNCR; do
+  for CNV in DEL DUP CNV; do
+    if [ -e ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/ ]; then
+      rm -rf ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/
+    fi
+    mkdir ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/
+    #Parallelize intersections (LSF)
+    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBR_pileup_all \
+    "${WRKDIR}/bin/rCNVmap/bin/TBRden_pileup.sh -z \
+    -o ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/${group}_${CNV}_all_TBR_pileups.bed \
+    ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
+    ${WRKDIR}/data/unfiltered_annotations/TBRs_MERGED.boundaries.bed.gz"
+    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBR_pileup_noncoding \
+    "${WRKDIR}/bin/rCNVmap/bin/TBRden_pileup.sh -z \
+    -o ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/${group}_${CNV}_noncoding_TBR_pileups.bed \
+    ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.noncoding.bed.gz \
+    ${WRKDIR}/data/unfiltered_annotations/TBRs_MERGED.boundaries.bed.gz"
+  done
+done
+
+
+#####Run direct test of TBRs 
+#Launch tests
+for group in DD SCZ DD_SCZ CNCR; do
+  for CNV in DEL DUP CNV; do
+    if [ -e ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/ ]; then
+      rm -rf ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/
+    fi
+    mkdir ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/
+    #Parallelize intersections (LSF)
+    ${WRKDIR}/bin/rCNVmap/bin/TBRden_pileup.sh
+    # bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_TBR_burden \
+    # "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -N 1000 -n -z -t upper \
+    # -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
+    # -p ${group}_${CNV}_TBR_burdens_noncoding \
+    # ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
+    # ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
+    # ${WRKDIR}/data/unfiltered_annotations/TBRs_MERGED.boundaries.bed.gz \
+    # ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/"
+    # bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_TBR_burden \
+    # "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -N 1000 -z -t upper \
+    # -p ${group}_${CNV}_TBR_burdens_all \
+    # ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
+    # ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
+    # ${WRKDIR}/data/unfiltered_annotations/TBRs_MERGED.boundaries.bed.gz \
+    # ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/"
   done
 done
 
