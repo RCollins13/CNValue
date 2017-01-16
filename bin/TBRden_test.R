@@ -17,5 +17,7 @@ library(TBRden)
 #Read args
 args <- commandArgs(trailingOnly=T)
 
+print(args)
+
 #Run TBRden
 TBRden(args[1],args[2],OUTDIR=args[3],prefix=args[4],adjusted=args[5],manColor=args[6])

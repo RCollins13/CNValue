@@ -2318,23 +2318,39 @@ for group in CTRL DD SCZ DD_SCZ CNCR; do
 done
 
 #####Run TBRden TBR CNV burden tests
-for group in CTRL DD SCZ DD_SCZ CNCR; do
+for group in DD SCZ DD_SCZ CNCR; do
   for CNV in DEL DUP CNV; do
     if [ -e ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/ ]; then
       rm -rf ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/
     fi
     mkdir ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/
+    case ${group} in
+      DD)
+        color="green"
+        ;;
+      SCZ)
+        color="purple"
+        ;;
+      DD_SCZ)
+        color="blue"
+        ;;
+      CNCR)
+        color="orange"
+        ;;
+    esac
     #Parallelize (LSF)
     bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_all \
-    "${WRKDIR}/bin/rCNVmap/bin/TBRden_pileup.sh -z \
-    -o ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/${group}_${CNV}_all_TBR_pileups.bed \
-    ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
-    ${WRKDIR}/data/unfiltered_annotations/TBRs_MERGED.boundaries.bed.gz"
+    "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
+    ${WRKDIR}/analysis/TBR_CNV_pileups/CTRL_${CNV}_TBR_pileups/CTRL_${CNV}_all_TBR_pileups.bed.gz \
+    ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/${group}_${CNV}_all_TBR_pileups.bed.gz \
+    ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/ \
+    ${group}_${CNV}_all 0.000009072764 ${color}"
     bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_noncoding \
-    "${WRKDIR}/bin/rCNVmap/bin/TBRden_pileup.sh -z \
-    -o ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/${group}_${CNV}_noncoding_TBR_pileups.bed \
-    ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.noncoding.bed.gz \
-    ${WRKDIR}/data/unfiltered_annotations/TBRs_MERGED.boundaries.bed.gz"
+    "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
+    ${WRKDIR}/analysis/TBR_CNV_pileups/CTRL_${CNV}_TBR_pileups/CTRL_${CNV}_noncoding_TBR_pileups.bed.gz \
+    ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/${group}_${CNV}_noncoding_TBR_pileups.bed.gz \
+    ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/ \
+    ${group}_${CNV}_noncoding 0.05/5511 ${color}"
   done
 done
 
