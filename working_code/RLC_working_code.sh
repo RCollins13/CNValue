@@ -2320,17 +2320,17 @@ done
 #####Run TBRden TBR CNV burden tests
 for group in CTRL DD SCZ DD_SCZ CNCR; do
   for CNV in DEL DUP CNV; do
-    if [ -e ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/ ]; then
-      rm -rf ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/
+    if [ -e ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/ ]; then
+      rm -rf ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/
     fi
-    mkdir ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/
-    #Parallelize intersections (LSF)
-    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBR_pileup_all \
+    mkdir ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/
+    #Parallelize (LSF)
+    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_all \
     "${WRKDIR}/bin/rCNVmap/bin/TBRden_pileup.sh -z \
     -o ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/${group}_${CNV}_all_TBR_pileups.bed \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
     ${WRKDIR}/data/unfiltered_annotations/TBRs_MERGED.boundaries.bed.gz"
-    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBR_pileup_noncoding \
+    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_noncoding \
     "${WRKDIR}/bin/rCNVmap/bin/TBRden_pileup.sh -z \
     -o ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/${group}_${CNV}_noncoding_TBR_pileups.bed \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.noncoding.bed.gz \
