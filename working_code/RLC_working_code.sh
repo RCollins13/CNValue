@@ -2350,36 +2350,30 @@ for group in DD SCZ DD_SCZ CNCR; do
     ${WRKDIR}/analysis/TBR_CNV_pileups/CTRL_${CNV}_TBR_pileups/CTRL_${CNV}_noncoding_TBR_pileups.bed.gz \
     ${WRKDIR}/analysis/TBR_CNV_pileups/${group}_${CNV}_TBR_pileups/${group}_${CNV}_noncoding_TBR_pileups.bed.gz \
     ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/ \
-    ${group}_${CNV}_noncoding 0.05/5511 ${color}"
+    ${group}_${CNV}_noncoding 0.000009072764 ${color}"
   done
 done
 
-
-#####Run direct test of TBRs 
+#####Run direct permutation tests of TBRs 
 #Launch tests
 for group in DD SCZ DD_SCZ CNCR; do
   for CNV in DEL DUP CNV; do
-    if [ -e ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/ ]; then
-      rm -rf ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/
-    fi
-    mkdir ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/
     #Parallelize intersections (LSF)
-    ${WRKDIR}/bin/rCNVmap/bin/TBRden_pileup.sh
-    # bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_TBR_burden \
-    # "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -N 1000 -n -z -t upper \
-    # -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
-    # -p ${group}_${CNV}_TBR_burdens_noncoding \
-    # ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
-    # ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
-    # ${WRKDIR}/data/unfiltered_annotations/TBRs_MERGED.boundaries.bed.gz \
-    # ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/"
-    # bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_TBR_burden \
-    # "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -N 1000 -z -t upper \
-    # -p ${group}_${CNV}_TBR_burdens_all \
-    # ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
-    # ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
-    # ${WRKDIR}/data/unfiltered_annotations/TBRs_MERGED.boundaries.bed.gz \
-    # ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/"
+    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_TBR_burden \
+    "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -N 1000 -n -z -t upper \
+    -e ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.no_ASmerged.bed \
+    -p ${group}_${CNV}_TBR_burdens_noncoding \
+    ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
+    ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
+    ${WRKDIR}/data/unfiltered_annotations/TBRs_MERGED.boundaries.bed.gz \
+    ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/"
+    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_TBR_burden \
+    "${WRKDIR}/bin/rCNVmap/bin/direct_burden_test.sh -d 5 -N 1000 -z -t upper \
+    -p ${group}_${CNV}_TBR_burdens_all \
+    ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
+    ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
+    ${WRKDIR}/data/unfiltered_annotations/TBRs_MERGED.boundaries.bed.gz \
+    ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/"
   done
 done
 
