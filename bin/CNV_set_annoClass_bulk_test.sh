@@ -70,7 +70,7 @@ ELEMENTS=$3
 OUTFILE=$4
 
 #Check for required input
-if [ -z ${CONTROLS} ] || [ -z ${CASES} ] || [ -z ${BINS} ]; then
+if [ -z ${CONTROLS} ] || [ -z ${CASES} ] || [ -z ${ELEMENTS} ]; then
   usage
   exit 0
 fi

@@ -776,6 +776,11 @@ for group in CTRL DD SCZ CNCR; do
   done
 done
 
+#####Test all CNVs for enrichment in genes
+for group in DD_SCZ CNCR; do
+  ${WRKDIR}/bin/rCNVmap/bin/CNV_set_annoClass_bulk_test.sh \
+  -p ${group}_CNV_
+
 #####Run TBRden pileup for all tissue types and all phenotypes (coding & noncoding CNVs)
 #Create master mask of N-masked regions and 1Mb flanking telomeres/centromeres
 grep -e 'centromere\|telomere' /data/talkowski/rlc47/src/GRCh37_heterochromatin.bed | \
