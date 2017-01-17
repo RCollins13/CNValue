@@ -136,7 +136,7 @@ while read bID BINS; do
   CASE_MISS=$( bedtools intersect -v -a ${CASE} -b ${BIN} | wc -l )
 
   #Calculates statistics
-  p=$( Rscript -e "cat(binom.test(x=${CASE_HITS},n=${CASE_CNVs},p=${CTRL_HITS}/${CTRL_CNVs},alternative=\"${ALTERNATIVE}\")\$p.value)" | fgrep -v WARNING )
+  p=$( Rscript -e "cat(binom.test(x=${CASE_HITS},n=${CASE_CNVs},p=${CTRL_HITS}/${CTRL_CNVs},alternative=\"${ALTERNATE}\")\$p.value)" | fgrep -v WARNING )
   BernoulliObs=$( Rscript -e "cat(binom.test(x=${CASE_HITS},n=${CASE_CNVs},p=${CTRL_HITS}/${CTRL_CNVs})\$estimate)" | fgrep -v WARNING )
   BernoulliExp=$( Rscript -e "cat(binom.test(x=${CASE_HITS},n=${CASE_CNVs},p=${CTRL_HITS}/${CTRL_CNVs})\$null.value)" | fgrep -v WARNING )
   ObsExp=$( Rscript -e "cat(${BernoulliObs}/${BernoulliExp})" | fgrep -v WARNING )
@@ -148,7 +148,7 @@ while read bID BINS; do
   CASE_MISS_ADJ=$(( ${CASE_CNVs} - ${CASE_HITS_ADJ} ))
 
   #Calculates size-adjusted statistics
-  p_ADJ=$( Rscript -e "cat(binom.test(x=${CASE_HITS_ADJ},n=${CASE_CNVs},p=${CTRL_HITS}/${CTRL_CNVs},alternative=\"${ALTERNATIVE}\")\$p.value)" | fgrep -v WARNING )
+  p_ADJ=$( Rscript -e "cat(binom.test(x=${CASE_HITS_ADJ},n=${CASE_CNVs},p=${CTRL_HITS}/${CTRL_CNVs},alternative=\"${ALTERNATE}\")\$p.value)" | fgrep -v WARNING )
   BernoulliObs_ADJ=$( Rscript -e "cat(binom.test(x=${CASE_HITS_ADJ},n=${CASE_CNVs},p=${CTRL_HITS}/${CTRL_CNVs})\$estimate)" | fgrep -v WARNING )
   BernoulliExp_ADJ=$( Rscript -e "cat(binom.test(x=${CASE_HITS_ADJ},n=${CASE_CNVs},p=${CTRL_HITS}/${CTRL_CNVs})\$null.value)" | fgrep -v WARNING )
   ObsExp_ADJ=$( Rscript -e "cat(${BernoulliObs_ADJ}/${BernoulliExp_ADJ})" | fgrep -v WARNING )
