@@ -15,7 +15,7 @@
 #Usage statement
 usage(){
 cat <<EOF
-usage: CNV_set_annoClass_bulk_test.sh [-h] [-m ADJUSTMENT] [-a ALTERNATE] [-p prefix] [-z]
+usage: CNV_set_annoClass_bulk_test.sh [-h] [-m ADJUSTMENT] [-a ALTERNATE] [-z]
                                       CONTROLS CASES ELEMENTS OUTFILE
 
 Binomial enrichment test of genomic annotation class versus case/control CNVs
@@ -38,17 +38,15 @@ Optional arguments:
                     of case and control median sizes)
   -a  ALTERNATE     Alternative hypothesis to be tested (default: greater; 
                     options: greater, less)
-  -p  PREFIX        Prefix for all output files (default: TBRden_shuffle)
   -z  GZIP          Gzip output file
 EOF
 }
 
 #Parse arguments
 ALTERNATE="greater"
-PREFIX="TBRden_CNV_set_annoClass_bulk_test"
 GZ=0
 ADJUSTMENT="size"
-while getopts ":M;a:p:zh" opt; do
+while getopts ":m:a:zh" opt; do
   case "$opt" in
     h)
       usage
@@ -59,9 +57,6 @@ while getopts ":M;a:p:zh" opt; do
       ;;
     a)
       ALTERNATE=${OPTARG}
-      ;;
-    p)
-      PREFIX=${OPTARG}
       ;;
     z)
       GZ=1
