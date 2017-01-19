@@ -40,6 +40,7 @@ mkdir ${WRKDIR}/data/unfiltered_annotations
 mkdir ${WRKDIR}/data/filtered_annotations
 mkdir ${WRKDIR}/data/misc
 mkdir ${WRKDIR}/analysis
+mkdir ${WRKDIR}/analysis/CNV_set_enrichments
 mkdir ${WRKDIR}/analysis/BIN_CNV_pileups
 mkdir ${WRKDIR}/analysis/BIN_CNV_burdens
 mkdir ${WRKDIR}/analysis/BIN_CNV_permutation
@@ -549,8 +550,28 @@ for CNV in CNV DEL DUP; do
   ${WRKDIR}/data/CNV/CNV_MASTER/DD_SCZ.${CNV}.noMaxSize.GRCh37.bed
 done
 
+#####Make merged DD+SCZ+CNCR set
+for CNV in CNV DEL DUP; do
+  #With max size
+  echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
+  ${WRKDIR}/data/CNV/CNV_MASTER/DD_SCZ_CNCR.${CNV}.GRCh37.bed
+  cat ${WRKDIR}/data/CNV/CNV_MASTER/DD.${CNV}.GRCh37.bed \
+  ${WRKDIR}/data/CNV/CNV_MASTER/SCZ.${CNV}.GRCh37.bed \
+  ${WRKDIR}/data/CNV/CNV_MASTER/CNCR.${CNV}.GRCh37.bed | fgrep -v "#" | \
+  sort -Vk1,1 -k2,2n -k3,3n >> \
+  ${WRKDIR}/data/CNV/CNV_MASTER/DD_SCZ_CNCR.${CNV}.GRCh37.bed
+  #Without max size
+  echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
+  ${WRKDIR}/data/CNV/CNV_MASTER/DD_SCZ_CNCR.${CNV}.noMaxSize.GRCh37.bed
+  cat ${WRKDIR}/data/CNV/CNV_MASTER/DD.${CNV}.noMaxSize.GRCh37.bed \
+  ${WRKDIR}/data/CNV/CNV_MASTER/SCZ.${CNV}.noMaxSize.GRCh37.bed \
+  ${WRKDIR}/data/CNV/CNV_MASTER/CNCR.${CNV}.noMaxSize.GRCh37.bed | fgrep -v "#" | \
+  sort -Vk1,1 -k2,2n -k3,3n >> \
+  ${WRKDIR}/data/CNV/CNV_MASTER/DD_SCZ_CNCR.${CNV}.noMaxSize.GRCh37.bed
+done
+
 #####Generate coding and noncoding CNV callsets
-for group in CTRL DD SCZ DD_SCZ CNCR; do
+for group in CTRL DD SCZ DD_SCZ CNCR DD_SCZ_CNCR; do
   for class in CNV DEL DUP; do
     #Coding, with max size
     awk '$4 !~ /\-AS1/ { print $0 }' ${SFARI_ANNO}/gencode/gencode.v25lift37.protein_coding_exons.merged.bed | \
@@ -585,7 +606,7 @@ if [ -e ${WRKDIR}/data/CNV/CNV_DENSITY ]; then
   rm -r ${WRKDIR}/data/CNV/CNV_DENSITY
 fi
 mkdir ${WRKDIR}/data/CNV/CNV_DENSITY
-for group in CTRL DD SCZ DD_SCZ CNCR; do
+for group in CTRL DD SCZ DD_SCZ CNCR DD_SCZ_CNCR; do
   echo ${group}
   for CNV in DEL DUP CNV; do
     echo ${CNV}
@@ -605,7 +626,7 @@ for group in CTRL DD SCZ DD_SCZ CNCR; do
 done
 
 #####Sanity-check filtering
-for group in CTRL DD SCZ DD_SCZ CNCR; do
+for group in CTRL DD SCZ DD_SCZ CNCR DD_SCZ_CNCR; do
   for CNV in CNV DEL DUP; do
     echo -e "${group}.${CNV}"
     zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz | fgrep -v "#" | wc -l
@@ -746,9 +767,7 @@ sort -Vk1,1 -k2,2n -k3,3n | cut -f1-3 | bedtools merge -i - | bedtools coverage 
   '{ print $1, "1", $2 }' | bedtools subtract -a - -b /data/talkowski/rlc47/src/GRCh37_Nmask.bed ) | \
 awk -v gsize=${gsize} '{ sum+=$5 }END{ print sum/gsize }'
 #Cases only
-zcat ${WRKDIR}/data/CNV/CNV_MASTER/DD.CNV.GRCh37.bed.gz \
-${WRKDIR}/data/CNV/CNV_MASTER/SCZ.CNV.GRCh37.bed.gz \
-${WRKDIR}/data/CNV/CNV_MASTER/CNCR.CNV.GRCh37.bed.gz | fgrep -v "#" | \
+zcat ${WRKDIR}/data/CNV/CNV_MASTER/DD_SCZ_CNCR.CNV.GRCh37.bed.gz | fgrep -v "#" | \
 sort -Vk1,1 -k2,2n -k3,3n | cut -f1-3 | bedtools merge -i - | bedtools coverage -a - \
 -b <( grep -ve 'X\|Y\|M' /data/talkowski/rlc47/src/GRCh37.genome | awk -v OFS="\t" \
   '{ print $1, "1", $2 }' | bedtools subtract -a - -b /data/talkowski/rlc47/src/GRCh37_Nmask.bed ) | \
@@ -777,9 +796,19 @@ for group in CTRL DD SCZ CNCR; do
 done
 
 #####Test all CNVs for enrichment in genes
+echo -e "all_genes\t${WRKDIR}/data/unfiltered_annotations/gencode.GRCh37.basic_gene_symbols.boundaries.bed.gz" > \
+${TMPDIR}/elements.txt
 for group in DD_SCZ CNCR; do
   ${WRKDIR}/bin/rCNVmap/bin/CNV_set_annoClass_bulk_test.sh \
-  -p ${group}_CNV_
+  ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.CNV.GRCh37.bed.gz \
+  ${WRKDIR}/data/CNV/CNV_MASTER/${group}.CNV.GRCh37.bed.gz \
+  ${TMPDIR}/elements.txt \
+  ${TMPDIR}/${group}_allGenes_enrichment.txt
+done
+#Print results
+for group in DD_SCZ CNCR; do
+  cat ${TMPDIR}/${group}_allGenes_enrichment.txt
+done
 
 #####Run TBRden pileup for all tissue types and all phenotypes (coding & noncoding CNVs)
 #Create master mask of N-masked regions and 1Mb flanking telomeres/centromeres
@@ -1669,6 +1698,91 @@ done < <( l ${WRKDIR}/data/unfiltered_annotations/*boundaries.bed.gz | \
         awk '{ print $9 }' | sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/\.boundaries\.bed\.gz//g' | \
         grep -ve 'GTEx\|ENCODE\|Enhancer\|TBRs_' )
 
+#####Launch raw CNV set enrichment tests
+paste <( l ${WRKDIR}/data/unfiltered_annotations/*boundaries.bed.gz | \
+        awk '{ print $9 }' | sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/\.boundaries\.bed\.gz//g' | \
+        grep -ve '250_500\|500_750' ) \
+<( l ${WRKDIR}/data/unfiltered_annotations/*boundaries.bed.gz | \
+        awk '{ print $9 }' | grep -ve '250_500\|500_750' ) > \
+${TMPDIR}/annotations_to_test.list
+#Run first pass with adjustment to size
+for group in DD SCZ DD_SCZ CNCR; do
+  if [ -e ${WRKDIR}/analysis/CNV_set_enrichments/${group} ]; then
+    rm -rf ${WRKDIR}/analysis/CNV_set_enrichments/${group}
+  fi
+  mkdir ${WRKDIR}/analysis/CNV_set_enrichments/${group}
+  for CNV in CNV DEL DUP; do
+    #All
+    bsub -q short -sla miket_sc -J ${group}_${CNV}_all_setEnrichment -u nobody \
+    "${WRKDIR}/bin/rCNVmap/bin/CNV_set_annoClass_bulk_test.sh -z \
+    ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
+    ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
+    ${TMPDIR}/annotations_to_test.list \
+    ${WRKDIR}/analysis/CNV_set_enrichments/${group}/${group}_${CNV}_all.setEnrichments.txt"
+    for filt in coding noncoding; do 
+      bsub -q short -sla miket_sc -J ${group}_${CNV}_${filt}_setEnrichment -u nobody \
+      "${WRKDIR}/bin/rCNVmap/bin/CNV_set_annoClass_bulk_test.sh -z \
+      ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.${filt}.bed.gz \
+      ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.${filt}.bed.gz \
+      ${TMPDIR}/annotations_to_test.list \
+      ${WRKDIR}/analysis/CNV_set_enrichments/${group}/${group}_${CNV}_${filt}.setEnrichments.txt"
+    done
+  done
+done
+#Run second pass with adjustment to all genes, not to size
+for group in DD SCZ DD_SCZ CNCR; do
+  for CNV in CNV DEL DUP; do
+    #All
+    adjust=$( zcat ${WRKDIR}/analysis/CNV_set_enrichments/${group}/${group}_${CNV}_all.setEnrichments.txt.gz | \
+      fgrep -w gencode.GRCh37.basic_gene_symbols | cut -f6 )
+    echo ${adjust}
+    bsub -q short -sla miket_sc -J ${group}_${CNV}_all_setEnrichment_geneNorm -u nobody \
+    "${WRKDIR}/bin/rCNVmap/bin/CNV_set_annoClass_bulk_test.sh -z -m ${adjust} \
+    ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
+    ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
+    ${TMPDIR}/annotations_to_test.list \
+    ${WRKDIR}/analysis/CNV_set_enrichments/${group}/${group}_${CNV}_all.geneNorm.setEnrichments.txt"
+    for filt in coding noncoding; do 
+      adjust=$( zcat ${WRKDIR}/analysis/CNV_set_enrichments/${group}/${group}_${CNV}_${filt}.setEnrichments.txt.gz | \
+        fgrep -w gencode.GRCh37.basic_gene_symbols | cut -f6 )
+      echo ${adjust}
+      bsub -q short -sla miket_sc -J ${group}_${CNV}_${filt}_setEnrichment_geneNorm -u nobody \
+      "${WRKDIR}/bin/rCNVmap/bin/CNV_set_annoClass_bulk_test.sh -z -m ${adjust} \
+      ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.${filt}.bed.gz \
+      ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.${filt}.bed.gz \
+      ${TMPDIR}/annotations_to_test.list \
+      ${WRKDIR}/analysis/CNV_set_enrichments/${group}/${group}_${CNV}_${filt}.geneNorm.setEnrichments.txt"
+    done
+  done
+done
+#Run third pass with adjustment based on median enrichment for all annotations tested
+for group in DD SCZ DD_SCZ CNCR; do
+  for CNV in CNV DEL DUP; do
+    #All
+    adjust=$( zcat ${WRKDIR}/analysis/CNV_set_enrichments/${group}/${group}_${CNV}_all.setEnrichments.txt.gz | \
+      cut -f6 | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]' )
+    echo ${adjust}
+    bsub -q short -sla miket_sc -J ${group}_${CNV}_all_setEnrichment_medEnrichNorm -u nobody \
+    "${WRKDIR}/bin/rCNVmap/bin/CNV_set_annoClass_bulk_test.sh -z -m ${adjust} \
+    ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.bed.gz \
+    ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
+    ${TMPDIR}/annotations_to_test.list \
+    ${WRKDIR}/analysis/CNV_set_enrichments/${group}/${group}_${CNV}_all.medEnrichNorm.setEnrichments.txt"
+    for filt in coding noncoding; do 
+      adjust=$( zcat ${WRKDIR}/analysis/CNV_set_enrichments/${group}/${group}_${CNV}_${filt}.setEnrichments.txt.gz | \
+        cut -f6 | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]' )
+      echo ${adjust}
+      bsub -q short -sla miket_sc -J ${group}_${CNV}_${filt}_setEnrichment_medEnrichNorm -u nobody \
+      "${WRKDIR}/bin/rCNVmap/bin/CNV_set_annoClass_bulk_test.sh -z -m ${adjust} \
+      ${WRKDIR}/data/CNV/CNV_MASTER/CTRL.${CNV}.GRCh37.${filt}.bed.gz \
+      ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.${filt}.bed.gz \
+      ${TMPDIR}/annotations_to_test.list \
+      ${WRKDIR}/analysis/CNV_set_enrichments/${group}/${group}_${CNV}_${filt}.medEnrichNorm.setEnrichments.txt"
+    done
+  done
+done
+
+
 #####Filter all annotations by excluding elements within 10kb of a protein-coding exon
 while read anno; do
   echo ${anno}
@@ -2382,7 +2496,32 @@ for group in DD SCZ DD_SCZ CNCR; do
   done
 done
 
-
+#####Aggregate results of TBR noncoding rCNV burden tests
+#Print header
+for dummy in 1; do
+  echo -e "#chr\tstart\tend\tTBR_ID\ttissues"
+  for group in DD SCZ DD_SCZ CNCR; do
+    for CNV in DEL DUP CNV; do
+      echo -e "${group}_${CNV}_p_obs\n${group}_${CNV}_p_perm"
+    done
+  done | paste -s
+done | paste -s > ${WRKDIR}/analysis/TBR_CNV_burdens/MASTER_TBR_rCNV_burdens.results.txt
+#Gather p-values
+for group in DD SCZ DD_SCZ CNCR; do
+  for CNV in DEL DUP CNV; do
+    zcat ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/${group}_${CNV}_noncoding.TBRden_results.bed.gz | \
+    sed '1d' | awk '{ print $NF }' | paste -s
+    zcat ${WRKDIR}/analysis/TBR_CNV_burdens/${group}_${CNV}_TBR_burdens/${group}_${CNV}_TBR_burdens_noncoding.TBRden_direct_test_results.bed.gz | \
+    sed '1d' | awk '{ print $(NF-1) }' | paste -s
+  done
+done > ${TMPDIR}/matrix_pretranspose.txt
+#Transpose matrix
+Rscript -e "write.table(t(read.table(\"${TMPDIR}/matrix_pretranspose.txt\",header=F)),\"${TMPDIR}/matrix_posttranspose.txt\",col.names=F,row.names=F,sep=\"\\t\")"
+paste <( zcat ${WRKDIR}/data/unfiltered_annotations/TBRs_MERGED.boundaries.bed.gz | fgrep -v "#" | cut -f1-5 ) \
+${TMPDIR}/matrix_posttranspose.txt >> ${WRKDIR}/analysis/TBR_CNV_burdens/MASTER_TBR_rCNV_burdens.results.txt
+gzip -f ${WRKDIR}/analysis/TBR_CNV_burdens/MASTER_TBR_rCNV_burdens.results.txt
+#Copy to plot directory
+cp ${WRKDIR}/analysis/TBR_CNV_burdens/MASTER_TBR_rCNV_burdens.results.txt.gz ${WRKDIR}/data/plot_data/
 
 
 
