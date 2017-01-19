@@ -53,6 +53,37 @@ mkdir ${WRKDIR}/analysis/EXON_CNV_burdens
 mkdir ${WRKDIR}/analysis/TBR_CNV_pileups
 mkdir ${WRKDIR}/analysis/TBR_CNV_burdens
 
+#####Gather TCGA CNVs
+#Determine number of unique tumor types represented (samples, not CNVs)
+awk '{ print "s/"$1"/"$3"/g" }' ${WRKDIR}/bin/rCNVmap/misc/TCGA_TSS_linkers.txt > \
+${WRKDIR}/bin/rCNVmap/misc/TCGA_TSS_linkers.sed
+sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | cut -f1 | sort | uniq | \
+awk -v FS="-" '{ print $2 }' | sed -f ${WRKDIR}/bin/rCNVmap/misc/TCGA_TSS_linkers.sed | \
+sort | uniq -c | awk -v OFS="\t" '{ print $2, $1 }'
+#
+if [ -e ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs ]; then
+  rm -r ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs
+fi
+mkdir ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs
+#Filter CNV classes by log2 ratios
+for CNV in DEL DUP; do
+  echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
+  ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CNCR.${CNV}.raw.bed
+done
+paste <( sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | awk '{ if ($NF<=-1) print $0 }' | \
+ awk -v OFS="\t" '{ print $2, $3, $4, "TCGA_DEL_"NR, "DEL" }' ) \
+<( sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | awk '{ if ($NF<=-1) print $1 }' | \
+awk -v FS="-" '{ print $2 }' | sed -f ${WRKDIR}/bin/rCNVmap/misc/TCGA_TSS_linkers.sed | \
+awk '{ print toupper($0) }' ) | awk -v OFS="\t" '{ print $0, "24071852" }' | \
+sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CNCR.DEL.raw.bed
+paste <( sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | awk '{ if ($NF>=0.5849625) print $0 }' | \
+ awk -v OFS="\t" '{ print $2, $3, $4, "TCGA_DUP_"NR, "DUP" }' ) \
+<( sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | awk '{ if ($NF>=0.5849625) print $1 }' | \
+awk -v FS="-" '{ print $2 }' | sed -f ${WRKDIR}/bin/rCNVmap/misc/TCGA_TSS_linkers.sed | \
+awk '{ print toupper($0) }' ) | awk -v OFS="\t" '{ print $0, "24071852" }' | \
+sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CNCR.DUP.raw.bed
+gzip -f ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/*.raw.bed
+
 #####Gather raw SSC CNVs
 mkdir ${WRKDIR}/data/CNV/CNV_RAW/SSC_CNVs
 #Subset CNVs with pCNV ≤ 1x10^-9; print chr, start, end, ID, CN, CNV, inheritance, pCNV
@@ -268,24 +299,6 @@ for CNV in DEL DUP; do
   ${WRKDIR}/data/CNV/CNV_RAW/PGC_CNVs/PGC_CTRL.${CNV}.raw.bed
 done
 gzip ${WRKDIR}/data/CNV/CNV_RAW/PGC_CNVs/*.raw.bed
-
-#####Gather TCGA CNVs
-if [ -e ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs ]; then
-  rm -r ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs
-fi
-mkdir ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs
-#Filter CNV classes by log2 ratios
-for CNV in DEL DUP; do
-  echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
-  ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CNCR.${CNV}.raw.bed
-done
-sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | awk '{ if ($NF<=-1) print $0 }' | \
-sort -Vk2,2 -k3,3 -k4,4n | awk -v OFS="\t" '{ print $2, $3, $4, "TCGA_CNCR_DEL_"NR, "DEL", "CNCR", "24071852" }' >> \
-${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CNCR.DEL.raw.bed
-sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | awk '{ if ($NF>=0.5849625) print $0 }' | \
-sort -Vk2,2 -k3,3 -k4,4n | awk -v OFS="\t" '{ print $2, $3, $4, "TCGA_CNCR_DUP_"NR, "DUP", "CNCR", "24071852" }' >> \
-${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CNCR.DUP.raw.bed
-gzip ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/*.raw.bed
 
 #####Gather Talkowski CNVs
 if [ -e ${WRKDIR}/data/CNV/CNV_RAW/Talkowski_CNVs ]; then
