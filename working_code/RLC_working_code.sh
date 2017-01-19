@@ -60,7 +60,6 @@ ${WRKDIR}/bin/rCNVmap/misc/TCGA_TSS_linkers.sed
 sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | cut -f1 | sort | uniq | \
 awk -v FS="-" '{ print $2 }' | sed -f ${WRKDIR}/bin/rCNVmap/misc/TCGA_TSS_linkers.sed | \
 sort | uniq -c | awk -v OFS="\t" '{ print $2, $1 }'
-#
 if [ -e ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs ]; then
   rm -r ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs
 fi
@@ -71,13 +70,13 @@ for CNV in DEL DUP; do
   ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CNCR.${CNV}.raw.bed
 done
 paste <( sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | awk '{ if ($NF<=-1) print $0 }' | \
- awk -v OFS="\t" '{ print $2, $3, $4, "TCGA_DEL_"NR, "DEL" }' ) \
+ awk -v OFS="\t" '{ print $2, $3, $4, "TCGA_CNCR_DEL_"NR, "DEL" }' ) \
 <( sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | awk '{ if ($NF<=-1) print $1 }' | \
 awk -v FS="-" '{ print $2 }' | sed -f ${WRKDIR}/bin/rCNVmap/misc/TCGA_TSS_linkers.sed | \
 awk '{ print toupper($0) }' ) | awk -v OFS="\t" '{ print $0, "24071852" }' | \
 sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CNCR.DEL.raw.bed
 paste <( sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | awk '{ if ($NF>=0.5849625) print $0 }' | \
- awk -v OFS="\t" '{ print $2, $3, $4, "TCGA_DUP_"NR, "DUP" }' ) \
+ awk -v OFS="\t" '{ print $2, $3, $4, "TCGA_CNCR_DUP_"NR, "DUP" }' ) \
 <( sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | awk '{ if ($NF>=0.5849625) print $1 }' | \
 awk -v FS="-" '{ print $2 }' | sed -f ${WRKDIR}/bin/rCNVmap/misc/TCGA_TSS_linkers.sed | \
 awk '{ print toupper($0) }' ) | awk -v OFS="\t" '{ print $0, "24071852" }' | \
@@ -85,6 +84,9 @@ sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CNCR.DUP.r
 gzip -f ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/*.raw.bed
 
 #####Gather raw SSC CNVs
+if [ -e ${WRKDIR}/data/CNV/CNV_RAW/SSC_CNVs ]; then
+  rm -r ${WRKDIR}/data/CNV/CNV_RAW/SSC_CNVs
+fi
 mkdir ${WRKDIR}/data/CNV/CNV_RAW/SSC_CNVs
 #Subset CNVs with pCNV ≤ 1x10^-9; print chr, start, end, ID, CN, CNV, inheritance, pCNV
 awk -v OFS="\t" '{ if ($45<=0.000000001) print $9, $10, $11, $7, $29, $43, $44, $45 }' \
@@ -101,20 +103,26 @@ awk -v OFS="\t" '{ if ($5<2) print $0 }' ${TMPDIR}/SSC_CNVs.p10E9.hg19.bed > \
 ${TMPDIR}/SSC_CNVs.p10E9.hg19.DEL.bed
 awk -v OFS="\t" '{ if ($5>2) print $0 }' ${TMPDIR}/SSC_CNVs.p10E9.hg19.bed > \
 ${TMPDIR}/SSC_CNVs.p10E9.hg19.DUP.bed
+#Make ID matching file for phenotypes
+fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/SSC_phenotype_key.txt | \
+awk '{ print "s/"$1"/"$2"/g" }' > ${WRKDIR}/bin/rCNVmap/misc/SSC_phenotype_key.sed
 #Split by case/control
 for CNV in DEL DUP; do
   #Controls
   cat <( echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" ) \
-  <( awk '$4 ~ /fa|mo|s/ { print $0 }' ${TMPDIR}/SSC_CNVs.p10E9.hg19.${CNV}.bed | \
+  <( awk '$4 ~ /fa|mo/ { print $0 }' ${TMPDIR}/SSC_CNVs.p10E9.hg19.${CNV}.bed | \
   sort -Vk1,1 -k2,2n -k3,3n | sed 's/\?//g' | \
-  awk -v CNV=${CNV} -v OFS="\t" '{ print $1, $2, $3, "SSC_CTRL_"CNV"_"NR, CNV, "CTRL", "26402605" }' ) > \
+  awk -v CNV=${CNV} -v OFS="\t" '{ print $1, $2, $3, "SSC_CTRL_"CNV"_"NR, CNV, "HEALTHY_CONTROL", "26402605" }' ) > \
   ${WRKDIR}/data/CNV/CNV_RAW/SSC_CNVs/SSC_CTRL.${CNV}.raw.bed
   #Cases
-  cat <( echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" ) \
-  <( awk '$4 ~ /p/ { print $0 }' ${TMPDIR}/SSC_CNVs.p10E9.hg19.${CNV}.bed | \
-  sort -Vk1,1 -k2,2n -k3,3n | sed 's/\?//g' | \
-  awk -v CNV=${CNV} -v OFS="\t" '{ print $1, $2, $3, "SSC_DD_"CNV"_"NR, CNV, "DD", "26402605" }' ) > \
-  ${WRKDIR}/data/CNV/CNV_RAW/SSC_CNVs/SSC_DD.${CNV}.raw.bed
+  cat <( echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" ) > \
+  ${WRKDIR}/data/CNV/CNV_RAW/SSC_CNVs/SSC_GERM.${CNV}.raw.bed
+  paste <( awk '$4 ~ /p/ { print $0 }' ${TMPDIR}/SSC_CNVs.p10E9.hg19.${CNV}.bed | \
+  awk -v CNV=${CNV} -v OFS="\t" '{ print $1, $2, $3, "SSC_GERM_"CNV"_"NR, CNV }' ) \
+  <( awk '$4 ~ /p/ { print $4 }' ${TMPDIR}/SSC_CNVs.p10E9.hg19.${CNV}.bed | \
+  sed -f ${WRKDIR}/bin/rCNVmap/misc/SSC_phenotype_key.sed ) | \
+  awk -v OFS="\t" '{ print $0, "26402605" }' | sort -Vk1,1 -k2,2n -k3,3n | \
+  sed 's/\?//g' >> ${WRKDIR}/data/CNV/CNV_RAW/SSC_CNVs/SSC_GERM.${CNV}.raw.bed
 done
 gzip -f ${WRKDIR}/data/CNV/CNV_RAW/SSC_CNVs/*.bed
 
@@ -148,24 +156,46 @@ while read study; do
 done < <( sed '1d' /scratch/miket/rlc47temp/DGV_CNVs_all/GRCh37_hg19_variants_2016-05-15.txt | \
   cut -f7 | sort | uniq )
 
-#####Gather Itsara CNVs
-if [ -e ${WRKDIR}/data/CNV/CNV_RAW/Itsara_CNVs ]; then
-  rm -r ${WRKDIR}/data/CNV/CNV_RAW/Itsara_CNVs
+#NOTE: ITSARA REPLACED BY COOPER ET AL 2011
+# #####Gather Itsara CNVs
+# if [ -e ${WRKDIR}/data/CNV/CNV_RAW/Itsara_CNVs ]; then
+#   rm -r ${WRKDIR}/data/CNV/CNV_RAW/Itsara_CNVs
+# fi
+# mkdir ${WRKDIR}/data/CNV/CNV_RAW/Itsara_CNVs
+# for CNV in DEL DUP; do
+#   echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
+#   ${WRKDIR}/data/CNV/CNV_RAW/Itsara_CNVs/Itsara_CTRL.${CNV}.raw.bed
+#   while read chr start end sID skip n total PMID; do
+#     for times in $( seq 1 ${n} ); do
+#       echo -e "${chr}\t${start}\t${end}\tID\t${CNV}\tHEALTHY_CONTROL\t${PMID}"
+#     done
+#   done < <( zcat /scratch/miket/rlc47temp/DGV_CNVs_all/Itsara_CNVs/Itsara.${CNV}.raw.bed.gz | sed '1d' ) | \
+#   sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v CNV=${CNV} \
+#   '{ print $1, $2, $3, "Itsara_CTRL_"CNV"_"NR, $5, $6 }' >> \
+#   ${WRKDIR}/data/CNV/CNV_RAW/Itsara_CNVs/Itsara_CTRL.${CNV}.raw.bed
+# done
+# gzip -f ${WRKDIR}/data/CNV/CNV_RAW/Itsara_CNVs/*.raw.bed
+
+####Gather Cooper control CNVs
+#Clean Cooper CNVs
+sed 's/\",/\t/g' ${TMPDIR}/../misc_CNVs/supporting_variants_for_nstd54.csv | fgrep hg19 | \
+sed '1d' | tr -d "\"" | awk -v OFS="\t" -v FS="\t" \
+'{ if ($5>1) print $14, $17, $18, "ID", $4, "HEALTHY_CONTROL", "21841781" }' | \
+sed 's/copy\ number\ //g' | sed -e 's/gain/DUP/g' -e 's/loss/DEL/g' > \
+${TMPDIR}/../misc_CNVs/Cooper_2011_control_CNVcalls.GRCh37.bed
+if [ -e ${WRKDIR}/data/CNV/CNV_RAW/Cooper_CNVs ]; then
+  rm -r ${WRKDIR}/data/CNV/CNV_RAW/Cooper_CNVs
 fi
-mkdir ${WRKDIR}/data/CNV/CNV_RAW/Itsara_CNVs
+mkdir ${WRKDIR}/data/CNV/CNV_RAW/Cooper_CNVs
 for CNV in DEL DUP; do
   echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
-  ${WRKDIR}/data/CNV/CNV_RAW/Itsara_CNVs/Itsara_CTRL.${CNV}.raw.bed
-  while read chr start end sID skip n total PMID; do
-    for times in $( seq 1 ${n} ); do
-      echo -e "${chr}\t${start}\t${end}\tID\t${CNV}\tCTRL\t${PMID}"
-    done
-  done < <( zcat /scratch/miket/rlc47temp/DGV_CNVs_all/Itsara_CNVs/Itsara.${CNV}.raw.bed.gz | sed '1d' ) | \
+  ${WRKDIR}/data/CNV/CNV_RAW/Cooper_CNVs/Cooper_CTRL.${CNV}.raw.bed
+  fgrep -w ${CNV} ${TMPDIR}/../misc_CNVs/Cooper_2011_control_CNVcalls.GRCh37.bed | \
   sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v CNV=${CNV} \
-  '{ print $1, $2, $3, "Itsara_CTRL_"CNV"_"NR, $5, $6 }' >> \
-  ${WRKDIR}/data/CNV/CNV_RAW/Itsara_CNVs/Itsara_CTRL.${CNV}.raw.bed
+  '{ print $1, $2, $3, "Cooper_CTRL_"CNV"_"NR, $5, $6, $7 }' >> \
+  ${WRKDIR}/data/CNV/CNV_RAW/Cooper_CNVs/Cooper_CTRL.${CNV}.raw.bed
 done
-gzip ${WRKDIR}/data/CNV/CNV_RAW/Itsara_CNVs/*.raw.bed
+gzip -f ${WRKDIR}/data/CNV/CNV_RAW/Cooper_CNVs/Cooper_CTRL.*.bed
 
 #####Gather Shaikh CNVs
 if [ -e ${WRKDIR}/data/CNV/CNV_RAW/Shaikh_CNVs ]; then
@@ -177,14 +207,14 @@ for CNV in DEL DUP; do
   ${WRKDIR}/data/CNV/CNV_RAW/Shaikh_CNVs/Shaikh_CTRL.${CNV}.raw.bed
   while read chr start end sID skip n total PMID; do
     for times in $( seq 1 ${n} ); do
-      echo -e "${chr}\t${start}\t${end}\tID\t${CNV}\tCTRL\t${PMID}"
+      echo -e "${chr}\t${start}\t${end}\tID\t${CNV}\tHEALTHY_CONTROL\t${PMID}"
     done
   done < <( zcat /scratch/miket/rlc47temp/DGV_CNVs_all/Shaikh_CNVs/Shaikh.${CNV}.raw.bed.gz | sed '1d' ) | \
   sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v CNV=${CNV} \
   '{ print $1, $2, $3, "Shaikh_CTRL_"CNV"_"NR, $5, $6 }' >> \
   ${WRKDIR}/data/CNV/CNV_RAW/Shaikh_CNVs/Shaikh_CTRL.${CNV}.raw.bed
 done
-gzip ${WRKDIR}/data/CNV/CNV_RAW/Shaikh_CNVs/*.raw.bed
+gzip -f ${WRKDIR}/data/CNV/CNV_RAW/Shaikh_CNVs/*.raw.bed
 
 #####Gather Suktitipat CNVs
 if [ -e ${WRKDIR}/data/CNV/CNV_RAW/Suktitipat_CNVs ]; then
@@ -196,7 +226,7 @@ for CNV in DEL DUP; do
   ${WRKDIR}/data/CNV/CNV_RAW/Suktitipat_CNVs/Suktitipat_CTRL.${CNV}.raw.bed
   while read chr start end sID skip n total PMID; do
     for times in $( seq 1 ${n} ); do
-      echo -e "${chr}\t${start}\t${end}\tID\t${CNV}\tCTRL\t${PMID}"
+      echo -e "${chr}\t${start}\t${end}\tID\t${CNV}\tHEALTHY_CONTROL\t${PMID}"
     done
   done < <( zcat /scratch/miket/rlc47temp/DGV_CNVs_all/Suktitipat_Thai_CNVs/Suktitipat.${CNV}.raw.bed.gz | sed '1d' ) | \
   sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v CNV=${CNV} \
@@ -215,7 +245,7 @@ for CNV in DEL DUP; do
   ${WRKDIR}/data/CNV/CNV_RAW/Uddin_CNVs/Uddin_CTRL.${CNV}.raw.bed
   while read chr start end sID skip n total PMID; do
     for times in $( seq 1 ${n} ); do
-      echo -e "${chr}\t${start}\t${end}\tID\t${CNV}\tCTRL\t${PMID}"
+      echo -e "${chr}\t${start}\t${end}\tID\t${CNV}\tHEALTHY_CONTROL\t${PMID}"
     done
   done < <( zcat /scratch/miket/rlc47temp/DGV_CNVs_all/Uddin_Ontario_CNVs/Uddin.${CNV}.raw.bed.gz | sed '1d' ) | \
   sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v CNV=${CNV} \
@@ -234,7 +264,7 @@ for CNV in DEL DUP; do
   ${WRKDIR}/data/CNV/CNV_RAW/Vogler_CNVs/Vogler_CTRL.${CNV}.raw.bed
   while read chr start end sID skip n total PMID; do
     for times in $( seq 1 ${n} ); do
-      echo -e "${chr}\t${start}\t${end}\tID\t${CNV}\tCTRL\t${PMID}"
+      echo -e "${chr}\t${start}\t${end}\tID\t${CNV}\tHEALTHY_CONTROL\t${PMID}"
     done
   done < <( zcat /scratch/miket/rlc47temp/DGV_CNVs_all/Vogler_CNVs/Vogler.${CNV}.raw.bed.gz | sed '1d' ) | \
   sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v CNV=${CNV} \
@@ -244,23 +274,50 @@ done
 gzip ${WRKDIR}/data/CNV/CNV_RAW/Vogler_CNVs/*.raw.bed
 
 #####Gather Coe CNVs
+#Clean Coe control & case data
+sed 's/\",/\t/g' ${TMPDIR}/../misc_CNVs/supporting_variants_for_nstd100.csv | fgrep hg19 | \
+sed '1d' | tr -d "\"" | awk -v OFS="\t" -v FS="\t" \
+'{ if ($5>1) print $14, $17, $18, "ID", $4, "HEALTHY_CONTROL", "25217958" }' | \
+sed 's/copy\ number\ //g' | sed -e 's/gain/DUP/g' -e 's/loss/DEL/g' > \
+${TMPDIR}/../misc_CNVs/Coe_2014_control_CNVcalls.GRCh37.bed
+sed 's/\",/\t/g' ${TMPDIR}/../misc_CNVs/supporting_variants_for_nstd100.csv | fgrep hg19 | \
+sed '1d' | tr -d "\"" | awk -v OFS="\t" -v FS="\t" \
+'{ if ($6=="Oligo aCGH") print $14, $17, $18, "ID", $4, $9, "25217958" }' | \
+sed 's/copy\ number\ //g' | sed -e 's/gain/DUP/g' -e 's/loss/DEL/g' > \
+${TMPDIR}/../misc_CNVs/Coe_2014_case_CNVcalls.GRCh37.bed
+#Curate Coe & Cooper phenotype data
+#NOTE: since Cooper has more detailed phenotypes, merge the two and take nonredunant phenos
+fgrep -v "Study ID" ${TMPDIR}/../misc_CNVs/samples_for_nstd54_1.csv | \
+sed 's/\ /_/g' | sed 's/\",/\t/g' | tr -d "\"" | \
+awk -v FS="\t" -v OFS="\t" '{ print $3, toupper($9) }' | sed 's/,_/\;/g' > \
+${TMPDIR}/../misc_CNVs/Coe_Cooper_case_phenotypes.list
+fgrep -wvf <( cut -f1 ${TMPDIR}/../misc_CNVs/Coe_Cooper_case_phenotypes.list ) \
+${TMPDIR}/../misc_CNVs/samples_for_nstd100_1.csv | fgrep -v "Study ID" | \
+sed 's/\ /_/g' | sed 's/\",/\t/g' | tr -d "\"" | awk -v FS="\t" -v OFS="\t" \
+'{ print $3, toupper($9) }' | sed 's/,_/\;/g' >> \
+${TMPDIR}/../misc_CNVs/Coe_Cooper_case_phenotypes.list
+awk '{ print "s/"$1"/"$2"/g" }' ${TMPDIR}/../misc_CNVs/Coe_Cooper_case_phenotypes.list > \
+${TMPDIR}/../misc_CNVs/Coe_Cooper_case_phenotypes.sed
+#Assign phenotypes to Coe cases
+paste <( cut -f1-5 ${TMPDIR}/../misc_CNVs/Coe_2014_case_CNVcalls.GRCh37.bed ) \
+<( cut -f6 ${TMPDIR}/../misc_CNVs/Coe_2014_case_CNVcalls.GRCh37.bed | \
+sed -f ${TMPDIR}/../misc_CNVs/Coe_Cooper_case_phenotypes.sed ) | \
+awk -v OFS="\t" '{ print $0, "25217958" }' > \
+${TMPDIR}/../misc_CNVs/Coe_2014_case_CNVcalls.wPhenos.GRCh37.bed
+#Curate Coe raw CNV files
 if [ -e ${WRKDIR}/data/CNV/CNV_RAW/Coe_CNVs ]; then
   rm -r ${WRKDIR}/data/CNV/CNV_RAW/Coe_CNVs
 fi
 mkdir ${WRKDIR}/data/CNV/CNV_RAW/Coe_CNVs
 for CNV in DEL DUP; do
   echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
-  ${WRKDIR}/data/CNV/CNV_RAW/Coe_CNVs/Coe_DD.${CNV}.raw.bed
-  while read chr start end sID skip n total PMID; do
-    for times in $( seq 1 ${n} ); do
-      echo -e "${chr}\t${start}\t${end}\tID\t${CNV}\tDD\t${PMID}"
-    done
-  done < <( zcat /scratch/miket/rlc47temp/DGV_CNVs_all/Coe_et_al_2014_CNVs/Coe.${CNV}.raw.bed.gz | sed '1d' ) | \
+  ${WRKDIR}/data/CNV/CNV_RAW/Coe_CNVs/Coe_GERM.${CNV}.raw.bed
+  fgrep -w ${CNV} ${TMPDIR}/../misc_CNVs/Coe_2014_case_CNVcalls.wPhenos.GRCh37.bed | \
   sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v CNV=${CNV} \
-  '{ print $1, $2, $3, "Coe_DD_"CNV"_"NR, $5, $6 }' >> \
-  ${WRKDIR}/data/CNV/CNV_RAW/Coe_CNVs/Coe_DD.${CNV}.raw.bed
+  '{ print $1, $2, $3, "Coe_GERM_"CNV"_"NR, $5, $6, $7 }' >> \
+  ${WRKDIR}/data/CNV/CNV_RAW/Coe_CNVs/Coe_GERM.${CNV}.raw.bed
 done
-gzip ${WRKDIR}/data/CNV/CNV_RAW/Coe_CNVs/*.raw.bed
+gzip -f ${WRKDIR}/data/CNV/CNV_RAW/Coe_CNVs/Coe_GERM.*.bed
 
 #####Gather PGC CNVs
 if [ -e ${WRKDIR}/data/CNV/CNV_RAW/PGC_CNVs ]; then
