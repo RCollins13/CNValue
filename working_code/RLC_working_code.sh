@@ -68,7 +68,10 @@ mkdir ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs
 for CNV in DEL DUP; do
   echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
   ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CNCR.${CNV}.raw.bed
+  echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
+  ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CTRL.${CNV}.raw.bed
 done
+#Cancers
 paste <( sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | awk '{ if ($NF<=-1) print $0 }' | \
  awk -v OFS="\t" '{ print $2, $3, $4, "TCGA_CNCR_DEL_"NR, "DEL" }' ) \
 <( sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | awk '{ if ($NF<=-1) print $1 }' | \
@@ -81,6 +84,15 @@ paste <( sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | awk '{ if ($NF>=0.584
 awk -v FS="-" '{ print $2 }' | sed -f ${WRKDIR}/bin/rCNVmap/misc/TCGA_TSS_linkers.sed | \
 awk '{ print toupper($0) }' ) | awk -v OFS="\t" '{ print $0, "24071852" }' | \
 sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CNCR.DUP.raw.bed
+#Clean controls
+cat ${TMPDIR}/../misc_CNVs/TCGA_normals/*txt | fgrep -v Chromosome | \
+awk -v OFS="\t" '{ if ($NF<=-1) print $2, $3, $4, "TCGA_CTRL_DEL_", "DEL", "HEALTHY_CONTROL", "24071852" }' | \
+sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" '{ print $1, $2, $3, $4""NR, $5, $6, $7 }' > \
+${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CTRL.DEL.raw.bed
+cat ${TMPDIR}/../misc_CNVs/TCGA_normals/*txt | fgrep -v Chromosome | \
+awk -v OFS="\t" '{ if ($NF>=0.5849625) print $2, $3, $4, "TCGA_CTRL_DUP_", "DUP", "HEALTHY_CONTROL", "24071852" }' | \
+sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" '{ print $1, $2, $3, $4""NR, $5, $6, $7 }' > \
+${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CTRL.DUP.raw.bed
 gzip -f ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/*.raw.bed
 
 #####Gather raw SSC CNVs
@@ -118,10 +130,10 @@ for CNV in DEL DUP; do
   cat <( echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" ) > \
   ${WRKDIR}/data/CNV/CNV_RAW/SSC_CNVs/SSC_GERM.${CNV}.raw.bed
   paste <( awk '$4 ~ /p/ { print $0 }' ${TMPDIR}/SSC_CNVs.p10E9.hg19.${CNV}.bed | \
-  awk -v CNV=${CNV} -v OFS="\t" '{ print $1, $2, $3, "SSC_GERM_"CNV"_"NR, CNV }' ) \
+  awk -v CNV=${CNV} -v OFS="\t" '{ print $1, $2, $3, "SSC_GERM_"CNV"_", CNV }' ) \
   <( awk '$4 ~ /p/ { print $4 }' ${TMPDIR}/SSC_CNVs.p10E9.hg19.${CNV}.bed | \
   sed -f ${WRKDIR}/bin/rCNVmap/misc/SSC_phenotype_key.sed ) | \
-  awk -v OFS="\t" '{ print $0, "26402605" }' | sort -Vk1,1 -k2,2n -k3,3n | \
+  sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" '{ print $1, $2, $3, $4""NR, $5, $6, "26402605" }' |  \
   sed 's/\?//g' >> ${WRKDIR}/data/CNV/CNV_RAW/SSC_CNVs/SSC_GERM.${CNV}.raw.bed
 done
 gzip -f ${WRKDIR}/data/CNV/CNV_RAW/SSC_CNVs/*.bed
@@ -273,6 +285,129 @@ for CNV in DEL DUP; do
 done
 gzip ${WRKDIR}/data/CNV/CNV_RAW/Vogler_CNVs/*.raw.bed
 
+#####Gather Talkowski SigGen CNVs
+#Download from database (MySQL code below)
+# SELECT `Chr`, `Start`, `Stop`, `Diag_state`, `ID`, `Source`, `Indication`, `Ref` \
+# FROM all_cnvs WHERE Source = 'SIGNATUREGENOMICS' OR Source = 'SIGNATUREGENOMICS2' OR Source = 'SIGNATUREGENOMICS3';
+#Clean file
+sed -e 's/\ /_/g' -e 's/,/\;/g' ${TMPDIR}/../misc_CNVs/TGDB_CNVs.SigGen_ALL.bed > \
+${TMPDIR}/../misc_CNVs/TGDB_CNVs.SigGen_ALL.bed2
+mv ${TMPDIR}/../misc_CNVs/TGDB_CNVs.SigGen_ALL.bed2 ${TMPDIR}/../misc_CNVs/TGDB_CNVs.SigGen_ALL.bed
+#Split by native reference
+for ref in hg18 hg19; do
+  awk -v ref=${ref} '{ if ($NF==ref) print $0 }' ${TMPDIR}/../misc_CNVs/TGDB_CNVs.SigGen_ALL.bed > \
+  ${TMPDIR}/../misc_CNVs/TGDB_CNVs.SigGen_ALL.${ref}_native.bed
+done
+#Liftover hg18 native & merge with hg19 native
+liftOver -minMatch=0.5 -bedPlus=5 \
+${TMPDIR}/../misc_CNVs/TGDB_CNVs.SigGen_ALL.hg18_native.bed \
+/data/talkowski/rlc47/src/hg18ToHg19.over.chain \
+${TMPDIR}/../misc_CNVs/TGDB_CNVs.SigGen_ALL.hg19_lifted.bed \
+${TMPDIR}/../misc_CNVs/TGDB_CNVs.SigGen_ALL.hg18_liftFail.bed
+cat ${TMPDIR}/../misc_CNVs/TGDB_CNVs.SigGen_ALL.hg19_lifted.bed \
+${TMPDIR}/../misc_CNVs/TGDB_CNVs.SigGen_ALL.hg19_native.bed | sed 's/^chr//g' > \
+${TMPDIR}/../misc_CNVs/TGDB_CNVs.SigGen_ALL.hg19_merged.bed
+#Benchmarking: titrate number of unique cases in our database with a CNV with one and only one hit in Eichler's sets
+for r in $( seq 0.05 0.05 1 ); do
+  echo ${r}
+  bedtools intersect -r -f ${r} -c \
+  -a ${TMPDIR}/../misc_CNVs/TGDB_CNVs.SigGen_ALL.hg19_merged.bed \
+  -b ${TMPDIR}/../misc_CNVs/Coe_2014_case_CNVcalls.wPhenos.GRCh37.bed | \
+  awk '{ if ($NF==1) print $5 }' | sort | uniq | wc -l
+done | paste - -
+#Get pairs of subject IDs and phenotypes of cases that have at least one perfect match
+bedtools intersect -r -f 1.0 -c \
+-a ${TMPDIR}/../misc_CNVs/TGDB_CNVs.SigGen_ALL.hg19_merged.bed \
+-b ${TMPDIR}/../misc_CNVs/Coe_2014_case_CNVcalls.wPhenos.GRCh37.bed | \
+awk -v OFS="\t" '{ if ($NF==1) print $1, $2, $3, $4, $5, $7 }' | \
+bedtools intersect -r -f 1.0 -wa -wb -a - \
+-b ${TMPDIR}/../misc_CNVs/Coe_2014_case_CNVcalls.wPhenos.GRCh37.bed | \
+awk -v OFS="\t" '{ print $5, $12, $6, $13 }' | sort -nk1,1 | uniq > \
+${TMPDIR}/SigGen_UniqueMatches.100pct_recip.txt
+cut -f1 ${TMPDIR}/SigGen_UniqueMatches.100pct_recip.txt | sort | uniq -c | \
+awk -v OFS="\t" '{ if ($1==1) print $2 }' | fgrep -wf - \
+${TMPDIR}/SigGen_UniqueMatches.100pct_recip.txt > \
+${TMPDIR}/SigGen_UniqueMatches.100pct_recip.txt2
+mv ${TMPDIR}/SigGen_UniqueMatches.100pct_recip.txt2 ${TMPDIR}/SigGen_UniqueMatches.100pct_recip.txt
+cut -f2 ${TMPDIR}/SigGen_UniqueMatches.100pct_recip.txt | sort | uniq -c | \
+awk -v OFS="\t" '{ if ($1==1) print $2 }' | fgrep -wf - \
+${TMPDIR}/SigGen_UniqueMatches.100pct_recip.txt > \
+${TMPDIR}/SigGen_UniqueMatches.100pct_recip.txt2
+mv ${TMPDIR}/SigGen_UniqueMatches.100pct_recip.txt2 ${TMPDIR}/SigGen_UniqueMatches.100pct_recip.txt
+#Summarize linked phenotypes - Eichler
+cut -f4 ${TMPDIR}/SigGen_UniqueMatches.100pct_recip.txt | sort | uniq -c | \
+awk -v OFS="\t" '{ print $1, $2 }' | sort -nrk1,1
+cut -f4 ${TMPDIR}/SigGen_UniqueMatches.100pct_recip.txt | sed 's/\;/\n/g' | sort | uniq -c | \
+awk -v OFS="\t" '{ print $1, $2 }' | sort -nrk1,1
+#Summarize linked phenotypes - Talkowski
+cut -f3 ${TMPDIR}/SigGen_UniqueMatches.100pct_recip.txt | sort | uniq -c | \
+awk -v OFS="\t" '{ print $1, $2 }' | sort -nrk1,1
+# cut -f3 ${TMPDIR}/SigGen_UniqueMatches.100pct_recip.txt | sort | uniq -c | \
+# awk -v OFS="\t" '{ if ($1<10) print $1 }' | awk '{ sum+=$1 }END{ print sum }'
+cut -f3 ${TMPDIR}/SigGen_UniqueMatches.100pct_recip.txt | sed 's/\;/\n/g' | \
+sed 's/^_//g' | sort | uniq -c | awk -v OFS="\t" '{ if ($1>9) print $1, $2 }' | sort -nrk1,1
+cut -f3 ${TMPDIR}/SigGen_UniqueMatches.100pct_recip.txt | sed 's/\;/\n/g' | \
+sed 's/^_//g' | sort | uniq -c | awk -v OFS="\t" '{ if ($1<=9) print $2 }' | wc -l
+
+#Benchmarking: titrate number of unique cases in our database with no CNVs with at least one hit in Eichler's sets
+for r in $( seq 0.05 0.05 1 ); do
+  echo ${r}
+  bedtools intersect -r -f ${r} -c \
+  -a ${TMPDIR}/../misc_CNVs/TGDB_CNVs.SigGen_ALL.hg19_merged.bed \
+  -b ${TMPDIR}/../misc_CNVs/Coe_2014_case_CNVcalls.wPhenos.GRCh37.bed | \
+  awk '{ if ($NF==1) print $5 }' | sort | uniq | \
+  fgrep -wvf - <( cut -f5 ${TMPDIR}/../misc_CNVs/TGDB_CNVs.SigGen_ALL.hg19_merged.bed ) | \
+  sort | uniq | wc -l
+done | paste - -
+
+bedtools intersect -r -f ${r} -c \
+  -a ${TMPDIR}/../misc_CNVs/TGDB_CNVs.SigGen_ALL.hg19_merged.bed \
+  -b ${TMPDIR}/../misc_CNVs/Coe_2014_case_CNVcalls.wPhenos.GRCh37.bed | \
+  awk '{ if ($NF==1) print $0 }' | \
+  bedtools intersect -r -f ${r} -wa -wb -a - \
+  -b ${TMPDIR}/../misc_CNVs/Coe_2014_case_CNVcalls.wPhenos.GRCh37.bed | less -S
+
+
+#Split by CNV class
+sed 's/\ /_/g' ${TMPDIR}/../misc_CNVs/TGDB_CNVs.noExcluded.CHB_Cooper_GeneDX.bed > \
+${TMPDIR}/../misc_CNVs/TGDB_CNVs.noExcluded.CHB_Cooper_GeneDX.bed2
+mv ${TMPDIR}/../misc_CNVs/TGDB_CNVs.noExcluded.CHB_Cooper_GeneDX.bed2 \
+${TMPDIR}/../misc_CNVs/TGDB_CNVs.noExcluded.CHB_Cooper_GeneDX.bed
+awk -v OFS="\t" -v FS="\t" '{ if ($4=="0,200,0" || $4=="COPY_LOSS" || \
+  $4=="COPY_LOSS." || $4=="COPY_LOSSETION" || $4=="COPY_LOSS_(MOS)" || \
+  $4=="kiss" || $4=="los" || $4=="loss" || $4=="loss_" || $4=="Loss" || \
+  $4=="LOSS" || $4=="MOS_COPY_LOSS" || $4=="NULL_COPY_LOSS") print $0 }' \
+${TMPDIR}/../misc_CNVs/TGDB_CNVs.noExcluded.CHB_Cooper_GeneDX.bed > \
+${TMPDIR}/../misc_CNVs/TGDB_CNVs.noExcluded.CHB_Cooper_GeneDX.DEL.bed
+awk -v OFS="\t" -v FS="\t" '{ if ($4=="220,0,0" || $4=="255,0,0" || $4=="AMP" || \
+  $4=="AMPLIFICATION" || $4=="COPY_GAIN" || $4=="COPY_GAIN_" || \
+  $4=="COPY_GAIN_(MOS?)" || $4=="COPY_GAIN_(MOS)" || $4=="dup" || $4=="g" || \
+  $4=="gain" || $4=="gain_" || $4=="Gain" || $4=="GAIN" || \
+  $4=="MOSAIC_COPY_GAIN" || $4=="MOS_COPY_GAIN") print $0 }' \
+${TMPDIR}/../misc_CNVs/TGDB_CNVs.noExcluded.CHB_Cooper_GeneDX.bed > \
+${TMPDIR}/../misc_CNVs/TGDB_CNVs.noExcluded.CHB_Cooper_GeneDX.DUP.bed
+#Split by native reference
+for CNV in DEL DUP; do
+  for ref in hg18 hg19; do
+    awk -v ref=${ref} '{ if ($NF==ref) print $0 }' \
+    ${TMPDIR}/../misc_CNVs/TGDB_CNVs.noExcluded.CHB_Cooper_GeneDX.${CNV}.bed > \
+    ${TMPDIR}/../misc_CNVs/TGDB_CNVs.noExcluded.CHB_Cooper_GeneDX.${CNV}.${ref}_native.bed
+  done
+done
+#Liftover to hg19
+for CNV in DEL DUP; do
+  liftOver -minMatch=0.5 -bedPlus=4 \
+  ${TMPDIR}/../misc_CNVs/TGDB_CNVs.noExcluded.CHB_Cooper_GeneDX.${CNV}.hg18_native.bed \
+  /data/talkowski/rlc47/src/hg18ToHg19.over.chain \
+  ${TMPDIR}/../misc_CNVs/TGDB_CNVs.noExcluded.CHB_Cooper_GeneDX.${CNV}.hg19_lifted.bed \
+  ${TMPDIR}/../misc_CNVs/TGDB_CNVs.noExcluded.CHB_Cooper_GeneDX.${CNV}.hg18_liftFail.bed
+  cat ${TMPDIR}/../misc_CNVs/TGDB_CNVs.noExcluded.CHB_Cooper_GeneDX.${CNV}.hg19_native.bed \
+  ${TMPDIR}/../misc_CNVs/TGDB_CNVs.noExcluded.CHB_Cooper_GeneDX.${CNV}.hg19_lifted.bed | \
+  sed 's/chr//g' | sort -Vk1,1 -k2,2n -k3,3n > \
+  ${TMPDIR}/../misc_CNVs/TGDB_CNVs.noExcluded.CHB_Cooper_GeneDX.${CNV}.hg19_merged.bed
+done
+
+
 #####Gather Coe CNVs
 #Clean Coe control & case data
 sed 's/\",/\t/g' ${TMPDIR}/../misc_CNVs/supporting_variants_for_nstd100.csv | fgrep hg19 | \
@@ -299,7 +434,7 @@ ${TMPDIR}/../misc_CNVs/Coe_Cooper_case_phenotypes.list
 awk '{ print "s/"$1"/"$2"/g" }' ${TMPDIR}/../misc_CNVs/Coe_Cooper_case_phenotypes.list > \
 ${TMPDIR}/../misc_CNVs/Coe_Cooper_case_phenotypes.sed
 #Assign phenotypes to Coe cases
-paste <( cut -f1-5 ${TMPDIR}/../misc_CNVs/Coe_2014_case_CNVcalls.GRCh37.bed ) \
+paste <( cut -f1-6 ${TMPDIR}/../misc_CNVs/Coe_2014_case_CNVcalls.GRCh37.bed ) \
 <( cut -f6 ${TMPDIR}/../misc_CNVs/Coe_2014_case_CNVcalls.GRCh37.bed | \
 sed -f ${TMPDIR}/../misc_CNVs/Coe_Cooper_case_phenotypes.sed ) | \
 awk -v OFS="\t" '{ print $0, "25217958" }' > \
@@ -342,17 +477,17 @@ sort -Vk1,1 -k2,2n -k3,3n > ${TMPDIR}/../misc_CNVs/PGC_SCZ_41K_CNV_EGA.sorted.hg
 for CNV in DEL DUP; do
   #Case (SCZ)
   echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
-  ${WRKDIR}/data/CNV/CNV_RAW/PGC_CNVs/PGC_SCZ.${CNV}.raw.bed
+  ${WRKDIR}/data/CNV/CNV_RAW/PGC_CNVs/PGC_GERM.${CNV}.raw.bed
   fgrep -w Case ${TMPDIR}/../misc_CNVs/PGC_SCZ_41K_CNV_EGA.sorted.hg19.${CNV}.bed | \
   sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v CNV=${CNV} \
-  '{ print $1, $2, $3, "PGC_SCZ_"CNV"_"NR, CNV, "SCZ", "27869829" }' >> \
-  ${WRKDIR}/data/CNV/CNV_RAW/PGC_CNVs/PGC_SCZ.${CNV}.raw.bed
+  '{ print $1, $2, $3, "PGC_SCZ_"CNV"_"NR, CNV, "SCHIZOPHRENIA", "27869829" }' >> \
+  ${WRKDIR}/data/CNV/CNV_RAW/PGC_CNVs/PGC_GERM.${CNV}.raw.bed
   #Control
   echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
   ${WRKDIR}/data/CNV/CNV_RAW/PGC_CNVs/PGC_CTRL.${CNV}.raw.bed
   fgrep -w Control ${TMPDIR}/../misc_CNVs/PGC_SCZ_41K_CNV_EGA.sorted.hg19.${CNV}.bed | \
   sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v CNV=${CNV} \
-  '{ print $1, $2, $3, "PGC_CTRL_"CNV"_"NR, CNV, "CTRL", "27869829" }' >> \
+  '{ print $1, $2, $3, "PGC_CTRL_"CNV"_"NR, CNV, "HEALTHY_CONTROL", "27869829" }' >> \
   ${WRKDIR}/data/CNV/CNV_RAW/PGC_CNVs/PGC_CTRL.${CNV}.raw.bed
 done
 gzip ${WRKDIR}/data/CNV/CNV_RAW/PGC_CNVs/*.raw.bed
