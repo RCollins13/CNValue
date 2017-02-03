@@ -572,8 +572,8 @@ gzip ${WRKDIR}/data/CNV/CNV_RAW/Talkowski_CNVs/*
 
 #####Assign HPO terms per patient
 #Make master list of HPO term matches
-cat ${WRKDIR}/data/HPO_map/HPO_map.tsv \
-<( echo -e "ASD\t")
+cat ${WRKDIR}/data/HPO_map/HPO_map.tsv ${WRKDIR}/bin/rCNVmap/misc/supplementary_HPO_query_terms.txt | \
+awk '{ if ($3!=".") print $0 }' > ${WRKDIR}/data/HPO_map/HPO_map.modified.tsv
 #Make master list of all patients & phenotypes
 cat ${TMPDIR}/../misc_CNVs/TGDB_CNVs.CHB_GeneDX.phenotypes.list \
 ${TMPDIR}/../misc_CNVs/Coe_Cooper_case_phenotypes.list \
@@ -582,10 +582,20 @@ ${TMPDIR}/../misc_CNVs/Coe_Cooper_case_phenotypes.list \
 <( sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | cut -f1 | sort | uniq | awk -v FS="-" '{ print $2 }' | \
   sed -f ${WRKDIR}/bin/rCNVmap/misc/TCGA_TSS_linkers.sed | awk '{ print toupper($1) }' ) ) > \
 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.list
-#TEMPORARY: Get master list of all patients not captured by existing list
-cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.list | \
-fgrep -vf <( cut -f1 ${WRKDIR}/data/HPO_map/HPO_map.tsv ) | sed 's/\;/\n/g' | sort | uniq -c | \
-awk -v OFS="\t" '{ print $1, $2 }' | sort -nrk1,1
+#Iteratively assign HPO terms to each sample
+while read term old HPO count; do
+  echo ${term}
+  fgrep ${term} ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.list | cut -f1 | \
+  awk -v OFS="\t" -v HPO=${HPO} '{ print $1, HPO }' >> ${TMPDIR}/ID_HPO_links.tmp
+done < ${WRKDIR}/data/HPO_map/HPO_map.modified.tsv
+while read SID PHENOS; do
+  HPO=$( fgrep -w ${SID} ${TMPDIR}/ID_HPO_links.tmp | cut -f2 | sed 's/,/\n/g' | sort | uniq | paste -s -d, )
+  if [ -z ${HPO} ]; then
+    HPO="0000000"
+  fi
+  echo -e "${SID}\t${HPO}\t${PHENOS}"
+done < ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.list > \
+${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list
 
 
 #####Merge all germline CNVs and run bedcluster
