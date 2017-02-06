@@ -583,6 +583,9 @@ ${TMPDIR}/../misc_CNVs/Coe_Cooper_case_phenotypes.list \
   sed -f ${WRKDIR}/bin/rCNVmap/misc/TCGA_TSS_linkers.sed | awk '{ print toupper($1) }' ) ) > \
 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.list
 #Iteratively assign HPO terms to each sample
+if [ -e ${TMPDIR}/ID_HPO_links.tmp ]; then
+  rm ${TMPDIR}/ID_HPO_links.tmp
+fi
 while read term old HPO count; do
   echo ${term}
   fgrep ${term} ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.list | cut -f1 | \
@@ -596,6 +599,15 @@ while read SID PHENOS; do
   echo -e "${SID}\t${HPO}\t${PHENOS}"
 done < ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.list > \
 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list
+#Get breakdown of number of terms per patient
+cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list | \
+sed 's/,/\t/g' | awk '{ print NF }' | sort | uniq -c | sort -nk2,2
+#Get breakdown of number of patients per term
+cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list | \
+sed 's/,/\n/g' | sort | uniq -c | sort -nrk1,1 | awk -v OFS="\t" '{ print $1, $2 }'
+#Get breakdown of number of patients per term (no cancer)
+cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list | \
+fgrep -v "0002664" | sed 's/,/\n/g' | sort | uniq -c | sort -nrk1,1 | awk -v OFS="\t" '{ print $1, $2 }'
 
 
 #####Merge all germline CNVs and run bedcluster
