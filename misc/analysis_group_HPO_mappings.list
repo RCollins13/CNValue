@@ -4,9 +4,9 @@ NDD	2	Neurodevelopmental_disorder	0000729;0001263;0001249	0002664
 ASD	3	Autism_spectrum_disorder	0000729	0002664
 DD	3	Developmental_delay	0001263	0002664
 ID	3	Intellectual_disability	0001249	0002664
-PSYCH	2	Neuropsychiatric_disorder	0100753;0000708	0002664
+PSYCH	2	Neuropsychiatric_disorder	0100753;0000708	0002664;0000729
 SCZ	3	Schizophrenia	0100753	0002664
-BEHAV	3	Behavioral_abnormality	0000708	0002664;0100753;0000729
+BEHAV	3	Behavioral_abnormality_other	0000708	0002664;0100753;0000729
 SEIZ	3	Seizures	0001250	0002664
 HYPO	3	Hypotonia	0001290	0002664
 UNK	1	Unknown	0000000	NA
