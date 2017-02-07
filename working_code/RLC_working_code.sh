@@ -609,6 +609,14 @@ sed 's/,/\n/g' | sort | uniq -c | sort -nrk1,1 | awk -v OFS="\t" '{ print $1, $2
 cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list | \
 fgrep -v "0002664" | sed 's/,/\n/g' | sort | uniq -c | sort -nrk1,1 | awk -v OFS="\t" '{ print $1, $2 }'
 
+#####Get counts of patients per analysis group
+while read group tier description HPO_in HPO_out; do
+  echo -e "${group}"
+  echo -e "${HPO_in}" | sed 's/\;/\n/g' | fgrep -wf - \
+  <( cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list ) | \
+  fgrep -wvf <( echo -e "${HPO_out}" | sed 's/\;/\n/g' ) | wc -l
+  echo -e "${description}"
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list ) | paste - - -
 
 #####Merge all germline CNVs and run bedcluster
 if [ -e ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV ]; then
