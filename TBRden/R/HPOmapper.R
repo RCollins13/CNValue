@@ -20,7 +20,7 @@ HPOmapper <- function(phenotypes,      #Path to list of phenotypes
   }
 
   #Strings not as factors
-  options(stringsAsFactors=F)
+  options(stringsAsFactors=F,scipen=1000)
 
   #Import phenotypes
   phenos <- read.table(phenotypes,header=F,sep="\t")

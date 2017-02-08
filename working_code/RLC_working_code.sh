@@ -618,6 +618,54 @@ while read group tier description HPO_in HPO_out; do
   echo -e "${description}"
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list ) | paste - - -
 
+#####Assign HPO terms to all CNVs
+#Cut HPO mappings 
+cut -f1,3 ${WRKDIR}/data/HPO_map/HPO_map.modified.tsv > \
+${TMPDIR}/HPO_mappings_for_application.txt
+#Create list of HPO mappings for all germline CNVs
+for cohort in SSC Coe Talkowski PGC; do
+  for CNV in DEL DUP; do
+    #Cut vector of phenotypes
+    zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_GERM.${CNV}.raw.bed.gz | \
+    fgrep -v "#" | cut -f6 | tr -d "\.\:\/\\\(\)\'\<\>\~\!\@\#\$\\%\^\&\*\{\}\+\?\,\[\]\-\=" > \
+    ${TMPDIR}/${cohort}_${CNV}_GERM.phenos.list
+    #Launch HPOmapper
+    bsub -q normal -sla miket_sc -J ${cohort}_${CNV}_GERM_HPOmapper \
+    "${WRKDIR}/bin/rCNVmap/bin/HPOmapper_helper.R \
+    ${TMPDIR}/${cohort}_${CNV}_GERM.phenos.list \
+    ${TMPDIR}/HPO_mappings_for_application.txt \
+    ${TMPDIR}/${cohort}_${CNV}_GERM.HPOs.list"
+  done
+done
+#Apply HPO mappings for all germline CNVs once HPOmapper completes
+for cohort in SSC Coe Talkowski PGC; do
+  for CNV in DEL DUP; do
+    echo -e "${cohort}\t${CNV}"
+    #Print length of total CNV df
+    zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_GERM.${CNV}.raw.bed.gz | \
+    fgrep -v "#" | wc -l
+    #Print length of phenotypes vector
+    cat ${TMPDIR}/${cohort}_${CNV}_GERM.phenos.list | wc -l
+    #Print length of HPO list
+    zcat ${TMPDIR}/${cohort}_${CNV}_GERM.HPOs.list.gz | fgrep -v "#" | wc -l
+  done | paste - - - -
+done
+#Create list of HPO mappings for all cancer CNVs
+for cohort in TCGA; do
+  for CNV in DEL DUP; do
+    #Cut vector of phenotypes
+    zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_CNCR.${CNV}.raw.bed.gz | \
+    fgrep -v "#" | cut -f6 | tr -d "\.\:\/\\\(\)\'\<\>\~\!\@\#\$\\%\^\&\*\{\}\+\?\,\[\]\-\=" > \
+    ${TMPDIR}/${cohort}_${CNV}_CNCR.phenos.list
+    #Launch HPOmapper
+    bsub -q normal -sla miket_sc -J ${cohort}_${CNV}_CNCR_HPOmapper \
+    "${WRKDIR}/bin/rCNVmap/bin/HPOmapper_helper.R \
+    ${TMPDIR}/${cohort}_${CNV}_CNCR.phenos.list \
+    ${TMPDIR}/HPO_mappings_for_application.txt \
+    ${TMPDIR}/${cohort}_${CNV}_CNCR.HPOs.list"
+  done
+done
+
 #####Merge all germline CNVs and run bedcluster
 if [ -e ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV ]; then
   rm -r ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV
