@@ -72,26 +72,36 @@ for CNV in DEL DUP; do
   ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CTRL.${CNV}.raw.bed
 done
 #Cancers
+for CNV in DEL DUP; do
+  echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
+  ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CNCR.${CNV}.raw.bed
+done
 paste <( sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | awk '{ if ($NF<=-1) print $0 }' | \
- awk -v OFS="\t" '{ print $2, $3, $4, "TCGA_CNCR_DEL_"NR, "DEL" }' ) \
+ awk -v OFS="\t" '{ print $2, $3, $4, "TCGA_CNCR_DEL", "DEL" }' ) \
 <( sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | awk '{ if ($NF<=-1) print $1 }' | \
 awk -v FS="-" '{ print $2 }' | sed -f ${WRKDIR}/bin/rCNVmap/misc/TCGA_TSS_linkers.sed | \
-awk '{ print toupper($0) }' ) | awk -v OFS="\t" '{ print $0, "24071852" }' | \
-sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CNCR.DEL.raw.bed
+awk '{ print toupper($0) }' ) | sort -Vk1,1 -k2,2n -k3,3n | \
+awk -v OFS="\t" '{ print $1, $2, $3, $4"_"NR, $5, $6, "24071852" }' >> \
+${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CNCR.DEL.raw.bed
 paste <( sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | awk '{ if ($NF>=0.5849625) print $0 }' | \
- awk -v OFS="\t" '{ print $2, $3, $4, "TCGA_CNCR_DUP_"NR, "DUP" }' ) \
+ awk -v OFS="\t" '{ print $2, $3, $4, "TCGA_CNCR_DUP", "DUP" }' ) \
 <( sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | awk '{ if ($NF>=0.5849625) print $1 }' | \
 awk -v FS="-" '{ print $2 }' | sed -f ${WRKDIR}/bin/rCNVmap/misc/TCGA_TSS_linkers.sed | \
-awk '{ print toupper($0) }' ) | awk -v OFS="\t" '{ print $0, "24071852" }' | \
-sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CNCR.DUP.raw.bed
+awk '{ print toupper($0) }' ) | sort -Vk1,1 -k2,2n -k3,3n | \
+awk -v OFS="\t" '{ print $1, $2, $3, $4"_"NR, $5, $6, "24071852" }' >> \
+${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CNCR.DUP.raw.bed
 #Clean controls
+for CNV in DEL DUP; do
+  echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
+  ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CTRL.${CNV}.raw.bed
+done
 cat ${TMPDIR}/../misc_CNVs/TCGA_normals/*txt | fgrep -v Chromosome | \
 awk -v OFS="\t" '{ if ($NF<=-1) print $2, $3, $4, "TCGA_CTRL_DEL_", "DEL", "HEALTHY_CONTROL", "24071852" }' | \
-sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" '{ print $1, $2, $3, $4""NR, $5, $6, $7 }' > \
+sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" '{ print $1, $2, $3, $4""NR, $5, $6, $7 }' >> \
 ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CTRL.DEL.raw.bed
 cat ${TMPDIR}/../misc_CNVs/TCGA_normals/*txt | fgrep -v Chromosome | \
 awk -v OFS="\t" '{ if ($NF>=0.5849625) print $2, $3, $4, "TCGA_CTRL_DUP_", "DUP", "HEALTHY_CONTROL", "24071852" }' | \
-sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" '{ print $1, $2, $3, $4""NR, $5, $6, $7 }' > \
+sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" '{ print $1, $2, $3, $4""NR, $5, $6, $7 }' >> \
 ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/TCGA_CTRL.DUP.raw.bed
 gzip -f ${WRKDIR}/data/CNV/CNV_RAW/TCGA_CNVs/*.raw.bed
 
@@ -637,19 +647,6 @@ for cohort in SSC Coe Talkowski PGC; do
     ${TMPDIR}/${cohort}_${CNV}_GERM.HPOs.list"
   done
 done
-#Apply HPO mappings for all germline CNVs once HPOmapper completes
-for cohort in SSC Coe Talkowski PGC; do
-  for CNV in DEL DUP; do
-    echo -e "${cohort}\t${CNV}"
-    #Print length of total CNV df
-    zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_GERM.${CNV}.raw.bed.gz | \
-    fgrep -v "#" | wc -l
-    #Print length of phenotypes vector
-    cat ${TMPDIR}/${cohort}_${CNV}_GERM.phenos.list | wc -l
-    #Print length of HPO list
-    zcat ${TMPDIR}/${cohort}_${CNV}_GERM.HPOs.list.gz | fgrep -v "#" | wc -l
-  done | paste - - - -
-done
 #Create list of HPO mappings for all cancer CNVs
 for cohort in TCGA; do
   for CNV in DEL DUP; do
@@ -665,6 +662,66 @@ for cohort in TCGA; do
     ${TMPDIR}/${cohort}_${CNV}_CNCR.HPOs.list"
   done
 done
+#Sanity-check HPO mapping output
+for cohort in SSC Coe Talkowski PGC; do
+  for CNV in DEL DUP; do
+    echo -e "${cohort}\t${CNV}"
+    #Print number of columns in raw CNV file
+    zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_GERM.${CNV}.raw.bed.gz | \
+    awk '{ print NF }' | head -n2 | tail -n1
+    #Print length of total CNV df
+    zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_GERM.${CNV}.raw.bed.gz | \
+    fgrep -v "#" | wc -l
+    #Print length of phenotypes vector
+    cat ${TMPDIR}/${cohort}_${CNV}_GERM.phenos.list | wc -l
+    #Print length of HPO list with two columns
+    zcat ${TMPDIR}/${cohort}_${CNV}_GERM.HPOs.list.gz | fgrep -v "#" | \
+    awk '{ if (NF==2) print $0 }' | wc -l
+  done | paste - - - - -
+done
+for cohort in TCGA; do
+  for CNV in DEL DUP; do
+    echo -e "${cohort}\t${CNV}"
+    #Print number of columns in raw CNV file
+    zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_CNCR.${CNV}.raw.bed.gz | \
+    awk '{ print NF }' | head -n2 | tail -n1
+    #Print length of total CNV df
+    zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_CNCR.${CNV}.raw.bed.gz | \
+    fgrep -v "#" | wc -l
+    #Print length of phenotypes vector
+    cat ${TMPDIR}/${cohort}_${CNV}_CNCR.phenos.list | wc -l
+    #Print length of HPO list with two columns
+    zcat ${TMPDIR}/${cohort}_${CNV}_CNCR.HPOs.list.gz | fgrep -v "#" | \
+    awk '{ if (NF==2) print $0 }' | wc -l
+  done | paste - - - - -
+done
+#Assign HPO mappings to CNV files
+for cohort in SSC Coe Talkowski PGC; do
+  for CNV in DEL DUP; do
+    cat \
+    <( zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_GERM.${CNV}.raw.bed.gz | head -n1 ) \
+    <( paste <( zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_GERM.${CNV}.raw.bed.gz | \
+                fgrep -v "#" | cut -f1-5 ) \
+             <( zcat ${TMPDIR}/${cohort}_${CNV}_GERM.HPOs.list.gz | fgrep -v "#" | cut -f1 ) \
+             <( zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_GERM.${CNV}.raw.bed.gz | \
+                fgrep -v "#" | cut -f7 ) ) | sed 's/,/;/g' > \
+    ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_GERM.${CNV}.raw.bed
+    gzip -f ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_GERM.${CNV}.raw.bed
+  done
+done
+for cohort in TCGA; do
+  for CNV in DEL DUP; do
+    cat \
+    <( zcat ${WRKDIR}/data/CNV/CNV_RAW/SSC_CNVs/SSC_GERM.${CNV}.raw.bed.gz | head -n1 ) \
+    <( paste <( zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_CNCR.${CNV}.raw.bed.gz | \
+                fgrep -v "#" | cut -f1-5 ) \
+             <( zcat ${TMPDIR}/${cohort}_${CNV}_CNCR.HPOs.list.gz | fgrep -v "#" | cut -f1 ) \
+             <( zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_CNCR.${CNV}.raw.bed.gz | \
+                fgrep -v "#" | cut -f7 ) ) | sed 's/,/;/g' > \
+    ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_CNCR.${CNV}.raw.bed
+    gzip -f ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_CNCR.${CNV}.raw.bed
+  done
+done
 
 #####Merge all germline CNVs and run bedcluster
 if [ -e ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV ]; then
@@ -673,7 +730,7 @@ fi
 mkdir ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV
 for CNV in DEL DUP; do
   #Create master list of all CNVs
-  for cohort in SSC Shaikh Suktitipat Uddin Vogler Coe PGC Talkowski TCGA; do
+  for cohort in Shaikh Suktitipat Uddin Vogler Cooper SSC Coe Talkowski PGC TCGA; do
     if [ -e ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_GERM.${CNV}.raw.bed.gz ]; then
       zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_GERM.${CNV}.raw.bed.gz | fgrep -v "#" | \
       awk -v OFS="\t" '{ print $1, $2, $3, $4, $4, $5 }'
@@ -704,8 +761,10 @@ done
 for CNV in DEL DUP; do
   #Create master list of all CNVs
   for cohort in TCGA; do
-    zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_CNCR.${CNV}.raw.bed.gz | fgrep -v "#" | \
-    awk -v OFS="\t" '{ print $1, $2, $3, $4, $4, $5 }'
+    if [ -e ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_CNCR.${CNV}.raw.bed.gz ]; then
+      zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_CNCR.${CNV}.raw.bed.gz | fgrep -v "#" | \
+      awk -v OFS="\t" '{ print $1, $2, $3, $4, $4, $5 }'
+    fi
   done | sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/cancer_${CNV}.pre_merge.bed
   #Run bedtools intersect (50% recip) and require both breakpoints ±20kb
   bedtools intersect -r -f 0.5 -wa -wb \
@@ -714,9 +773,9 @@ for CNV in DEL DUP; do
   awk -v d=20000 '{ if ($2-$8<=d && $2-$8>=-d && $3-$9<=d && $3-$9>=-d) print $0 }' > \
   ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/cancer_${CNV}.pre_merge.all_vs_all.bed
   #Run bedcluster
-  cut -f4 ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/cancer_${CNV}.pre_merge.bed > \
-  ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/cancer_${CNV}.VIDs.list
-  bsub -q normal -sla miket_sc -J all_cancer_${CNV}_merge \
+  cut -f4 ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/cancer_${CNV}.pre_merge.bed | \
+  sort | uniq > ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/cancer_${CNV}.VIDs.list
+  bsub -q big -R 'rusage[mem=50000]' -M 50000 -sla miket_sc -J all_cancer_${CNV}_merge \
   "source /apps/lab/miket/anaconda/4.0.5/envs/collins_py3/bin/activate collins_py3; \
   /data/talkowski/rlc47/code/svcf/scripts/bedcluster -p all_cancer_${CNV} -m \
   ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/cancer_${CNV}.VIDs.list \
