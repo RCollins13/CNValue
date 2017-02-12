@@ -464,14 +464,20 @@ if [ -e ${WRKDIR}/data/CNV/CNV_RAW/Coe_CNVs ]; then
 fi
 mkdir ${WRKDIR}/data/CNV/CNV_RAW/Coe_CNVs
 for CNV in DEL DUP; do
-  echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
-  ${WRKDIR}/data/CNV/CNV_RAW/Coe_CNVs/Coe_GERM.${CNV}.raw.bed
+  for pheno in GERM CTRL; do
+    echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
+    ${WRKDIR}/data/CNV/CNV_RAW/Coe_CNVs/Coe_${pheno}.${CNV}.raw.bed
+  done
   fgrep -w ${CNV} ${TMPDIR}/../misc_CNVs/Coe_2014_case_CNVcalls.wPhenos.GRCh37.bed | \
   sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v CNV=${CNV} \
   '{ print $1, $2, $3, "Coe_GERM_"CNV"_"NR, $5, $7, $6 }' >> \
   ${WRKDIR}/data/CNV/CNV_RAW/Coe_CNVs/Coe_GERM.${CNV}.raw.bed
+  fgrep -w ${CNV} ${TMPDIR}/../misc_CNVs/Coe_2014_control_CNVcalls.GRCh37.bed | \
+  sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v CNV=${CNV} \
+  '{ print $1, $2, $3, "Coe_CTRL_"CNV"_"NR, $5, $6, $7 }' >> \
+  ${WRKDIR}/data/CNV/CNV_RAW/Coe_CNVs/Coe_CTRL.${CNV}.raw.bed
 done
-gzip -f ${WRKDIR}/data/CNV/CNV_RAW/Coe_CNVs/Coe_GERM.*.bed
+gzip -f ${WRKDIR}/data/CNV/CNV_RAW/Coe_CNVs/Coe*.bed
 
 #####Gather PGC CNVs
 if [ -e ${WRKDIR}/data/CNV/CNV_RAW/PGC_CNVs ]; then
@@ -791,7 +797,7 @@ mkdir ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/
 max_VF=0.01
 for CNV in DEL DUP; do
   #Germline
-  awk -v max_VF=${max_VF} '{ if (($9/112053)<max_VF) print $0 }' \
+  awk -v max_VF=${max_VF} '{ if (($9/122312)<max_VF) print $0 }' \
   ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.merged.bed > \
   ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/germline_${CNV}.merged.maxVF.bed
   #Cancer
@@ -799,23 +805,25 @@ for CNV in DEL DUP; do
   ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/cancer_${CNV}.merged.maxVF.bed
 done
 
-#####Filter merged CNVs per study (max VF per study)
+#####Filter merged CNVs per study (max VF per study) & reassign original coordinates
 max_VF=0.01
 for CNV in DEL DUP; do
   while read study n PMID; do
     echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
-    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.bed
+    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.bed
+    study_base=$( echo "${study}" | cut -f1 -d_ )
     pheno=$( echo ${study} | sed 's/_/\t/g' | awk '{ print $NF }' )
     cat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*.maxVF.bed | fgrep "${study}_${CNV}" | \
     cut -f7 | sort | uniq -c | awk -v OFS="\t" '{ print $2, $1 }' | \
     awk -v max_VF=${max_VF} -v n=${n} '{ if (($2/n)<max_VF) print $1 }' | \
-    fgrep -wf - <( cat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*.maxVF.bed ) | \
-    fgrep "${study}_${CNV}" | awk -v OFS="\t" -v PMID=${PMID} -v CNV=${CNV} -v pheno=${pheno} \
-    '{ print $1, $2, $3, $4, CNV, pheno, PMID }' | sort -Vk1,1 -k2,2n -k3,3n >> \
-    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.bed
+    fgrep -wf - ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*.maxVF.bed | \
+    cut -f2- -d\: | cut -f4 | fgrep "${study}_${CNV}" | sort | uniq | \
+    fgrep -wf - <( zcat ${WRKDIR}/data/CNV/CNV_RAW/${study_base}_CNVs/${study}.${CNV}.raw.bed.gz ) | \
+    awk -v OFS="\t" -v PMID=${PMID} '{ print $1, $2, $3, $4, $5, $6, PMID }' | sort -Vk1,1 -k2,2n -k3,3n >> \
+    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.bed
   done < <( fgrep -v "TCGA" ${WRKDIR}/lists/Studies_SampleSizes.list )
   cat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/cancer_${CNV}.merged.maxVF.bed > \
-  ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/TCGA_CNCR_${CNV}.merged.maxVF.maxVF.bed
+  ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/TCGA_CNCR_${CNV}.merged.maxVF.maxVF.originalCoords.bed
 done
 
 #####Split merged CNVs to match original reported coordinates
