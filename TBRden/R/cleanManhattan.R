@@ -17,12 +17,14 @@ cleanManhattan <- function (df,              #three-column data frame of chrom, 
     colors <- c("#3d8c84","#7cfff1","#ffe502","#ff02e1")
   }else if(theme=="red"){
     colors <- c("#911212","#fc3737","#fff602","#021bff")
-  }else if(theme=="orange"){
+  }else if(theme=="yellow"){
     colors <- c("#ed6600","#f1a517","#1472e5","#d11ba9")
   }else if(theme=="purple"){
     colors <- c("#601d87","#c470f4","#42f1f4","#f9ea0e")
   }else if(theme=="brown"){
     colors <- c("#5e522e","#f6e8bf","#ffeb19","#19ff34")
+  }else if(theme=="darkblue"){
+    colors <- c("#01317f","#0278ff","#ffeb19","#19ff34")
   }
   #Gather list of unique contigs
   contigs <- unique(df[,1])
