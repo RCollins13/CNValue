@@ -505,7 +505,7 @@ for CNV in DEL DUP; do
   ${WRKDIR}/data/CNV/CNV_RAW/PGC_CNVs/PGC_GERM.${CNV}.raw.bed
   fgrep -w Case ${TMPDIR}/../misc_CNVs/PGC_SCZ_41K_CNV_EGA.sorted.hg19.${CNV}.bed | \
   sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" -v CNV=${CNV} \
-  '{ print $1, $2, $3, "PGC_SCZ_"CNV"_"NR, CNV, "SCHIZOPHRENIA", "27869829" }' >> \
+  '{ print $1, $2, $3, "PGC_GERM_"CNV"_"NR, CNV, "SCHIZOPHRENIA", "27869829" }' >> \
   ${WRKDIR}/data/CNV/CNV_RAW/PGC_CNVs/PGC_GERM.${CNV}.raw.bed
   #Control
   echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
@@ -821,24 +821,9 @@ for CNV in DEL DUP; do
     fgrep -wf - <( zcat ${WRKDIR}/data/CNV/CNV_RAW/${study_base}_CNVs/${study}.${CNV}.raw.bed.gz ) | \
     awk -v OFS="\t" -v PMID=${PMID} '{ print $1, $2, $3, $4, $5, $6, PMID }' | sort -Vk1,1 -k2,2n -k3,3n >> \
     ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.bed
-  done < <( fgrep -v "TCGA" ${WRKDIR}/lists/Studies_SampleSizes.list )
+  done < <( fgrep -v "TCGA_CNCR" ${WRKDIR}/lists/Studies_SampleSizes.list )
   cat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/cancer_${CNV}.merged.maxVF.bed > \
   ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/TCGA_CNCR_${CNV}.merged.maxVF.maxVF.originalCoords.bed
-done
-
-#####Split merged CNVs to match original reported coordinates
-for CNV in DEL DUP; do
-  while read study n PMID; do
-    pheno=$( echo ${study} | sed 's/_/\t/g' | awk '{ print $NF }' )
-    study_base=$( echo "${study}" | cut -f1 -d_ )
-    echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
-    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.bed
-    fgrep -v "#" ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.bed | \
-    cut -f4 | fgrep -wf - <( zcat ${WRKDIR}/data/CNV/CNV_RAW/${study_base}_CNVs/${study}.${CNV}.raw.bed.gz ) | \
-    awk -v OFS="\t" -v PMID=${PMID} -v CNV=${CNV} -v pheno=${pheno} \
-    '{ print $1, $2, $3, $4, CNV, pheno, PMID }' | sort -Vk1,1 -k2,2n -k3,3n >> \
-    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.bed
-  done < ${WRKDIR}/lists/Studies_SampleSizes.list
 done
 
 #####Filter merged CNVs on minimum size
@@ -878,20 +863,38 @@ for CNV in DEL DUP; do
     ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.maxSize.bed
   done < ${WRKDIR}/lists/Studies_SampleSizes.list
 done
+
+#####Make master germline, control, and cancer files (post-filter)
+for pheno in GERM CTRL CNCR; do
+  for CNV in DEL DUP; do
+    echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
+    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${pheno}_${CNV}.final_filters.bed
+    echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
+    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${pheno}_${CNV}.final_filters_noMaxSize.bed
+    cat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*${pheno}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.maxSize.bed | \
+    fgrep -v "#" | sort -Vk1,1 -k2,2n -k3,3n >> \
+    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${pheno}_${CNV}.final_filters.bed
+    cat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*${pheno}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.bed | \
+    fgrep -v "#" | sort -Vk1,1 -k2,2n -k3,3n >> \
+    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${pheno}_${CNV}.final_filters_noMaxSize.bed
+  done
+done
 #Gzip all filtered CNV files
 gzip ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*
 
-#####Final merger per cohort, filtered on max size & unfiltered on max size
+#####Final merger per analysis group, filtered on max size & unfiltered on max size
 if [ -e ${WRKDIR}/data/CNV/CNV_MASTER/ ]; then
   rm -r ${WRKDIR}/data/CNV/CNV_MASTER/
 fi
 mkdir ${WRKDIR}/data/CNV/CNV_MASTER/
-for group in DD SCZ CNCR CTRL; do
+while read group tier descrip include exclude; do
   for CNV in DEL DUP; do
     #Filtered on max size (main CNV set)
     echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed
-    zcat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*_${group}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.maxSize.bed.gz | \
+    zcat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_GERM_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.maxSize.bed.gz | \
+    fgrep -wf <( echo ${include} | sed 's/\;/\n/g' ) | \
+    fgrep -wvf <( echo ${exclude} | sed 's/\;/\n/g' ) | \
     fgrep -v "#" | sort -Vk1,1 -k2,2n -k3,3n | sed -e 's/^5_/5/g' -e 's/^y/Y/g' -e 's/^16_/16/g' -e 's/^x_/X/g' >> \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed
     #Unfiltered on max size (used for size distribs)
@@ -901,7 +904,7 @@ for group in DD SCZ CNCR CTRL; do
     fgrep -v "#" | sort -Vk1,1 -k2,2n -k3,3n | sed -e 's/^5_/5/g' -e 's/^y/Y/g' -e 's/^16_/16/g' -e 's/^x_/X/g' >> \
     ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.noMaxSize.GRCh37.bed
   done
-done
+done < ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list
 
 #####Make merged CNV (DEL+DUP) set
 for group in DD SCZ CNCR CTRL; do
