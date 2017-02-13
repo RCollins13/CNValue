@@ -988,21 +988,23 @@ fi
 mkdir ${WRKDIR}/data/CNV/CNV_DENSITY
 for group in CTRL DD SCZ DD_SCZ CNCR DD_SCZ_CNCR; do
   echo ${group}
-  for CNV in DEL DUP CNV; do
-    echo ${CNV}
-    bedtools genomecov -bga -g /data/talkowski/rlc47/src/GRCh37.genome \
-    -i ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz > \
-    ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.all.CNV_density.bg
-    gzip -f ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.all.CNV_density.bg
-    bedtools genomecov -bga -g /data/talkowski/rlc47/src/GRCh37.genome \
-    -i ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.noncoding.bed.gz > \
-    ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.noncoding.CNV_density.bg
-    gzip -f ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.noncoding.CNV_density.bg
-    bedtools genomecov -bga -g /data/talkowski/rlc47/src/GRCh37.genome \
-    -i ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.coding.bed.gz > \
-    ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.coding.CNV_density.bg
-    gzip -f ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.coding.CNV_density.bg
-  done
+  bsub -q normal -sla miket_sc -J ${group}_CNV_densities -u nobody \
+  "${WRKDIR}/bin/rCNVmap/bin/generate_CNV_densities.sh ${group}"
+  # for CNV in DEL DUP CNV; do
+  #   echo ${CNV}
+  #   bedtools genomecov -bga -g /data/talkowski/rlc47/src/GRCh37.genome \
+  #   -i ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz > \
+  #   ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.all.CNV_density.bg
+  #   gzip -f ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.all.CNV_density.bg
+  #   bedtools genomecov -bga -g /data/talkowski/rlc47/src/GRCh37.genome \
+  #   -i ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.noncoding.bed.gz > \
+  #   ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.noncoding.CNV_density.bg
+  #   gzip -f ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.noncoding.CNV_density.bg
+  #   bedtools genomecov -bga -g /data/talkowski/rlc47/src/GRCh37.genome \
+  #   -i ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.coding.bed.gz > \
+  #   ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.coding.CNV_density.bg
+  #   gzip -f ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.coding.CNV_density.bg
+  # done
 done
 
 #####Sanity-check filtering
