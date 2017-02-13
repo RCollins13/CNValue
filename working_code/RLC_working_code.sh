@@ -899,16 +899,16 @@ while read group eti tier descrip include exclude; do
       zcat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${eti}_${CNV}.final_filters.bed.gz | \
       fgrep -wf <( echo ${include} | sed 's/\;/\n/g' ) | \
       fgrep -wvf <( echo ${exclude} | sed 's/\;/\n/g' ) | \
-      fgrep -v "#" | sort -Vk1,1 -k2,2n -k3,3n | sed -e 's/^5_/5/g' -e 's/^y/Y/g' -e 's/^16_/16/g' -e 's/^x_/X/g' >> \
-      ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed
+      fgrep -v "#" | sed -e 's/^5_/5/g' -e 's/^y/Y/g' -e 's/^16_/16/g' -e 's/^x_/X/g' -e 's/^23/X/g' -e 's/^24/Y/g' | \
+      sort -Vk1,1 -k2,2n -k3,3n >> ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed
       #Unfiltered on max size (used for size distribs)
       echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
       ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.noMaxSize.GRCh37.bed
       zcat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${eti}_${CNV}.final_filters_noMaxSize.bed.gz | \
       fgrep -wf <( echo ${include} | sed 's/\;/\n/g' ) | \
       fgrep -wvf <( echo ${exclude} | sed 's/\;/\n/g' ) | \
-      fgrep -v "#" | sort -Vk1,1 -k2,2n -k3,3n | sed -e 's/^5_/5/g' -e 's/^y/Y/g' -e 's/^16_/16/g' -e 's/^x_/X/g' >> \
-      ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.noMaxSize.GRCh37.bed
+      fgrep -v "#" | sed -e 's/^5_/5/g' -e 's/^y/Y/g' -e 's/^16_/16/g' -e 's/^x_/X/g' -e 's/^23/X/g' -e 's/^24/Y/g' | \
+      sort -Vk1,1 -k2,2n -k3,3n >> ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.noMaxSize.GRCh37.bed
     done
   else
     for CNV in DEL DUP; do
@@ -917,15 +917,15 @@ while read group eti tier descrip include exclude; do
       ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed
       zcat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${eti}_${CNV}.final_filters.bed.gz | \
       fgrep -wf <( echo ${include} | sed 's/\;/\n/g' ) | \
-      fgrep -v "#" | sort -Vk1,1 -k2,2n -k3,3n | sed -e 's/^5_/5/g' -e 's/^y/Y/g' -e 's/^16_/16/g' -e 's/^x_/X/g' >> \
-      ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed
+      fgrep -v "#" | sed -e 's/^5_/5/g' -e 's/^y/Y/g' -e 's/^16_/16/g' -e 's/^x_/X/g' -e 's/^23/X/g' -e 's/^24/Y/g' | \
+      sort -Vk1,1 -k2,2n -k3,3n >> ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed
       #Unfiltered on max size (used for size distribs)
       echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
       ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.noMaxSize.GRCh37.bed
       zcat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${eti}_${CNV}.final_filters_noMaxSize.bed.gz | \
       fgrep -wf <( echo ${include} | sed 's/\;/\n/g' ) | \
-      fgrep -v "#" | sort -Vk1,1 -k2,2n -k3,3n | sed -e 's/^5_/5/g' -e 's/^y/Y/g' -e 's/^16_/16/g' -e 's/^x_/X/g' >> \
-      ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.noMaxSize.GRCh37.bed
+      fgrep -v "#" | sed -e 's/^5_/5/g' -e 's/^y/Y/g' -e 's/^16_/16/g' -e 's/^x_/X/g' -e 's/^23/X/g' -e 's/^24/Y/g' | \
+      sort -Vk1,1 -k2,2n -k3,3n >> ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.noMaxSize.GRCh37.bed
     done
   fi
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list )
@@ -986,7 +986,7 @@ if [ -e ${WRKDIR}/data/CNV/CNV_DENSITY ]; then
   rm -r ${WRKDIR}/data/CNV/CNV_DENSITY
 fi
 mkdir ${WRKDIR}/data/CNV/CNV_DENSITY
-for group in CTRL DD SCZ DD_SCZ CNCR DD_SCZ_CNCR; do
+while read group eti tier descrip include exclude; do
   echo ${group}
   bsub -q normal -sla miket_sc -J ${group}_CNV_densities -u nobody \
   "${WRKDIR}/bin/rCNVmap/bin/generate_CNV_densities.sh ${group}"
@@ -1005,7 +1005,7 @@ for group in CTRL DD SCZ DD_SCZ CNCR DD_SCZ_CNCR; do
   #   ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.coding.CNV_density.bg
   #   gzip -f ${WRKDIR}/data/CNV/CNV_DENSITY/${group}.${CNV}.coding.CNV_density.bg
   # done
-done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list )
 
 #####Sanity-check filtering
 for group in CTRL DD SCZ DD_SCZ CNCR DD_SCZ_CNCR; do
