@@ -14,7 +14,7 @@
 #Usage statement
 usage(){
 cat <<EOF
-usage: TBRden_binned_pileup.sh [-h] [-w WINDOW] [-s STEP] [-d DIST]
+usage: TBRden_binned_pileup.sh [-h] [-w WINDOW] [-s STEP] [-d DIST] [-r SMOOTH]
                         [-x EXCLUDE] [-o OUTFILE] [-z] CNVs genome
 
 Runs intersection of a CNV dataset versus a binned genome of sliding windows
@@ -31,8 +31,7 @@ Optional arguments:
   -s  STEP          Size of step, in bp (default: 5,000 bp)
   -d  DIST          Distance padded between window and left/right flanking
                     windows, in bp (default: 1,000,000 bp)
-  -a  AVERAGE       Distance padded around the left/right flanking positions to average; 
-                    must be smaller than DIST (default 50,000bp)
+  -r  SMOOTH        Number of bins to pad to each bin for smoothing (default: 0) 
   -x  EXCLUDE       Regions to exclude from calculations
   -o  OUTFILE       Output file (default: stdout)
 EOF
@@ -45,8 +44,8 @@ EXCLUDE=0
 WINDOW=5000
 STEP=5000
 DIST=1000000
-AVERAGE=50000
-while getopts ":o:w:s:d:a:x:zh" opt; do
+SMOOTH=0
+while getopts ":o:w:s:d:r:x:zh" opt; do
   case "$opt" in
     h)
       usage
@@ -64,8 +63,8 @@ while getopts ":o:w:s:d:a:x:zh" opt; do
     d)
       DIST=${OPTARG}
       ;;
-    a)
-      AVERAGE=${OPTARG}
+    r)
+      SMOOTH=${OPTARG}
       ;;
     x)
       EXCLUDE=${OPTARG}
@@ -88,13 +87,6 @@ fi
 #Check for gzip optioned only if output file specified
 if [ ${OUTFILE} == "/dev/stdout" ] && [ ${GZ} == 1 ]; then
   echo -e "\nOUTFILE required for zip-compressed output"
-  usage
-  exit 0
-fi
-
-#Check that DIST >= AVERAGE
-if [ ${AVERAGE} -gt ${DIST} ]; then
-  echo -e "\nDIST must be larger than AVERAGE"
   usage
   exit 0
 fi
@@ -130,20 +122,32 @@ bedtools intersect -c -a ${INTS} -b ${CNVs} > ${COUNTS}
 
 #Get left flanking medians
 LEFT=`mktemp`
-awk -v OFS="\t" -v d=${DIST} -v a=${AVERAGE} '{ print $1, $2-d-a, $3-d+a, $4"_L" }' \
+awk -v OFS="\t" -v d=${DIST} '{ print $1, $2-d, $3-d, $4"_L" }' \
 ${INTS} | awk -v OFS="\t" -v w=${WINDOW} '{ if ($2<0) $2=0; if ($3<w) $3=w; print }' | \
 bedtools map -c 5 -o median -a - -b ${COUNTS} | awk -v OFS="\t" '{ if ($5==".") $5="NA"; print }' | \
 cut -f1 -d\. > ${LEFT}
 
 #Get right flanking medians
 RIGHT=`mktemp`
-awk -v OFS="\t" -v d=${DIST} -v a=${AVERAGE} '{ print $1, $2+d-a, $3+d+a, $4"_R" }' \
+awk -v OFS="\t" -v d=${DIST} '{ print $1, $2+d, $3+d, $4"_R" }' \
 ${INTS} | awk -v OFS="\t" -v w=${WINDOW} '{ if ($2<0) $2=0; if ($3<w) $3=w; print }' | \
 bedtools map -c 5 -o median -a - -b ${COUNTS} | awk -v OFS="\t" '{ if ($5==".") $5="NA"; print }' | \
 cut -f1 -d\. > ${RIGHT}
 
+#Smooth values if optioned
+if [ ${SMOOTH} -gt 0 ]; then
+  for file in ${COUNTS} ${LEFT} ${RIGHT}; do
+    awk -v S=${SMOOTH} -v w=${WINDOW} -v OFS="\t" '{ print $1, $2-(w*S), $3+(w*S), $4 }' ${file} | \
+    awk -v OFS="\t" -v w=${WINDOW} '{ if ($2<0) $2=0; if ($3<w) $3=w; print }' | \
+    bedtools map -c 5 -o mean -a - -b <( awk '{ if ($5!="NA") print $0 }' ${file} ) | \
+    awk -v S=${SMOOTH} -v w=${WINDOW} -v OFS="\t" '{ print $1, $2+(w*S), $3-(w*S), $4, $5 }' | \
+    awk -v OFS="\t" '{ if ($5==".") $5="NA"; print }' > ${file}2
+    mv ${file}2 ${file}
+  done
+fi
+
 #Write results to OUTFILE with header
-echo -e "#chr\tstart\tend\tBIN_ID\tBIN_count\tL_median\tR_median" > ${OUTFILE}
+echo -e "#chr\tstart\tend\tBIN_ID\tBIN\tLEFT\tRIGHT" > ${OUTFILE}
 paste ${COUNTS} <( cut -f5 ${LEFT} ) <( cut -f5 ${RIGHT} ) >> ${OUTFILE}
 
 #Gzip OUTFILE, if optioned
@@ -152,4 +156,4 @@ if [ ${GZ}==1 ] && [ ${OUTFILE} != "/dev/stdout" ]; then
 fi
 
 #Clean up
-rm ${INTS} ${COUNTS}
+rm ${INTS} ${COUNTS} ${LEFT} ${RIGHT}

@@ -1235,24 +1235,24 @@ while read group eti tier descrip include exclude color; do
   mkdir ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL
   for CNV in DEL DUP CNV; do
     #Parallelize analyses (LSF)
-    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_analysis \
+    bsub -q short -sla miket_sc -J ${group}_${CNV}_TBRden_analysis \
     "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
-    ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL.${CNV}.TBRden_binned_pileup.bed.gz \
-    ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.bed.gz \
+    ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL/CTRL.${CNV}.TBRden_binned_pileup.bed.gz \
+    ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${group}.${CNV}.TBRden_binned_pileup.bed.gz \
     ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/ \
-    ${group}_vs_CTRL_${CNV}_all 0.05/130942.8 ${color}"
-    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_coding_TBRden_analysis \
+    ${group}_vs_CTRL_${CNV}_all 0.05/130943 ${color}"
+    bsub -q short -sla miket_sc -J ${group}_${CNV}_coding_TBRden_analysis \
     "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
-    ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL.${CNV}.TBRden_binned_pileup.coding.bed.gz \
-    ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.coding.bed.gz \
+    ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL/CTRL.${CNV}.TBRden_binned_pileup.coding.bed.gz \
+    ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${group}.${CNV}.TBRden_binned_pileup.coding.bed.gz \
     ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/ \
-    ${group}_vs_CTRL_${CNV}_coding 0.05/130942.8 ${color}"
-    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_noncoding_TBRden_analysis \
+    ${group}_vs_CTRL_${CNV}_coding 0.05/130943 ${color}"
+    bsub -q short -sla miket_sc -J ${group}_${CNV}_noncoding_TBRden_analysis \
     "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
-    ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL.${CNV}.TBRden_binned_pileup.noncoding.bed.gz \
-    ${WRKDIR}/analysis/BIN_CNV_pileups/${group}.${CNV}.TBRden_binned_pileup.noncoding.bed.gz \
+    ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL/CTRL.${CNV}.TBRden_binned_pileup.noncoding.bed.gz \
+    ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${group}.${CNV}.TBRden_binned_pileup.noncoding.bed.gz \
     ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/ \
-    ${group}_vs_CTRL_${CNV}_noncoding 0.05/130942.8 ${color}"
+    ${group}_vs_CTRL_${CNV}_noncoding 0.05/130943 ${color}"
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v "CTRL" )
 
