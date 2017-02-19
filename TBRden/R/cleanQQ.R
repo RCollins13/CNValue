@@ -8,8 +8,8 @@
 #http://dx.doi.org/10.1101/005165
 
 cleanQQ <- function (pvector,        #vector of p-values
-                      nominal=0.05,   #threshold for nominal significance
-                      adjusted=1E-8   #threshold for adjusted significance (e.g. genome-wide)
+                     nominal=0.05,   #threshold for nominal significance
+                     adjusted=1E-8   #threshold for adjusted significance (e.g. genome-wide)
 ){
   if (!is.numeric(pvector))
     stop("Input must be numeric.")

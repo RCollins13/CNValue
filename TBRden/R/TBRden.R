@@ -63,7 +63,7 @@ TBRden <- function(controls,         #Path to TBRden_pileup.sh output for the co
   #Optional: generate QQ plot
   if(QQ==T){
     pdf(paste(OUTDIR,"/",prefix,".QQ.pdf",sep=""),height=6,width=6)
-    cleanQQ(fisher[,7],adjusted=adjusted)
+    try(cleanQQ(fisher[,7],adjusted=adjusted))
     dev.off()
   }
 
@@ -81,7 +81,7 @@ TBRden <- function(controls,         #Path to TBRden_pileup.sh output for the co
     names(df) <- c("CHR","BP","P")
     df$CHR <- as.numeric(as.character(df$CHR))
     pdf(paste(OUTDIR,"/",prefix,".manhattan.pdf",sep=""),height=4,width=8)
-    cleanManhattan(df,adjusted=adjusted,theme=manColor)
+    try(cleanManhattan(df,adjusted=adjusted,theme=manColor))
     dev.off()
   }
 

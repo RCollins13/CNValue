@@ -1199,31 +1199,44 @@ awk -v OFS="\t" '{ print $1, $2-1000000, $3+1000000 }' | awk -v OFS="\t" '{ if (
 cat - /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
 <( grep -e 'X\|Y\|M' ${WRKDIR}/lists/rCNVmap_excluded_loci.CNVs.bed | cut -f1-3 ) | \
 sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > ${WRKDIR}/lists/rCNVmap_excluded_loci.bins.bed 
-#Run TBRden pileups (5kb bins, 5kb step, 1Mb flank dist, 105kb flank median)
+#Run TBRden pileups (5kb bins, 5kb step, 1Mb flank dist; run at 0kb, 50kb, and 100kb smoothing)
 while read group eti tier descrip include exclude color; do
-  if ! [ -e ${WRKDIR}/analysis/BIN_CNV_pileups/${group} ]; then
-    mkdir ${WRKDIR}/analysis/BIN_CNV_pileups/${group}
+  if [ -e ${WRKDIR}/analysis/BIN_CNV_pileups/${group} ]; then
+    rm -r ${WRKDIR}/analysis/BIN_CNV_pileups/${group}
   fi
-  for CNV in DEL DUP CNV; do
-    #Parallelize intersections (LSF)
-    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_binned_pileup \
-    "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 5000 -s 5000 -d 1000000 -a 50000 \
-    -o ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${group}.${CNV}.TBRden_binned_pileup.bed \
-    -x ${WRKDIR}/lists/rCNVmap_excluded_loci.bins.bed \
-    ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
-    /data/talkowski/rlc47/src/GRCh37.genome"
-    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_binned_pileup_noncoding \
-    "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 5000 -s 5000 -d 1000000 -a 50000 \
-    -o ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${group}.${CNV}.TBRden_binned_pileup.noncoding.bed \
-    -x ${WRKDIR}/lists/rCNVmap_excluded_loci.bins.bed  \
-    ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.noncoding.bed.gz \
-    /data/talkowski/rlc47/src/GRCh37.genome"
-    bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_binned_pileup_coding \
-    "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 5000 -s 5000 -d 1000000 -a 50000 \
-    -o ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${group}.${CNV}.TBRden_binned_pileup.coding.bed \
-    -x ${WRKDIR}/lists/rCNVmap_excluded_loci.bins.bed  \
-    ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.coding.bed.gz \
-    /data/talkowski/rlc47/src/GRCh37.genome"
+  mkdir ${WRKDIR}/analysis/BIN_CNV_pileups/${group}
+  for smooth in 0 5 10; do
+    if ! [ -e ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${smooth}kb_smoothed ]; then
+      mkdir ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${smooth}kb_smoothed
+    fi
+    for CNV in DEL DUP CNV; do
+      #Parallelize intersections (LSF)
+      bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_binned_pileup \
+      "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 5000 -s 5000 -d 1000000 -r ${smooth} \
+      -o ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${smooth}kb_smoothed/${group}.${CNV}.TBRden_binned_pileup.bed \
+      -x ${WRKDIR}/lists/rCNVmap_excluded_loci.bins.bed \
+      ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz \
+      /data/talkowski/rlc47/src/GRCh37.genome"
+      bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_binned_pileup_noncoding \
+      "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 5000 -s 5000 -d 1000000 -r ${smooth} \
+      -o ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${smooth}kb_smoothed/${group}.${CNV}.TBRden_binned_pileup.noncoding.bed \
+      -x ${WRKDIR}/lists/rCNVmap_excluded_loci.bins.bed  \
+      ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.noncoding.bed.gz \
+      /data/talkowski/rlc47/src/GRCh37.genome"
+      bsub -q short -sla miket_sc -u nobody -J ${group}_${CNV}_TBRden_binned_pileup_coding \
+      "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 5000 -s 5000 -d 1000000 -r ${smooth} \
+      -o ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${smooth}kb_smoothed/${group}.${CNV}.TBRden_binned_pileup.coding.bed \
+      -x ${WRKDIR}/lists/rCNVmap_excluded_loci.bins.bed  \
+      ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.coding.bed.gz \
+      /data/talkowski/rlc47/src/GRCh37.genome"
+    done
+  done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list )
+#Rename output directories
+while read group eti tier descrip include exclude color; do
+  for smooth in 5 10; do
+    mv ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${smooth}kb_smoothed \
+    ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${smooth}0kb_smoothed
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list )
 
@@ -1237,24 +1250,53 @@ while read group eti tier descrip include exclude color; do
     #Parallelize analyses (LSF)
     bsub -q short -sla miket_sc -J ${group}_${CNV}_TBRden_analysis \
     "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
-    ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL/CTRL.${CNV}.TBRden_binned_pileup.bed.gz \
-    ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${group}.${CNV}.TBRden_binned_pileup.bed.gz \
+    ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL/0kb_smoothed/CTRL.${CNV}.TBRden_binned_pileup.bed.gz \
+    ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/0kb_smoothed/${group}.${CNV}.TBRden_binned_pileup.bed.gz \
     ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/ \
-    ${group}_vs_CTRL_${CNV}_all 0.05/130943 ${color}"
+    ${group}_vs_CTRL_${CNV}_all 0.0000003818455 ${color}"
     bsub -q short -sla miket_sc -J ${group}_${CNV}_coding_TBRden_analysis \
     "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
-    ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL/CTRL.${CNV}.TBRden_binned_pileup.coding.bed.gz \
-    ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${group}.${CNV}.TBRden_binned_pileup.coding.bed.gz \
+    ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL/0kb_smoothed/CTRL.${CNV}.TBRden_binned_pileup.coding.bed.gz \
+    ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/0kb_smoothed/${group}.${CNV}.TBRden_binned_pileup.coding.bed.gz \
     ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/ \
-    ${group}_vs_CTRL_${CNV}_coding 0.05/130943 ${color}"
+    ${group}_vs_CTRL_${CNV}_coding 0.0000003818455 ${color}"
     bsub -q short -sla miket_sc -J ${group}_${CNV}_noncoding_TBRden_analysis \
     "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
-    ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL/CTRL.${CNV}.TBRden_binned_pileup.noncoding.bed.gz \
-    ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${group}.${CNV}.TBRden_binned_pileup.noncoding.bed.gz \
+    ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL/0kb_smoothed/CTRL.${CNV}.TBRden_binned_pileup.noncoding.bed.gz \
+    ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/0kb_smoothed/${group}.${CNV}.TBRden_binned_pileup.noncoding.bed.gz \
     ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/ \
-    ${group}_vs_CTRL_${CNV}_noncoding 0.05/130943 ${color}"
+    ${group}_vs_CTRL_${CNV}_noncoding 0.0000003818455 ${color}"
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v "CTRL" )
+#TEST
+while read group eti tier descrip include exclude color; do
+  if [ -e ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL ]; then
+    rm -rf ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL
+  fi
+  mkdir ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL
+  CNV=DEL
+  ${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
+  ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL/0kb_smoothed/CTRL.${CNV}.TBRden_binned_pileup.noncoding.bed.gz \
+  ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/0kb_smoothed/${group}.${CNV}.TBRden_binned_pileup.noncoding.bed.gz \
+  ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/ \
+  ${group}_vs_CTRL_${CNV}_noncoding 0.0000003818455 ${color}
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v "CTRL" | fgrep -w SEIZ )
+
+# #Gather example burden files for Jake
+# mkdir ${TMPDIR}/example_burden_files
+# for smooth in 0 50 100; do
+#   mkdir ${TMPDIR}/example_burden_files/${smooth}kb_smoothed
+#   for group in CTRL CNCR GERM SEIZ CLNG ASD; do
+#     for CNV in CNV DEL DUP; do
+#       cp ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/0kb_smoothed/${group}.${CNV}.TBRden_binned_pileup.bed.gz \
+#       ${TMPDIR}/example_burden_files/${smooth}kb_smoothed/${group}.${CNV}.TBRden_binned_pileup.bed.gz
+#       for filt in coding noncoding; do
+#         cp ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/0kb_smoothed/${group}.${CNV}.TBRden_binned_pileup.${filt}.bed.gz \
+#         ${TMPDIR}/example_burden_files/${smooth}kb_smoothed/${group}.${CNV}.TBRden_binned_pileup.bed.${filt}.gz
+#       done
+#     done
+#   done
+# done
 
 #####Run 1k CNV shift direct permutation tests for all comparisons
 #Note: changed from old 100k matched Fisher permutation
