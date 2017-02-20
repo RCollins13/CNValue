@@ -28,12 +28,12 @@ TBRden <- function(controls,         #Path to TBRden_pileup.sh output for the co
   #Import control data
   CTRL <- read.table(controls,header=T,comment.char="",sep="\t")
   names(CTRL)[1] <- "chr"
-  CTRL[,5] <- round(CTRL[,5])
+  CTRL[,5:7] <- apply(CTRL[,5:7],2,round,0)
 
   #Import case data
   CASE <- read.table(cases,header=T,comment.char="",sep="\t")
   names(CASE)[1] <- "chr"
-  CASE[,5] <- round(CASE[,5])
+  CASE[,5:7] <- apply(CASE[,5:7],2,round,0)
 
   #Merge cases and controls and subset to relevant columns
   ALL <- merge(CTRL,CASE,by=1:4,sort=F,suffixes=c(".CTRL",".CASE"))
