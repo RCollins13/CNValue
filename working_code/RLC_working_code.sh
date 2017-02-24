@@ -626,11 +626,11 @@ cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list | \
 fgrep -v "0002664" | sed 's/,/\n/g' | sort | uniq -c | sort -nrk1,1 | awk -v OFS="\t" '{ print $1, $2 }'
 
 #####Get counts of patients per analysis group
-while read group tier description HPO_in HPO_out; do
+while read group eti tier description include exclude color n; do
   echo -e "${group}"
-  echo -e "${HPO_in}" | sed 's/\;/\n/g' | fgrep -wf - \
+  echo -e "${include}" | sed 's/\;/\n/g' | fgrep -wf - \
   <( cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list ) | \
-  fgrep -wvf <( echo -e "${HPO_out}" | sed 's/\;/\n/g' ) | wc -l
+  fgrep -wvf <( echo -e "${exclude}" | sed 's/\;/\n/g' ) | wc -l
   echo -e "${description}"
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list ) | paste - - -
 
@@ -890,7 +890,7 @@ if [ -e ${WRKDIR}/data/CNV/CNV_MASTER/ ]; then
   rm -r ${WRKDIR}/data/CNV/CNV_MASTER/
 fi
 mkdir ${WRKDIR}/data/CNV/CNV_MASTER/
-while read group eti tier descrip include exclude color; do
+while read group eti tier descrip include exclude color n; do
   if [ ${exclude} != "NA" ]; then
     for CNV in DEL DUP; do
       #Filtered on max size (main CNV set)
@@ -931,7 +931,7 @@ while read group eti tier descrip include exclude color; do
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list )
 
 #####Make merged CNV (DEL+DUP) set
-while read group eti tier descrip include exclude color; do
+while read group eti tier descrip include exclude color n; do
   #With max size
   echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
   ${WRKDIR}/data/CNV/CNV_MASTER/${group}.CNV.GRCh37.bed
@@ -949,7 +949,7 @@ while read group eti tier descrip include exclude color; do
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list )
 
 #####Generate coding and noncoding CNV callsets
-while read group eti tier descrip include exclude color; do
+while read group eti tier descrip include exclude color n; do
   echo ${group}
   for class in CNV DEL DUP; do
     echo ${class}
@@ -986,7 +986,7 @@ if [ -e ${WRKDIR}/data/CNV/CNV_DENSITY ]; then
   rm -r ${WRKDIR}/data/CNV/CNV_DENSITY
 fi
 mkdir ${WRKDIR}/data/CNV/CNV_DENSITY
-while read group eti tier descrip include exclude color; do
+while read group eti tier descrip include exclude color n; do
   echo ${group}
   bsub -q normal -sla miket_sc -J ${group}_CNV_densities -u nobody \
   "${WRKDIR}/bin/rCNVmap/bin/generate_CNV_densities.sh ${group}"
@@ -1008,7 +1008,7 @@ while read group eti tier descrip include exclude color; do
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list )
 
 #####Sanity-check filtering
-while read group eti tier descrip include exclude color; do
+while read group eti tier descrip include exclude color n; do
   for CNV in CNV DEL DUP; do
     echo -e "${group}.${CNV}"
     zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz | fgrep -v "#" | wc -l
@@ -1017,66 +1017,70 @@ while read group eti tier descrip include exclude color; do
   done | paste - - - - | awk -v OFS="\t" '{ print $0, $3+$4 }'
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list )
 
-# #####Gather distributions of CNV per cohort per phenotype
-# for CNV in DEL DUP CNV; do
-#   echo -e "\n${CNV}\n"
-#   for pheno in CTRL DD SCZ CNCR; do
-#     while read cohort; do
-#       echo -e "${cohort}\t${pheno}\t${CNV}"
-#       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.bed.gz | fgrep ${cohort} | fgrep -v "#" | wc -l
-#       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.bed.gz | fgrep ${cohort} | fgrep -v "#" | \
-#       awk '{ print $3-$2 }' | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
-#       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.coding.bed.gz | fgrep ${cohort} | fgrep -v "#" | wc -l
-#       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.coding.bed.gz | fgrep ${cohort} | fgrep -v "#" | \
-#       awk '{ print $3-$2 }' | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
-#       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.noncoding.bed.gz | fgrep ${cohort} | fgrep -v "#" | wc -l
-#       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.noncoding.bed.gz | fgrep ${cohort} | fgrep -v "#" | \
-#       awk '{ print $3-$2 }' | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
-#     done < <( zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.bed.gz | \
-#       fgrep -v "#" | cut -f4 | cut -f1 -d_ | sort | uniq ) | paste - - - - - - -
-#     echo -e ""
-#   done
-#   for pheno in CTRL DD SCZ CNCR; do
-#     for dummy in 1; do
-#       echo -e "ALL\t${pheno}\t${CNV}"
-#       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.bed.gz | fgrep -v "#" | wc -l
-#       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.bed.gz | fgrep -v "#" | \
-#       awk '{ print $3-$2 }' | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
-#       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.coding.bed.gz | fgrep -v "#" | wc -l
-#       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.coding.bed.gz | fgrep -v "#" | \
-#       awk '{ print $3-$2 }' | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
-#       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.noncoding.bed.gz | fgrep -v "#" | wc -l
-#       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.noncoding.bed.gz | fgrep -v "#" | \
-#       awk '{ print $3-$2 }' | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
-#     done | paste - - - - - - -
-#   done
-# done | awk -v OFS="\t" '{ print $1, $2, $3, $4, $6, $8, $5, $7, $9 }'
-# #Get median sizes of all CNVs by class & germline/all
-# for CNV in DEL DUP CNV; do
-#   echo -e "\n${CNV}\n"
-#   for dummy in 1; do
-#     for pheno in DD SCZ CTRL; do
-#       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.bed.gz | fgrep -v "#" | awk '{ print $3-$2 }'
-#     done | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
-#     for pheno in DD SCZ CTRL; do
-#       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.coding.bed.gz | fgrep -v "#" | awk '{ print $3-$2 }'
-#     done | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
-#     for pheno in DD SCZ CTRL; do
-#       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.noncoding.bed.gz | fgrep -v "#" | awk '{ print $3-$2 }'
-#     done | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
-#   done | paste - - -
-#   for dummy in 1; do
-#     for pheno in DD SCZ CTRL CNCR; do
-#       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.bed.gz | fgrep -v "#" | awk '{ print $3-$2 }'
-#     done | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
-#     for pheno in DD SCZ CTRL CNCR; do
-#       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.coding.bed.gz | fgrep -v "#" | awk '{ print $3-$2 }'
-#     done | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
-#     for pheno in DD SCZ CTRL CNCR; do
-#       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.noncoding.bed.gz | fgrep -v "#" | awk '{ print $3-$2 }'
-#     done | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
-#   done | paste - - -
-# done
+#####Gather distributions of CNV per cohort per tier 1 group (GERM vs CNCR vs CTRL)
+while read study n PMID; do
+  study_base=$( echo "${study}" | cut -f1 -d_ )
+  pheno=$( echo ${study} | sed 's/_/\t/g' | awk '{ print $NF }' )
+  echo -e "${study_base}\t${PMID}\t${pheno}\t${n}"
+  for CNV in CNV DEL DUP; do
+    zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.bed.gz | \
+    fgrep ${study} | wc -l
+  done | paste - - -
+done < ${WRKDIR}/lists/Studies_SampleSizes.list | paste - -
+
+#####Gather total bases rearranged per cohort per tier 1 group (GERM vs CNCR vs CTRL)
+#Note: results printed in Mb
+while read study n PMID; do
+  study_base=$( echo "${study}" | cut -f1 -d_ )
+  pheno=$( echo ${study} | sed 's/_/\t/g' | awk '{ print $NF }' )
+  echo -e "${study_base}\t${PMID}\t${pheno}\t${n}"
+  for CNV in CNV DEL DUP; do
+    zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.bed.gz | \
+    fgrep ${study} | awk '{ print $3-$2 }' | awk '{ sum+=$1 }END{ print sum/1000000 }'
+  done | paste - - -
+done < ${WRKDIR}/lists/Studies_SampleSizes.list | paste - -
+
+#####Gather median CNV size per cohort per tier 1 group (GERM vs CNCR vs CTRL)
+#Note: results printed in kb
+while read study n PMID; do
+  study_base=$( echo "${study}" | cut -f1 -d_ )
+  pheno=$( echo ${study} | sed 's/_/\t/g' | awk '{ print $NF }' )
+  echo -e "${study_base}\t${PMID}\t${pheno}\t${n}"
+  for CNV in CNV DEL DUP; do
+    zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}.${CNV}.GRCh37.bed.gz | \
+    fgrep ${study} | awk '{ print ($3-$2)/1000 }' | sort -nk1,1 | \
+    perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
+  done | paste - - -
+done < ${WRKDIR}/lists/Studies_SampleSizes.list | paste - -
+#Calculate for tier 1 groups
+for group in CTRL GERM CNCR; do
+  echo -e "MEAN\t\t${group}\t"
+  for CNV in CNV DEL DUP; do
+    zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz | \
+    awk '{ print ($3-$2)/1000 }' | sort -nk1,1 | \
+    perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
+  done | paste - - -
+done | paste - -
+#Calculate for tier 0
+for dummy in 1; do
+  echo -e "MEAN\t\tALL\t"
+  for CNV in CNV DEL DUP; do
+    for group in CTRL GERM CNCR; do
+      zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz
+    done | awk '{ print ($3-$2)/1000 }' | sort -nk1,1 | \
+    perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
+  done | paste - - -
+done | paste - -
+
+#####Gather distributions of CNV per cohort per analysis group
+while read group eti tier descrip include exclude color n; do
+  echo -e "${group}\t${PMID}\t${pheno}\t${n}"
+  for CNV in CNV DEL DUP; do
+    zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}.${CNV}.GRCh37.bed.gz | \
+    fgrep ${study} | wc -l
+  done | paste - - -
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list ) | paste - -
+
 
 # #####Get reverse CDF of CNV sizes by phenotype
 # for group in CTRL DD SCZ DD_SCZ CNCR; do
@@ -1200,7 +1204,7 @@ cat - /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
 <( grep -e 'X\|Y\|M' ${WRKDIR}/lists/rCNVmap_excluded_loci.CNVs.bed | cut -f1-3 ) | \
 sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > ${WRKDIR}/lists/rCNVmap_excluded_loci.bins.bed 
 #Run TBRden pileups (5kb bins, 5kb step, 1Mb flank dist; run at 0kb, 50kb, and 100kb smoothing)
-while read group eti tier descrip include exclude color; do
+while read group eti tier descrip include exclude color n; do
   if [ -e ${WRKDIR}/analysis/BIN_CNV_pileups/${group} ]; then
     rm -r ${WRKDIR}/analysis/BIN_CNV_pileups/${group}
   fi
@@ -1233,7 +1237,7 @@ while read group eti tier descrip include exclude color; do
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list )
 #Rename output directories
-while read group eti tier descrip include exclude color; do
+while read group eti tier descrip include exclude color n; do
   for smooth in 5 10; do
     mv ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${smooth}kb_smoothed \
     ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${smooth}0kb_smoothed
@@ -1242,7 +1246,7 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
 
 #####Run TBRden analysis
 #Unsmoothed data
-while read group eti tier descrip include exclude color; do
+while read group eti tier descrip include exclude color n; do
   if [ -e ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL ]; then
     rm -rf ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL
   fi
@@ -1270,7 +1274,7 @@ while read group eti tier descrip include exclude color; do
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v "CTRL" )
 #55kb window rolling means
-while read group eti tier descrip include exclude color; do
+while read group eti tier descrip include exclude color n; do
   if [ -e ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/50kb_smoothed ]; then
     rm -rf ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/50kb_smoothed
   fi
