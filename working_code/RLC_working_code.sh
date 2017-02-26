@@ -628,9 +628,15 @@ fgrep -v "0002664" | sed 's/,/\n/g' | sort | uniq -c | sort -nrk1,1 | awk -v OFS
 #####Get counts of patients per analysis group
 while read group eti tier description include exclude color n; do
   echo -e "${group}"
-  echo -e "${include}" | sed 's/\;/\n/g' | fgrep -wf - \
-  <( cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list ) | \
-  fgrep -wvf <( echo -e "${exclude}" | sed 's/\;/\n/g' ) | wc -l
+  if [ ${eti} == "CNCR" ]; then
+    echo -e "${include}" | sed 's/\;/\n/g' | fgrep -wf - \
+    <( fgrep TCGA ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list | cut -f2 ) | \
+    fgrep -wvf <( echo -e "${exclude}" | sed 's/\;/\n/g' ) | wc -l
+  else
+    echo -e "${include}" | sed 's/\;/\n/g' | fgrep -wf - \
+    <( cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list ) | \
+    fgrep -wvf <( echo -e "${exclude}" | sed 's/\;/\n/g' ) | wc -l
+  fi
   echo -e "${description}"
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list ) | paste - - -
 
@@ -869,18 +875,34 @@ done
 
 #####Make master germline, control, and cancer files (post-filter)
 for pheno in GERM CTRL CNCR; do
-  for CNV in DEL DUP; do
-    echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
-    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${pheno}_${CNV}.final_filters.bed
-    echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
-    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${pheno}_${CNV}.final_filters_noMaxSize.bed
-    cat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*${pheno}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.maxSize.bed | \
-    fgrep -v "#" | sort -Vk1,1 -k2,2n -k3,3n >> \
-    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${pheno}_${CNV}.final_filters.bed
-    cat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*${pheno}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.bed | \
-    fgrep -v "#" | sort -Vk1,1 -k2,2n -k3,3n >> \
-    ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${pheno}_${CNV}.final_filters_noMaxSize.bed
-  done
+  #Require CNCR samples to come from TCGA only
+  if [ ${pheno} == "CNCR" ]; then
+    for CNV in DEL DUP; do
+      echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
+      ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${pheno}_${CNV}.final_filters.bed
+      echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
+      ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${pheno}_${CNV}.final_filters_noMaxSize.bed
+      cat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*${pheno}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.maxSize.bed | \
+      fgrep -v "#" | fgrep TCGA | sort -Vk1,1 -k2,2n -k3,3n >> \
+      ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${pheno}_${CNV}.final_filters.bed
+      cat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*${pheno}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.bed | \
+      fgrep -v "#" | fgrep TCGA | sort -Vk1,1 -k2,2n -k3,3n >> \
+      ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${pheno}_${CNV}.final_filters_noMaxSize.bed
+    done
+  else
+    for CNV in DEL DUP; do
+      echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
+      ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${pheno}_${CNV}.final_filters.bed
+      echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
+      ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${pheno}_${CNV}.final_filters_noMaxSize.bed
+      cat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*${pheno}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.maxSize.bed | \
+      fgrep -v "#" | sort -Vk1,1 -k2,2n -k3,3n >> \
+      ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${pheno}_${CNV}.final_filters.bed
+      cat ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*${pheno}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.bed | \
+      fgrep -v "#" | sort -Vk1,1 -k2,2n -k3,3n >> \
+      ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/ALL_${pheno}_${CNV}.final_filters_noMaxSize.bed
+    done
+  fi    
 done
 #Gzip all filtered CNV files
 gzip ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/*
