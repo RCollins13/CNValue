@@ -1704,7 +1704,7 @@ while read group eti tier descrip include exclude color n; do
     for CNV in DEL DUP CNV; do
       for filter in all coding dispensable noncoding intergenic; do
         #Parallelize analyses (LSF)
-        bsub -q normal -sla miket_sc -J ${group}_${CNV}_TBRden_analysis -u nobody \
+        bsub -q short -sla miket_sc -J ${group}_${CNV}_TBRden_analysis -u nobody \
         -o ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/urCNV_${smooth}kb_smoothed/${group}_vs_CTRL_${CNV}_${filter}.out \
         -e ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/urCNV_${smooth}kb_smoothed/${group}_vs_CTRL_${CNV}_${filter}.err \
         "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
