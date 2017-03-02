@@ -742,7 +742,9 @@ fi
 mkdir ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV
 for CNV in DEL DUP; do
   #Create master list of all CNVs
-  for cohort in Shaikh Suktitipat Uddin Vogler Cooper SSC Coe Talkowski PGC TCGA; do
+  # for cohort in Shaikh Suktitipat Uddin Vogler Cooper SSC Coe Talkowski PGC TCGA; do
+  #New (3/1/17) Exclude Coe and TCGA control CNVs due to being substantial CNV size + count outliers
+  for cohort in Shaikh Suktitipat Uddin Vogler Cooper SSC Talkowski PGC; do
     if [ -e ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_GERM.${CNV}.raw.bed.gz ]; then
       zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_GERM.${CNV}.raw.bed.gz | fgrep -v "#" | \
       awk -v OFS="\t" '{ print $1, $2, $3, $4, $4, $5 }'
@@ -795,6 +797,12 @@ for CNV in DEL DUP; do
   ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/cancer_${CNV}.merged.bed"
 done
 
+# #####New (3/1/17) Exclude Coe and TCGA control CNVs due to being substantial CNV size + count outliers
+# for CNV in DEL DUP; do
+#   fgrep -ve "Coe_CTRL" -e "TCGA_CTRL" ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.merged.bed > \
+#   ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.merged.noCoeTCGACTRL.bed
+# done
+
 #####Filter merged CNVs across cohort (max VF)
 if [ -e ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV ]; then
   rm -rf ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/
@@ -803,7 +811,7 @@ mkdir ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/
 max_VF=0.01
 for CNV in DEL DUP; do
   #Germline
-  awk -v max_VF=${max_VF} '{ if (($9/122312)<max_VF) print $0 }' \
+  awk -v max_VF=${max_VF} '{ if (($9/104909)<max_VF) print $0 }' \
   ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.merged.bed > \
   ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/germline_${CNV}.merged.maxVF.bed
   #Cancer
@@ -836,7 +844,7 @@ for CNV in DEL DUP; do
 done
 
 #####Filter merged CNVs on minimum size
-min_size=20000
+min_size=50000
 for CNV in DEL DUP; do
   while read study n PMID; do
     echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
@@ -1081,8 +1089,8 @@ fi
 # done < <( cut -f1 -d_ ${WRKDIR}/lists/Studies_SampleSizes.list | sort | uniq )
 
 #####Identify urCNVs
-#Apply 20kb min size cutoff, apply blacklist filter
-min_size=20000
+#Apply 50kb min size cutoff, apply blacklist filter
+min_size=50000
 for CNV in DEL DUP; do
   awk -v min_size=${min_size} '{ if ($9==1 && $3-$2>min_size) print $0 }' \
   ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.merged.bed | \
@@ -1090,6 +1098,20 @@ for CNV in DEL DUP; do
   -b ${WRKDIR}/lists/rCNVmap_excluded_loci.CNVs.bed > \
   ${WRKDIR}/data/CNV/CNV_RAW/urCNVs/germline_${CNV}.urCNV.noMaxSize.bed
 done
+#Supplement with SSC urCNVs that appear in up to 2 samples from the SSC (and no other studies)
+for CNV in DEL DUP; do
+  while read VID; do
+    others=$( fgrep -w ${VID} ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.merged.bed | \
+              fgrep -v SSC | wc -l )
+    if [ ${others} == 0 ]; then
+      fgrep -w ${VID} ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.merged.bed
+    fi
+  done < <( fgrep SSC ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.merged.bed | \
+    bedtools intersect -v -f 0.5 -a - -b ${WRKDIR}/lists/rCNVmap_excluded_loci.CNVs.bed | \
+  awk -v min_size=${min_size} '{ if ($9==2 && $3-$2>min_size) print $7 }' | sort | uniq ) >> \
+  ${WRKDIR}/data/CNV/CNV_RAW/urCNVs/germline_${CNV}.urCNV.noMaxSize.bed
+done
+
 #Filter merged CNVs on maximum size
 max_size=5000000
 for CNV in DEL DUP; do
@@ -1434,6 +1456,40 @@ for dummy in 1; do
   done | paste - - -
 done | paste - -
 
+#####Get size distribution of all rCNVs per study
+if [ -e ${WRKDIR}/data/sizes_by_source ]; then
+  rm -rf ${WRKDIR}/data/sizes_by_source
+fi
+mkdir ${WRKDIR}/data/sizes_by_source
+for CNV in CNV DEL DUP; do
+  if [ -e ${WRKDIR}/data/sizes_by_source/${CNV} ]; then
+    rm -rf ${WRKDIR}/data/sizes_by_source/${CNV}
+  fi
+  mkdir ${WRKDIR}/data/sizes_by_source/${CNV}
+  while read study n PMID; do
+    study_base=$( echo "${study}" | cut -f1 -d_ )
+    pheno=$( echo ${study} | sed 's/_/\t/g' | awk '{ print $NF }' )
+    zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.GRCh37.all.bed.gz | \
+    fgrep ${study} | awk '{ print $3-$2 }' > \
+    ${WRKDIR}/data/sizes_by_source/${CNV}/${study}_${CNV}.sizes.txt
+  done < ${WRKDIR}/lists/Studies_SampleSizes.list
+done
+
+#####Get size distribution of all urCNVs per study
+for CNV in CNV DEL DUP; do
+  if [ -e ${WRKDIR}/data/sizes_by_source/${CNV}_urCNV ]; then
+    rm -rf ${WRKDIR}/data/sizes_by_source/${CNV}_urCNV
+  fi
+  mkdir ${WRKDIR}/data/sizes_by_source/${CNV}_urCNV
+  while read study n PMID; do
+    study_base=$( echo "${study}" | cut -f1 -d_ )
+    pheno=$( echo ${study} | sed 's/_/\t/g' | awk '{ print $NF }' )
+    zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.urCNVs.GRCh37.all.bed.gz | \
+    fgrep ${study} | awk '{ print $3-$2 }' > \
+    ${WRKDIR}/data/sizes_by_source/${CNV}_urCNV/${study}_${CNV}.sizes.txt
+  done < ${WRKDIR}/lists/Studies_SampleSizes.list
+done
+
 # #####Get reverse CDF of CNV sizes by phenotype
 # for group in CTRL DD SCZ DD_SCZ CNCR; do
 #   for CNV in DEL DUP; do
@@ -1624,7 +1680,9 @@ while read group eti tier descrip include exclude color n; do
     for CNV in DEL DUP CNV; do
       for filter in all coding dispensable noncoding intergenic; do
         #Parallelize analyses (LSF)
-        bsub -q short -sla miket_sc -J ${group}_${CNV}_TBRden_analysis -u nobody \
+        bsub -q normal -sla miket_sc -J ${group}_${CNV}_TBRden_analysis -u nobody \
+        -o ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${smooth}kb_smoothed/${group}_vs_CTRL_${CNV}_${filter}.out \
+        -e ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${smooth}kb_smoothed/${group}_vs_CTRL_${CNV}_${filter}.err \
         "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
         ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL/${smooth}kb_smoothed/CTRL.${CNV}.TBRden_binned_pileup.${filter}.bed.gz \
         ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${smooth}kb_smoothed/${group}.${CNV}.TBRden_binned_pileup.${filter}.bed.gz \
@@ -1644,10 +1702,12 @@ while read group eti tier descrip include exclude color n; do
     for CNV in DEL DUP CNV; do
       for filter in all coding dispensable noncoding intergenic; do
         #Parallelize analyses (LSF)
-        bsub -q short -sla miket_sc -J ${group}_${CNV}_TBRden_analysis -u nobody \
+        bsub -q normal -sla miket_sc -J ${group}_${CNV}_TBRden_analysis -u nobody \
+        -o ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/urCNV_${smooth}kb_smoothed/${group}_vs_CTRL_${CNV}_${filter}.out \
+        -e ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/urCNV_${smooth}kb_smoothed/${group}_vs_CTRL_${CNV}_${filter}.err \
         "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
-        ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL/urCNV_${smooth}kb_smoothed/CTRL.${CNV}.TBRden_binned_pileup.${filter}.bed.gz \
-        ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/urCNV_${smooth}kb_smoothed/${group}.${CNV}.TBRden_binned_pileup.${filter}.bed.gz \
+        ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL/urCNV_${smooth}kb_smoothed/CTRL.${CNV}.urCNVs.TBRden_binned_pileup.${filter}.bed.gz \
+        ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/urCNV_${smooth}kb_smoothed/${group}.${CNV}.urCNVs.TBRden_binned_pileup.${filter}.bed.gz \
         ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/urCNV_${smooth}kb_smoothed/ \
         ${group}_vs_CTRL_${CNV}_${filter} 0.0000003818455 ${color}"
       done
@@ -1655,6 +1715,33 @@ while read group eti tier descrip include exclude color n; do
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v "CTRL" )
 
+# #####Run TBRden analysis (COE METHOD)
+# #rCNVs
+# while read group eti tier descrip include exclude color n; do
+#   if [ -e ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL ]; then
+#     rm -rf ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL
+#   fi
+#   mkdir ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL
+#   for smooth in 0 50 100; do
+#     if [ -e ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${smooth}kb_smoothed ]; then
+#       rm -rf ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${smooth}kb_smoothed
+#     fi
+#     mkdir ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${smooth}kb_smoothed
+#     for CNV in DEL DUP CNV; do
+#       for filter in all coding dispensable noncoding intergenic; do
+#         #Parallelize analyses (LSF)
+#         bsub -q normal -sla miket_sc -J ${group}_${CNV}_TBRden_analysis -u nobody \
+#         -o ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${smooth}kb_smoothed/${group}_vs_CTRL_${CNV}_${filter}.out \
+#         -e ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${smooth}kb_smoothed/${group}_vs_CTRL_${CNV}_${filter}.err \
+#         "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
+#         ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL/${smooth}kb_smoothed/CTRL.${CNV}.TBRden_binned_pileup.${filter}.bed.gz \
+#         ${WRKDIR}/analysis/BIN_CNV_pileups/${group}/${smooth}kb_smoothed/${group}.${CNV}.TBRden_binned_pileup.${filter}.bed.gz \
+#         ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/${smooth}kb_smoothed/ \
+#         ${group}_vs_CTRL_${CNV}_${filter} 0.0000003818455 ${color}"
+#       done
+#     done
+#   done
+# done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v "CTRL" )
 
 
 
