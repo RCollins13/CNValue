@@ -736,22 +736,24 @@ for cohort in TCGA; do
 done
 
 #####Merge all germline CNVs and run bedcluster
-if [ -e ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV ]; then
-  rm -r ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV
-fi
-mkdir ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV
+# if [ -e ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV ]; then
+#   rm -r ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV
+# fi
+# mkdir ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV
 for CNV in DEL DUP; do
   #Create master list of all CNVs
   # for cohort in Shaikh Suktitipat Uddin Vogler Cooper SSC Coe Talkowski PGC TCGA; do
   #New (3/1/17) Exclude Coe and TCGA control CNVs due to being substantial CNV size + count outliers
-  for cohort in Shaikh Suktitipat Uddin Vogler Cooper SSC Talkowski PGC; do
+  for cohort in Shaikh Suktitipat Uddin Vogler Cooper SSC Talkowski PGC Coe; do
     if [ -e ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_GERM.${CNV}.raw.bed.gz ]; then
       zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_GERM.${CNV}.raw.bed.gz | fgrep -v "#" | \
       awk -v OFS="\t" '{ print $1, $2, $3, $4, $4, $5 }'
     fi
-    if [ -e ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_CTRL.${CNV}.raw.bed.gz ]; then
-      zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_CTRL.${CNV}.raw.bed.gz | fgrep -v "#" | \
-      awk -v OFS="\t" '{ print $1, $2, $3, $4, $4, $5 }'
+    if [ ${cohort} != "Coe" ]; then
+      if [ -e ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_CTRL.${CNV}.raw.bed.gz ]; then
+        zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_CTRL.${CNV}.raw.bed.gz | fgrep -v "#" | \
+        awk -v OFS="\t" '{ print $1, $2, $3, $4, $4, $5 }'
+      fi
     fi
   done | sort -Vk1,1 -k2,2n -k3,3n > ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.pre_merge.bed
   #Run bedtools intersect (50% recip) and require both breakpoints ±20kb
@@ -835,7 +837,7 @@ for CNV in DEL DUP; do
     fgrep -wf - <( zcat ${WRKDIR}/data/CNV/CNV_RAW/${study_base}_CNVs/${study}.${CNV}.raw.bed.gz ) | \
     awk -v OFS="\t" -v PMID=${PMID} '{ print $1, $2, $3, $4, $5, $6, PMID }' | sort -Vk1,1 -k2,2n -k3,3n >> \
     ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.bed
-  done < <( fgrep -v "TCGA_CNCR" ${WRKDIR}/lists/Studies_SampleSizes.list )
+  done < <( fgrep -ve "TCGA" -e "Coe_CTRL" ${WRKDIR}/lists/Studies_SampleSizes.list )
   echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
   ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/TCGA_CNCR_${CNV}.merged.maxVF.maxVF.originalCoords.bed
   fgrep -v "#" ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/cancer_${CNV}.merged.maxVF.bed | \
@@ -853,7 +855,7 @@ for CNV in DEL DUP; do
     ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.bed | \
     bedtools intersect -v -f 0.5 -a - -b ${WRKDIR}/lists/rCNVmap_excluded_loci.CNVs.bed >> \
     ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.bed
-  done < ${WRKDIR}/lists/Studies_SampleSizes.list
+  done < <( fgrep -ve "TCGA_CTRL" -e "Coe_CTRL" ${WRKDIR}/lists/Studies_SampleSizes.list )
 done
 
 #####Filter merged CNVs on exclusion loci
@@ -866,7 +868,7 @@ for CNV in DEL DUP; do
     bedtools intersect -v -f 0.5 -a - \
     -b ${WRKDIR}/lists/rCNVmap_excluded_loci.CNVs.bed >> \
     ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.bed
-  done < ${WRKDIR}/lists/Studies_SampleSizes.list
+  done < <( fgrep -ve "TCGA_CTRL" -e "Coe_CTRL" ${WRKDIR}/lists/Studies_SampleSizes.list )
 done
 
 #####Filter merged CNVs on maximum size
@@ -878,7 +880,7 @@ for CNV in DEL DUP; do
     fgrep -v "#" ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.bed | \
     awk -v max_size=${max_size} '{ if ($3-$2<max_size) print $0 }' >> \
     ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.merged.maxVF.maxVF.originalCoords.minSize.blacklisted.maxSize.bed
-  done < ${WRKDIR}/lists/Studies_SampleSizes.list
+  done < <( fgrep -ve "TCGA_CTRL" -e "Coe_CTRL" ${WRKDIR}/lists/Studies_SampleSizes.list )
 done
 
 #####Make master germline, control, and cancer files (post-filter)
@@ -1050,7 +1052,7 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
 if [ -e ${WRKDIR}/data/CNV/CNV_RAW/urCNVs ]; then
   rm -r ${WRKDIR}/data/CNV/CNV_RAW/urCNVs
 fi
-# mkdir ${WRKDIR}/data/CNV/CNV_RAW/urCNVs
+mkdir ${WRKDIR}/data/CNV/CNV_RAW/urCNVs
 # #Loop over each study/phenotype combo (except TCGA cancer CNVs)
 # while read study; do
 #   echo ${study}
@@ -1138,7 +1140,7 @@ for CNV in DEL DUP; do
     cut -f4 | fgrep -wf - <( zcat ${WRKDIR}/data/CNV/CNV_RAW/${study_base}_CNVs/${study}.${CNV}.raw.bed.gz ) | \
     awk -v OFS="\t" -v PMID=${PMID} '{ print $1, $2, $3, $4, $5, $6, PMID }' | sort -Vk1,1 -k2,2n -k3,3n >> \
     ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/${study}_${CNV}.urCNVs.bed
-  done < <( fgrep -v "TCGA_CNCR" ${WRKDIR}/lists/Studies_SampleSizes.list )
+  done < <( fgrep -ve "TCGA_CTRL" -e "Coe_CTRL" ${WRKDIR}/lists/Studies_SampleSizes.list )
   #CNCR, no max size
   echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
   ${WRKDIR}/data/CNV/CNV_RAW/filtered_CNV/TCGA_CNCR_${CNV}.urCNVs.noMaxSize.bed
@@ -1355,7 +1357,7 @@ while read study n PMID; do
     zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.GRCh37.all.bed.gz | \
     fgrep ${study} | wc -l
   done | paste - - -
-done < ${WRKDIR}/lists/Studies_SampleSizes.list | paste - -
+done < <( fgrep -ve "TCGA_CTRL" -e "Coe_CTRL" ${WRKDIR}/lists/Studies_SampleSizes.list ) | paste - -
 
 #####Gather total bases rearranged per cohort per tier 1 group (GERM vs CNCR vs CTRL)
 #Note: results printed in Mb
@@ -1367,7 +1369,7 @@ while read study n PMID; do
     zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.GRCh37.all.bed.gz | \
     fgrep ${study} | awk '{ print $3-$2 }' | awk '{ sum+=$1 }END{ print sum/1000000 }'
   done | paste - - -
-done < ${WRKDIR}/lists/Studies_SampleSizes.list | paste - -
+done < <( fgrep -ve "TCGA_CTRL" -e "Coe_CTRL" ${WRKDIR}/lists/Studies_SampleSizes.list ) | paste - -
 
 #####Gather median CNV size per cohort per tier 1 group (GERM vs CNCR vs CTRL)
 #Note: results printed in kb
@@ -1380,12 +1382,12 @@ while read study n PMID; do
     fgrep ${study} | awk '{ print ($3-$2)/1000 }' | sort -nk1,1 | \
     perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
   done | paste - - -
-done < ${WRKDIR}/lists/Studies_SampleSizes.list | paste - -
+done < <( fgrep -ve "TCGA_CTRL" -e "Coe_CTRL" ${WRKDIR}/lists/Studies_SampleSizes.list ) | paste - -
 #Calculate for tier 1 groups
 for group in CTRL GERM CNCR; do
   echo -e "MEAN\t\t${group}\t"
   for CNV in CNV DEL DUP; do
-    zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${group}.${CNV}.GRCh37.all.bed.gz | \
+    zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.${CNV}.GRCh37.all.bed.gz | \
     awk '{ print ($3-$2)/1000 }' | sort -nk1,1 | \
     perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
   done | paste - - -
@@ -1395,7 +1397,7 @@ for dummy in 1; do
   echo -e "MEAN\t\tALL\t"
   for CNV in CNV DEL DUP; do
     for group in CTRL GERM CNCR; do
-      zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${group}.${CNV}.GRCh37.all.bed.gz
+      zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.${CNV}.GRCh37.all.bed.gz
     done | awk '{ print ($3-$2)/1000 }' | sort -nk1,1 | \
     perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
   done | paste - - -
@@ -1410,7 +1412,7 @@ while read study n PMID; do
     zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.urCNVs.GRCh37.all.bed.gz | \
     fgrep ${study} | wc -l
   done | paste - - -
-done < ${WRKDIR}/lists/Studies_SampleSizes.list | paste - -
+done < <( fgrep -ve "TCGA_CTRL" -e "Coe_CTRL" ${WRKDIR}/lists/Studies_SampleSizes.list ) | paste - -
 
 #####Gather total bases rearranged per cohort by urCNVs per tier 1 group (GERM vs CNCR vs CTRL)
 #Note: results printed in Mb
@@ -1422,7 +1424,7 @@ while read study n PMID; do
     zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.urCNVs.GRCh37.all.bed.gz | \
     fgrep ${study} | awk '{ print $3-$2 }' | awk '{ sum+=$1 }END{ print sum/1000000 }'
   done | paste - - -
-done < ${WRKDIR}/lists/Studies_SampleSizes.list | paste - -
+done < <( fgrep -ve "TCGA_CTRL" -e "Coe_CTRL" ${WRKDIR}/lists/Studies_SampleSizes.list ) | paste - -
 
 #####Gather median CNV size per cohort by urCNVs per tier 1 group (GERM vs CNCR vs CTRL)
 #Note: results printed in kb
@@ -1435,7 +1437,7 @@ while read study n PMID; do
     fgrep ${study} | awk '{ print ($3-$2)/1000 }' | sort -nk1,1 | \
     perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
   done | paste - - -
-done < ${WRKDIR}/lists/Studies_SampleSizes.list | paste - -
+done < <( fgrep -ve "TCGA_CTRL" -e "Coe_CTRL" ${WRKDIR}/lists/Studies_SampleSizes.list ) | paste - -
 #Calculate for tier 1 groups
 for group in CTRL GERM CNCR; do
   echo -e "MEAN\t\t${group}\t"
@@ -1472,7 +1474,7 @@ for CNV in CNV DEL DUP; do
     zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.GRCh37.all.bed.gz | \
     fgrep ${study} | awk '{ print $3-$2 }' > \
     ${WRKDIR}/data/sizes_by_source/${CNV}/${study}_${CNV}.sizes.txt
-  done < ${WRKDIR}/lists/Studies_SampleSizes.list
+  done < <( fgrep -ve "TCGA_CTRL" -e "Coe_CTRL" ${WRKDIR}/lists/Studies_SampleSizes.list )
 done
 
 #####Get size distribution of all urCNVs per study
@@ -1487,7 +1489,7 @@ for CNV in CNV DEL DUP; do
     zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.urCNVs.GRCh37.all.bed.gz | \
     fgrep ${study} | awk '{ print $3-$2 }' > \
     ${WRKDIR}/data/sizes_by_source/${CNV}_urCNV/${study}_${CNV}.sizes.txt
-  done < ${WRKDIR}/lists/Studies_SampleSizes.list
+  done < <( fgrep -ve "TCGA_CTRL" -e "Coe_CTRL" ${WRKDIR}/lists/Studies_SampleSizes.list )
 done
 
 # #####Get reverse CDF of CNV sizes by phenotype
