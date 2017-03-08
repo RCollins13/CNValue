@@ -1717,6 +1717,23 @@ while read group eti tier descrip include exclude color n; do
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v "CTRL" )
 
+#####Get significant urCNV loci from 100kb smoothed pileups, allowing for up to 50kb between bins that are merged
+for CNV in CNV DEL DUP; do
+  echo -e "\n\n${CNV}\n\n"
+  while read group eti tier descrip include exclude color n; do
+    echo -e "${group}\t${n}\t${descrip}"
+    for filter in all coding dispensable noncoding intergenic; do
+      if [ -e ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/urCNV_100kb_smoothed/${group}_vs_CTRL_${CNV}_${filter}.TBRden_results.bed.gz ]; then
+        zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${group}_vs_CTRL/urCNV_100kb_smoothed/${group}_vs_CTRL_${CNV}_${filter}.TBRden_results.bed.gz | \
+        awk '{ if ($NF<=0.0000009545993) print $0 }' | bedtools merge -d 50000 -i - | wc -l
+      else
+        echo "NA"
+      fi
+    done
+  done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+    fgrep -v "CTRL" ) | paste - - - - - -
+done
+
 # #####Run TBRden analysis (COE METHOD)
 # #rCNVs
 # while read group eti tier descrip include exclude color n; do
@@ -1767,9 +1784,9 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
 
 #####Run 1k CNV shift direct permutation tests for all comparisons
 #Note: changed from old 100k matched Fisher permutation
-#Note: initial p-value cutoff used: 0.05/130942.8 = 3.818461e-07
-#This corresponds to the number of non-overlapping 20kb bins we tested (after blacklisting N-mask, etc)
-#20kb chosen since minimum CNV size = 20kb, so max # independent tests = size of genome / 20kb
+#Note: initial p-value cutoff used: 0.05/52378 = 9.545993e-07 = 0.0000009545993
+#This corresponds to the number of non-overlapping 50kb bins we tested (after blacklisting N-mask, etc)
+#50kb chosen since minimum CNV size = 50kb, so max # independent tests = size of genome / 50kb
 for group in DD SCZ DD_SCZ CNCR; do
   echo ${group}
   if [ -e ${WRKDIR}/analysis/BIN_CNV_permutation/${group}_vs_CTRL ]; then
