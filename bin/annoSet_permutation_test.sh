@@ -156,7 +156,7 @@ for dummy in 1; do
     awk -v baseline=${baseline} '{ print baseline-$1 }' ${RES_STAT}
     awk -v baseline=${baseline} '{ print baseline/$1 }' ${RES_STAT}
     awk -v baseline=${baseline} '{ print (baseline/$1)-(1.96*($2/$1)) }' ${RES_STAT}
-      awk -v baseline=${baseline} '{ print (baseline/$1)+(1.96*($2/$1)) }' ${RES_STAT}
+    awk -v baseline=${baseline} '{ print (baseline/$1)+(1.96*($2/$1)) }' ${RES_STAT}
     cut -f3-4 ${RES_STAT}
   done | paste -s
 done > ${OUTFILE}
