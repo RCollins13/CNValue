@@ -15,7 +15,7 @@
 #Usage statement
 usage(){
 cat <<EOF
-usage: CNV_set_annoClass_bulk_test.sh [-h] [-m ADJUSTMENT] [-a ALTERNATE] [-z]
+usage: annoSet_binomial_test.sh [-h] [-m ADJUSTMENT] [-a ALTERNATE] [-z]
                                       CONTROLS CASES ELEMENTS OUTFILE
 
 Binomial enrichment test of genomic annotation class versus case/control CNVs
