@@ -124,9 +124,12 @@ for i in $( seq 1 ${TIMES} ); do
   echo "Beginning permutation ${i} of ${TIMES}"
 
   #Shuffle annotations
-  bedtools shuffle -f 0.1 \
-  -excl /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
-  -i ${ANNOS} -g ${WRKDIR}/data/misc/GRCh37_autosomes.genome > ${ANNOS_SHUF}
+  if [ ${EXCLUDE} != "0" ]; then
+    bedtools shuffle -f 0.1 -excl ${EXCLUDE} \
+    -i ${ANNOS} -g ${GENOME} > ${ANNOS_SHUF}
+  else
+    bedtools shuffle -i ${ANNOS} -g ${GENOME} > ${ANNOS_SHUF}
+  fi
 
   #Count pileup of case/control at each element
   paste <( bedtools intersect -c -a ${ANNOS_SHUF} -b ${CASE} | \
