@@ -64,7 +64,7 @@ ANNO=$3
 GENOME=$4
 
 #Check for required input
-if [ -z ${CONTROLS} ] || [ -z ${CASES} ] || [ -z ${ANNO} ] || [ -z ${GENOME} ]; then
+if [ -s ${CONTROLS} ] || [ -s ${CASES} ] || [ -s ${ANNO} ] || [ -s ${GENOME} ]; then
   usage
   exit 0
 fi

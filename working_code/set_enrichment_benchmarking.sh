@@ -66,7 +66,7 @@ for n in 10 100 1000 10000 100000; do
       "${WRKDIR}/bin/rCNVmap/bin/annoSet_permutation_test.sh -N 1000 \
        -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
        -o ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing/results_${size}bp_${sd}bp_x${n}_i${i}.txt \
-
+       /data/talkowski/Samples/rCNVmap/data/CNV/CNV_MASTER/CTRL/CTRL.DEL.GRCh37.all.bed.gz
        ${WRKDIR}/data/misc/GRCh37_autosomes.genome"
     done < <( echo -e "50\t10\n500\t100\n5000\t1000\n50000\t10000" )
   done
