@@ -144,13 +144,14 @@ Rscript -e  "dat <- read.table(\"${PERM_OUTPUT}\",header=F)[,1];\
 
 #Print results to outfile
 for dummy in 1; do
-  echo -e "#observed\tperms_greater\tperms_less_or_equal\texpected_mean\texpected_sd\tdifference\tZscore\tpvalue"
+  echo -e "#observed\tperms_greater\tperms_less_or_equal\texpected_mean\texpected_sd\tdifference\tfold_enrichment\tZscore\tpvalue"
   for second in 2; do
     echo ${baseline}
     awk -v baseline=${baseline} '{ if ($1>baseline) print $0 }' ${PERM_OUTPUT} | wc -l
     awk -v baseline=${baseline} '{ if ($1<=baseline) print $0 }' ${PERM_OUTPUT} | wc -l
     cut -f1-2 ${RES_STAT}
     awk -v baseline=${baseline} '{ print baseline-$1 }' ${RES_STAT}
+    awk -v baseline=${baseline} '{ print baseline/$1 }' ${RES_STAT}
     cut -f3-4 ${RES_STAT}
   done | paste -s
 done > ${OUTFILE}
