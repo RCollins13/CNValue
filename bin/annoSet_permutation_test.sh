@@ -15,7 +15,7 @@
 #Usage statement
 usage(){
 cat <<EOF
-usage: annoSet_shift_test.sh [-h] [-N TIMES] [-x EXCLUDE] [-o OUTFILE] CONTROLS CASES ANNO GENOME
+usage: annoSet_permutation_test.sh [-h] [-N TIMES] [-x EXCLUDE] [-o OUTFILE] CONTROLS CASES ANNO GENOME
 
 Permutation test of CNV burden at a set of genomic annotations by annotation shuffling
 
@@ -64,7 +64,7 @@ ANNO=$3
 GENOME=$4
 
 #Check for required input
-if ! [ -s ${CONTROLS} ] || ! [ -s ${CASES} ] || ! [ -s ${ANNO} ] || ! [ -s ${GENOME} ]; then
+if [ -s ${CONTROLS} ] || [ -s ${CASES} ] || [ -s ${ANNO} ] || [ -s ${GENOME} ]; then
   usage
   exit 0
 fi
@@ -155,11 +155,6 @@ for dummy in 1; do
     cut -f3-4 ${RES_STAT}
   done | paste -s
 done > ${OUTFILE}
-
-#Gzip, if optioned
-if [ ${OUTFILE} != "/dev/stdout" ] && [ ${GZ} -eq 1 ]; then
-  gzip -f ${OUTFILE}
-fi
 
 #Clean up
 rm -rf ${TMPDIR}
