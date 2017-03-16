@@ -128,7 +128,7 @@ for i in $( seq 1 ${TIMES} ); do
     bedtools shuffle -f 0.1 -excl ${EXCLUDE} \
     -i ${ANNOS} -g ${GENOME} > ${ANNOS_SHUF}
   else
-    bedtools shuffle -i ${ANNOS} -g ${GENOME} > ${ANNOS_SHUF}
+    bedtools shuffle -noOverlapping -maxTries 10000 -i ${ANNOS} -g ${GENOME} > ${ANNOS_SHUF}
   fi
 
   #Count pileup of case/control at each element
