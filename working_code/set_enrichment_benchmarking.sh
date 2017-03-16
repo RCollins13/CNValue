@@ -82,3 +82,49 @@ for n in 10 100 1000 10000 100000; do
     done < <( echo -e "50\t10\n500\t100\n5000\t1000\n50000\t10000" )
   done
 done
+
+#####Collect results from annotation set shuffling permutation tests
+mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/results
+for n in 10 100 1000 10000 100000; do
+  while read size sd; do
+    for set in rCNV urCNV; do
+      for i in $( seq -w 001 100 ); do
+        fgrep -v "#" ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${set}/results_${size}bp_${sd}bp_x${n}_i${i}.txt | awk '{ print $NF }'
+       done > ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}_results_${size}bp_${sd}bp_x${n}.txt
+    done
+  done < <( echo -e "50\t10\n500\t100\n5000\t1000\n50000\t10000" )
+done
+
+#####Launch simple annotation shuffling permutation test (10k permutations each) - germline duplications
+#Test rCNV sets: all control duplications vs all germline duplications
+mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_rCNV_GERMDUP
+mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_urCNV_GERMDUP
+for n in 10 100 1000 10000 100000; do
+  for i in $( seq -w 001 100 ); do
+    #size = 50bp, stdev = 10bp, n=10, 100, 1000, 10000, 100000
+    #size = 500bp, stdev = 100bp, n=10, 100, 1000, 10000, 100000
+    #size = 5000bp, stdev = 1000bp, n=10, 100, 1000, 10000, 100000
+    #size = 50000bp, stdev = 10000bp, n=10, 100, 1000, 10000, 100000
+    while read size sd; do
+      bsub -q short -sla miket_sc -u nobody -J permutation_test_rCNV_GERMDUP_${size}bp_${sd}bp_x${n}_i${i} \
+      "${WRKDIR}/bin/rCNVmap/bin/annoSet_permutation_test.sh -N 10000 \
+       -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
+       -o ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_rCNV_GERMDUP/results_${size}bp_${sd}bp_x${n}_i${i}.txt \
+       ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DUP.GRCh37.all.bed.gz \
+       ${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.DUP.GRCh37.all.bed.gz \
+       ${WRKDIR}/analysis/benchmarking/set_enrichments/simulated_intervals/intervals_${size}bp_${sd}bp_x${n}_i${i}.bed.gz \
+       ${WRKDIR}/data/misc/GRCh37_autosomes.genome"
+      bsub -q short -sla miket_sc -u nobody -J permutation_test_urCNV_GERMDUP_${size}bp_${sd}bp_x${n}_i${i} \
+      "${WRKDIR}/bin/rCNVmap/bin/annoSet_permutation_test.sh -N 10000 \
+       -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
+       -o ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_urCNV_GERMDUP/results_${size}bp_${sd}bp_x${n}_i${i}.txt \
+       ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DUP.urCNVs.GRCh37.all.bed.gz \
+       ${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.DUP.urCNVs.GRCh37.all.bed.gz \
+       ${WRKDIR}/analysis/benchmarking/set_enrichments/simulated_intervals/intervals_${size}bp_${sd}bp_x${n}_i${i}.bed.gz \
+       ${WRKDIR}/data/misc/GRCh37_autosomes.genome"
+    done < <( echo -e "50\t10\n500\t100\n5000\t1000\n50000\t10000" )
+  done
+done
+
+
+

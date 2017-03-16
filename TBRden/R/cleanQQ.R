@@ -3,48 +3,86 @@
 #Copyright (c) 2016 Ryan Collins and Jake Conway
 #Distributed under terms of the MIT License
 
-#cleanQQ: a dressed-up adaptation of Stephen Turner's qq() function from the qqman package
+#cleanQQ: an adaptation of Stephen Turner's qq() function from the qqman package
 #Credit: S.D. Turner, qqman: an R package for visualizing GWAS results using Q-Q and Manhattan plots
 #http://dx.doi.org/10.1101/005165
 
-cleanQQ <- function (pvector,        #vector of p-values
-                     nominal=0.05,   #threshold for nominal significance
-                     adjusted=1E-8   #threshold for adjusted significance (e.g. genome-wide)
+#Helper function to draw confidence interval
+#Credit: http://genome.sph.umich.edu/wiki/Code_Sample:_Generating_QQ_Plots_in_R
+qqconf <- function(p.expected){
+  n <- length(p.expected)
+  mpts<-matrix(nrow=n*2, ncol=2)
+  for(i in seq(from=1, to=n)) {
+    mpts[i,1]<- -log10((i-.5)/n)
+    mpts[i,2]<- -log10(qbeta(0.975, i, n-i))
+    mpts[n*2+1-i,1]<- -log10((i-.5)/n)
+    mpts[n*2+1-i,2]<- -log10(qbeta(0.025, i, n-i))
+  }
+  mpts <- as.data.frame(mpts)
+  return(mpts)
+}
+
+#Main clean QQ function
+cleanQQ <-  function(pvector,          #vector of observed p-values
+                     color="red",      #color to shade significant points
+                     nominal=0.05,     #threshold for nominal significance
+                     adjusted=NULL,    #threshold for adjusted significance (NULL=Bonferroni)
+                     xlab.omit=F,      #omit x-axis label
+                     ylab.omit=F       #omit y-axis label
 ){
-  if (!is.numeric(pvector))
+  #Enxure p-value vector is numeric
+  if (!is.numeric(pvector)){
     stop("Input must be numeric.")
+  }
+
+  #Clean pvector
   pvector <- pvector[!is.na(pvector) & !is.nan(pvector) & !is.null(pvector) &
                        is.finite(pvector) & pvector < 1 & pvector > 0]
-  o = -log10(sort(pvector, decreasing = FALSE))
-  e = -log10(ppoints(length(pvector)))
-  signif.cols <- rev(heat.colors(200*(-log10(adjusted)+1)))
-  o.log10 <- ceiling(200*o)
-  o.log10[which(o.log10>(200*(-log10(adjusted)+1)))] <- 200*(-log10(adjusted)+1)
-  o.cols <- signif.cols[o.log10]
-  o.cex.scale <- seq(0.75,2.25,by=0.05)
-  o.cex.steps <- seq(0,max(o),by=max(o)/length(o.cex.scale))
-  o.cex <- sapply(o,function(val){
-    return(o.cex.scale[max(which(val>o.cex.steps))])
-  })
+
+  #Sort
+  pvector <- pvector[order(pvector)]
+
+  #Instantiate expected p quantiles
+  expected <- ppoints(length(pvector))
+
+  #Instantiate qq confidence intervals
+  conf.int <- qqconf(expected)
+
+  #Convert to -log10 scale
+  pvector <- -log10(pvector)
+  expected <- -log10(expected)
+
+  #Set adjusted significance to Bonferroni correction
+  if(is.null(adjusted)){
+    adjusted <- nominal/length(pvector)
+  }
+
+  #Get which points to color
+  colors <- rep("gray20",length(pvector))
+  colors[which(pvector>=-log10(adjusted))] <- color
+
+  #Plot
   par(mar=c(3.5,3.5,0.5,0.5))
-  plot(x=e,y=o,pch=21,bg=o.cols,lwd=0.4,cex=o.cex,xaxt="n",yaxt="n",xlab="",ylab="",
-       xaxs="i",yaxs="i",xlim=c(0,1.1*max(e)),ylim=c(0,1.1*max(o)),
-       panel.first=c(rect(xleft=par("usr")[1],xright=par("usr")[2],
-                          ybottom=par("usr")[3],ytop=-log10(nominal),
-                          col=adjustcolor("cyan4",alpha=0.4),border=NA),
-                     rect(xleft=par("usr")[1],xright=par("usr")[2],
-                          ybottom=-log10(nominal),ytop=-log10(adjusted),
-                          col=adjustcolor("cyan3",alpha=0.3),border=NA),
-                     rect(xleft=par("usr")[1],xright=par("usr")[2],
-                          ybottom=-log10(adjusted),ytop=par("usr")[4],
-                          col=adjustcolor("cyan",alpha=0.2),border=NA),
-                     abline(h=-log10(c(nominal,adjusted)),lty=2,col=c("cyan4","cyan3")),
-                     abline(0,1,lwd=2),
-                     text(x=c(0,0),y=-log10(c(nominal,adjusted)),cex=0.8,
-                          labels=c("Nominal","Adjusted"),font=3,pos=4),
-                     text(x=par("usr")[2],y=1.05*par("usr")[2],pos=2,labels="Obs ~ Exp",font=3,cex=0.8)))
-  axis(1,at=seq(0,ceiling(max(e)),by=max(1,round(ceiling(max(e))/6,0))))
-  axis(2,at=seq(0,ceiling(max(o)),by=max(1,round(ceiling(max(o))/6,0))),las=2)
-  mtext(1,text=expression(Expected ~ ~-log[10](italic(p))),line=2.1)
-  mtext(2,text=expression(Observed ~ ~-log[10](italic(p))),line=2.1)
+  plot(x=expected,y=pvector,type="n",xaxt="n",yaxt="n",xlab="",ylab="",
+       xaxs="i",yaxs="i",xlim=c(0,1.1*max(expected)),ylim=c(0,1.1*max(pvector)))
+  rect(xleft=par("usr")[1],xright=par("usr")[2],
+       ybottom=par("usr")[3],ytop=par("usr")[4],
+       border=NA,col="gray98")
+  polygon(x=conf.int[,1],y=conf.int[,2],col="gray70",border=NA)
+  abline(v=axTicks(1),col="gray92")
+  abline(h=axTicks(2),col="gray92")
+  abline(h=-log10(adjusted),col=color)
+  abline(h=-log10(0.05),col="gray60",lty=2)
+  points(x=expected,y=pvector,pch=19,col=colors)
+  abline(0,1)
+  axis(1,at=axTicks(1),labels=NA)
+  axis(1,at=axTicks(1),tick=F,line=-0.3)
+  if(xlab.omit==F){
+    mtext(1,text=expression(Expected ~ ~-log[10](italic(p))),line=2.1,cex=0.7)
+  }
+  axis(2,at=axTicks(2),labels=NA)
+  axis(2,at=axTicks(2),tick=F,line=-0.3,las=2)
+  if(ylab.omit==F){
+    mtext(2,text=expression(Observed ~ ~-log[10](italic(p))),line=2.1,cex=0.7)
+  }
 }
