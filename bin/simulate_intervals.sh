@@ -71,7 +71,7 @@ GENOME=$1
 echo ${GENOME}
 
 #Check that genome file exists
-if ! [ -s ${GENOME} ]; then
+if [ -s ${GENOME} ]; then
   echo -e "\nERROR: GENOME FILE DOES NOT EXIST\n"
   usage
   exit 0
