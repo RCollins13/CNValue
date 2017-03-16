@@ -41,19 +41,11 @@ fi
 mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/simulated_intervals
 #Simulate test intervals
 for n in 10 100 1000 10000 100000 1000000; do
-  for i in $( seq -w 0001 1000 ); do
-    #size = 50bp, stdev = 10bp, n=10, 100, 1000, 10000, 100000
-    #size = 500bp, stdev = 100bp, n=10, 100, 1000, 10000, 100000
-    #size = 5000bp, stdev = 1000bp, n=10, 100, 1000, 10000, 100000
-    #size = 50000bp, stdev = 10000bp, n=10, 100, 1000, 10000, 100000
-    while read size sd; do
-      bsub -q short -sla miket_sc -u nobody -J generate_intervals_${size}bp_${sd}bp_x${n}_i${i} \
-      "${WRKDIR}/bin/rCNVmap/bin/simulate_intervals.sh -z -s ${size} -d ${sd} -N ${n} \
-       -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
-       -o ${WRKDIR}/analysis/benchmarking/set_enrichments/simulated_intervals/intervals_${size}bp_${sd}bp_x${n}_i${i}.bed \
-       ${WRKDIR}/data/misc/GRCh37_autosomes.genome"
-    done < <( echo -e "5\t1\n50\t10\n500\t100\n5000\t1000\n50000\t10000" )
-  done
+  while read size sd; do
+    bsub -q short -sla miket_sc -u nobody -J generate_intervals_${size}bp_${sd}bp_x${n} \
+    "${WRKDIR}/bin/rCNVmap/analysis_scripts/generate_simulated_intervals.sh \
+     ${size} ${sd} ${n}"
+  done < <( echo -e "5\t1\n50\t10\n500\t100\n5000\t1000\n50000\t10000" )
 done
 
 #####Test rCNVs, vrCNVs, and sCNV for CNV/DEL/DUP for GERM and CNCR
