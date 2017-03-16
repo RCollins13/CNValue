@@ -68,6 +68,8 @@ done
 shift $((${OPTIND} - 1))
 GENOME=$1
 
+echo ${GENOME}
+
 #Check that genome file exists
 if ! [ -s ${GENOME} ]; then
   echo -e "\nERROR: GENOME FILE DOES NOT EXIST\n"

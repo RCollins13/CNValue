@@ -81,19 +81,10 @@ for set in rCNV vrCNV sCNV; do
       #size = 50000bp, stdev = 10000bp, n=10, 100, 1000, 10000, 100000, 1000000
       for n in 10 100 1000 10000 100000 1000000; do
         while read size sd; do
-          for i in $( seq -w 0001 1000 ); do
-            echo -e "STARTING TEST ${i}"
-            ${WRKDIR}/bin/rCNVmap/bin/annoSet_permutation_test.sh -N 10000 \
-            -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
-            -o ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${set}/${CNV}/${pheno}/results_${size}bp_${sd}bp_x${n}_i${i}.txt \
-            ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${set}.GRCh37.all.bed.gz \
-            ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${set}.GRCh37.all.bed.gz \
-            ${WRKDIR}/analysis/benchmarking/set_enrichments/simulated_intervals/intervals_${size}bp_${sd}bp_x${n}_i${i}.bed.gz \
-            ${WRKDIR}/data/misc/GRCh37_autosomes.genome
-           done
           #Code to launch simulations per all 1k test sets
             bsub -q short -sla miket_sc -u nobody -J ${set}_${CNV}_${pheno}_annoSet_permutation_test_${size}bp_${sd}bp_x${n} \
-            ""
+            "${WRKDIR}/bin/rCNVmap/analysis_scripts/run_set_enrichment_permutations.sh \
+             ${set} ${CNV} ${pheno} ${n} ${size} ${sd}"
            done
         done < <( echo -e "5\t1\n50\t10\n500\t100\n5000\t1000\n50000\t10000" )
       done
