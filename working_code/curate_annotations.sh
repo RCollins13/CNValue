@@ -49,6 +49,54 @@ for class in antisense lincRNA miRNA protein_coding pseudogene snoRNA snRNA; do
   sed 's/\;/\n/g' | fgrep "gene_name" | tr -d "\"" | awk '{ print $2 }' | sort | uniq > \
   ${WRKDIR}/data/master_annotations/genelists/Gencode_v19_${class}.genes.list
 done
+#Create master bed file of all exons
+fgrep -v "#" ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf | \
+sed 's/gene_name/\t/g' | awk -v FS="\t" -v OFS="\t" '{ if ($3=="exon") print $1, $4, $5, $10 }' | \
+sed 's/\;/\t/g' | awk -v FS="\t" -v OFS="\t" '{ print $1, $2, $3, $4 }' | tr -d "\"" | \
+sed 's/^chr//g' | sort -Vk1,1 -k2,2n -k3,3n -k4,4 > \
+${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.all.bed
+#Create master bed file of protein-coding exons
+sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list | \
+fgrep -wf - <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.all.bed ) | \
+sed 's/_/\-/g' > ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed
+#Create master bed file of protein-coding exons from not-clearly-haplosufficient genes
+sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/ExAC_notHaplosufficient.genes.list | \
+fgrep -wf - <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed ) | \
+sed 's/_/\-/g' > ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.notHaplosufficient.bed
+#Get number of elements, median element size, and full path for all gencode exon tracks
+for filter in all protein_coding notHaplosufficient; do
+  #Count of elements
+  cat ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.${filter}.bed | wc -l
+  #Median element size
+  awk '{ print $3-$2 }' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.${filter}.bed | \
+  sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
+  #Full path to file
+  readlink -f ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.${filter}.bed
+done | paste - - -
+#Create master bed file of gene boundaries
+fgrep -v "#" ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf | \
+sed 's/gene_name/\t/g' | awk -v FS="\t" -v OFS="\t" '{ if ($3=="gene") print $1, $4, $5, $10 }' | \
+sed 's/\;/\t/g' | awk -v FS="\t" -v OFS="\t" '{ print $1, $2, $3, $4 }' | tr -d "\"" | \
+sed 's/^chr//g' | sort -Vk1,1 -k2,2n -k3,3n -k4,4 > \
+${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed
+#Create master bed file of gene boundaries from protein-coding genes
+sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list | \
+fgrep -wf - <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed ) | \
+sed 's/_/\-/g' > ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed
+#Create master bed file of gene boundaries from protein-coding, not-clearly-haplosufficient genes
+sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/ExAC_notHaplosufficient.genes.list | \
+fgrep -wf - <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed ) | \
+sed 's/_/\-/g' > ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.notHaplosufficient.bed
+#Get number of elements, median element size, and full path for all gencode gene tracks
+for filter in all protein_coding notHaplosufficient; do
+  #Count of elements
+  cat ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.${filter}.bed | wc -l
+  #Median element size
+  awk '{ print $3-$2 }' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.${filter}.bed | \
+  sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
+  #Full path to file
+  readlink -f ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.${filter}.bed
+done | paste - - -
 
 #####GENE LISTS
 #GTEx tissue-specific expressed genes
@@ -121,10 +169,14 @@ wget ftp://ftp.broadinstitute.org/pub/ExAC_release/release0.3.1/functional_gene_
 awk '{ if ($20>0.9 && $20!="NA") print $2 }' \
 ${WRKDIR}/data/misc/fordist_cleaned_nonpsych_z_pli_rec_null_data.txt | sort | uniq > \
 ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list
-#Dispensable genes (pLI < 0.1)
+#Haplosufficient genes (pLI < 0.1)
 awk '{ if ($20<0.1 && $20!="NA") print $2 }' \
 ${WRKDIR}/data/misc/fordist_cleaned_nonpsych_z_pli_rec_null_data.txt | sort | uniq > \
-${WRKDIR}/data/master_annotations/genelists/ExAC_dispensable.genes.list
+${WRKDIR}/data/master_annotations/genelists/ExAC_haplosufficient.genes.list
+#Not haplosufficient genes (pLI > 0.1)
+awk '{ if ($20>=0.1 && $20!="NA") print $2 }' \
+${WRKDIR}/data/misc/fordist_cleaned_nonpsych_z_pli_rec_null_data.txt | sort | uniq > \
+${WRKDIR}/data/master_annotations/genelists/ExAC_notHaplosufficient.genes.list
 #Highly constrained genes (pLI > 0.9 & LOF obs:exp top half among constrained genes )
 nconst=$( sed '1d' ${WRKDIR}/data/misc/fordist_cleaned_nonpsych_z_pli_rec_null_data.txt | \
 awk '{ if ($20>0.9 && $20!="NA" && $16>0) print $0 }' | wc -l )
