@@ -47,35 +47,30 @@ for n in 10 100 1000 10000 100000 1000000; do
   done < <( echo -e "5\t1\n50\t10\n500\t100\n5000\t1000\n50000\t10000" )
 done
 
-#####Test rCNVs, vrCNVs, and sCNV for CNV/DEL/DUP for GERM and CNCR
-#1k tests per simulated set of parameters
-#10k permutations per test
-for set in rCNV vrCNV sCNV; do
-  if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${set} ]; then
-    rm -rf ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${set}
+#####Test all VF filters for CNV/DEL/DUP for GERM and CNCR
+#1k independent tests per simulated set of parameters
+#1k permutations per test
+for VF in E2 E3 E4 N1; do
+  if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${VF} ]; then
+    rm -rf ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${VF}
   fi
-  mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${set}
+  mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${VF}
   for CNV in CNV DEL DUP; do
-    if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${set}/${CNV} ]; then
-      rm -rf ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${set}/${CNV}
+    if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${VF}/${CNV} ]; then
+      rm -rf ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${VF}/${CNV}
     fi
-    mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${set}/${CNV}
+    mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${VF}/${CNV}
     for pheno in GERM CNCR; do
-      if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${set}/${CNV}/${pheno} ]; then
-        rm -rf ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${set}/${CNV}/${pheno}
+      if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${VF}/${CNV}/${pheno} ]; then
+        rm -rf ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${VF}/${CNV}/${pheno}
       fi
-      mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${set}/${CNV}/${pheno}
-      #size = 5bp, stdev = 1bp, n=10, 100, 1000, 10000, 100000, 1000000
-      #size = 50bp, stdev = 10bp, n=10, 100, 1000, 10000, 100000, 1000000
-      #size = 500bp, stdev = 100bp, n=10, 100, 1000, 10000, 100000, 1000000
-      #size = 5000bp, stdev = 1000bp, n=10, 100, 1000, 10000, 100000, 1000000
-      #size = 50000bp, stdev = 10000bp, n=10, 100, 1000, 10000, 100000, 1000000
+      mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${VF}/${CNV}/${pheno}
       for n in 10 100 1000 10000 100000 1000000; do
         while read size sd; do
           #Code to launch simulations per all 1k test sets
-            bsub -q short -sla miket_sc -u nobody -J ${set}_${CNV}_${pheno}_annoSet_permutation_test_${size}bp_${sd}bp_x${n} \
+            bsub -q short -sla miket_sc -u nobody -J ${VF}_${CNV}_${pheno}_annoSet_permutation_test_${size}bp_${sd}bp_x${n} \
             "${WRKDIR}/bin/rCNVmap/analysis_scripts/run_set_enrichment_permutations.sh \
-             ${set} ${CNV} ${pheno} ${n} ${size} ${sd}"
+             ${VF} ${CNV} ${pheno} ${n} ${size} ${sd}"
            done
         done < <( echo -e "5\t1\n50\t10\n500\t100\n5000\t1000\n50000\t10000" )
       done
