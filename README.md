@@ -7,3 +7,4 @@ Project to create map of rare CNVs
 *plotting_code/* code pertaining to figure generation  
 *TBRden/* companion R package to perform statistical modeling  
 *misc/* miscellaneous data and annotation files  
+*analysis_scripts/* shell and R scripts to parallelize specific analyses on the PHS cluster  
