@@ -84,16 +84,34 @@ for set in rCNV vrCNV sCNV; do
 done
 
 #####Collect results from annotation set shuffling permutation tests
-# mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/results
-# for n in 10 100 1000 10000 100000; do
-#   while read size sd; do
-#     for set in rCNV urCNV; do
-#       for i in $( seq -w 001 100 ); do
-#         fgrep -v "#" ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${set}/results_${size}bp_${sd}bp_x${n}_i${i}.txt | awk '{ print $NF }'
-#        done > ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}_results_${size}bp_${sd}bp_x${n}.txt
-#     done
-#   done < <( echo -e "50\t10\n500\t100\n5000\t1000\n50000\t10000" )
-# done
+mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/results
+for set in rCNV vrCNV sCNV; do
+  if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set} ]; then
+    rm -rf ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}
+  fi
+  mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}
+  for CNV in CNV DEL DUP; do
+    if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}/${CNV} ]; then
+      rm -rf ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}/${CNV}
+    fi
+    mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}/${CNV}
+    for pheno in GERM CNCR; do
+      if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}/${CNV}/${pheno} ]; then
+        rm -rf ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}/${CNV}/${pheno}
+      fi
+      mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}/${CNV}/${pheno}
+      for n in 10 100 1000 10000 100000 1000000; do
+        while read size sd; do
+          for i in $( seq -w 0001 1000 ); do
+            if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${set}/${CNV}/${pheno}/results_${size}bp_${sd}bp_x${n}_i${i}.txt ]; then
+              fgrep -v "#" ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${set}/${CNV}/${pheno}/results_${size}bp_${sd}bp_x${n}_i${i}.txt | awk '{ print $NF }'
+            fi
+           done > ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}/${CNV}/${pheno}/${set}_results_${size}bp_${sd}bp_x${n}.txt
+        done < <( echo -e "5\t1\n50\t10\n500\t100\n5000\t1000\n50000\t10000" )
+      done
+    done
+  done
+done
 
 
 
