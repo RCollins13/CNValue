@@ -28,7 +28,7 @@ PICARD=/data/talkowski/tools/bin/picard-tools-1.137/picard.jar
 SFARI_ANNO=/data/talkowski/Samples/SFARI/ASC_analysis/annotations
 
 #####Read arguments
-set=$1
+VF=$1
 CNV=$2
 pheno=$3
 n=$4
@@ -40,9 +40,9 @@ for i in $( seq -w 0001 1000 ); do
 	echo -e "STARTING TEST ${i}"
 	${WRKDIR}/bin/rCNVmap/bin/annoSet_permutation_test.sh -N 10000 \
 	-x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
-	-o ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${set}/${CNV}/${pheno}/results_${size}bp_${sd}bp_x${n}_i${i}.txt \
-	${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${set}.GRCh37.all.bed.gz \
-	${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${set}.GRCh37.all.bed.gz \
+	-o ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${VF}/${CNV}/${pheno}/results_${size}bp_${sd}bp_x${n}_i${i}.txt \
+	${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.all.bed.gz \
+	${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.all.bed.gz \
 	${WRKDIR}/analysis/benchmarking/set_enrichments/simulated_intervals/intervals_${size}bp_${sd}bp_x${n}_i${i}.bed.gz \
 	${WRKDIR}/data/misc/GRCh37_autosomes.genome
 done
