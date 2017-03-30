@@ -1,6 +1,6 @@
 #!/usr/bin/env R
 
-#Copyright (c) 2016 Ryan Collins and Jake Conway
+#Copyright (c) 2017 Ryan Collins and Jake Conway
 #Distributed under terms of the MIT License
 
 #TBRden: master function to perform burden analyses between two sets

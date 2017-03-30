@@ -71,7 +71,6 @@ for VF in E2 E3 E4 N1; do
             bsub -q short -sla miket_sc -u nobody -J ${VF}_${CNV}_${pheno}_annoSet_permutation_test_${size}bp_${sd}bp_x${n} \
             "${WRKDIR}/bin/rCNVmap/analysis_scripts/run_set_enrichment_permutations.sh \
              ${VF} ${CNV} ${pheno} ${n} ${size} ${sd}"
-           done
         done < <( echo -e "5\t1\n50\t10\n500\t100\n5000\t1000\n50000\t10000" )
       done
     done
@@ -79,29 +78,33 @@ for VF in E2 E3 E4 N1; do
 done
 
 #####Collect results from annotation set shuffling permutation tests
+if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/results ]; then
+  rm -rf ${WRKDIR}/analysis/benchmarking/set_enrichments/results
+fi
 mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/results
-for set in rCNV vrCNV sCNV; do
-  if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set} ]; then
-    rm -rf ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}
+for VF in E2 E3 E4 N1; do
+  if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${VF} ]; then
+    rm -rf ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${VF}
   fi
-  mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}
+  mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${VF}
   for CNV in CNV DEL DUP; do
-    if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}/${CNV} ]; then
-      rm -rf ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}/${CNV}
+    if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${VF}/${CNV} ]; then
+      rm -rf ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${VF}/${CNV}
     fi
-    mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}/${CNV}
+    mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${VF}/${CNV}
     for pheno in GERM CNCR; do
-      if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}/${CNV}/${pheno} ]; then
-        rm -rf ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}/${CNV}/${pheno}
+      if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${VF}/${CNV}/${pheno} ]; then
+        rm -rf ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${VF}/${CNV}/${pheno}
       fi
-      mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}/${CNV}/${pheno}
+      mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${VF}/${CNV}/${pheno}
       for n in 10 100 1000 10000 100000 1000000; do
         while read size sd; do
-          for i in $( seq -w 0001 1000 ); do
-            if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${set}/${CNV}/${pheno}/results_${size}bp_${sd}bp_x${n}_i${i}.txt ]; then
-              fgrep -v "#" ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${set}/${CNV}/${pheno}/results_${size}bp_${sd}bp_x${n}_i${i}.txt | awk '{ print $NF }'
-            fi
-           done > ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${set}/${CNV}/${pheno}/${set}_results_${size}bp_${sd}bp_x${n}.txt
+          # bsub -q short -sla miket_sc -J collectPermutations_${pheno}_${CNV}_${VF}_${size}bp_x${n} 
+          for i in $( seq -w 0001 1000 | paste -s ); do 
+            if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${VF}/${CNV}/${pheno}/results_${size}bp_${sd}bp_x${n}_i${i}.txt ]; then 
+              fgrep -v "#" ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${VF}/${CNV}/${pheno}/results_${size}bp_${sd}bp_x${n}_i${i}.txt | awk '{ print $NF }' \
+            fi; \
+           done > ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${VF}/${CNV}/${pheno}/${VF}_results_${size}bp_${sd}bp_x${n}.txt
         done < <( echo -e "5\t1\n50\t10\n500\t100\n5000\t1000\n50000\t10000" )
       done
     done

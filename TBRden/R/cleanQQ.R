@@ -1,6 +1,6 @@
 #!/usr/bin/env R
 
-#Copyright (c) 2016 Ryan Collins and Jake Conway
+#Copyright (c) 2017 Ryan Collins and Jake Conway
 #Distributed under terms of the MIT License
 
 #cleanQQ: an adaptation of Stephen Turner's qq() function from the qqman package
