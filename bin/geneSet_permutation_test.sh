@@ -15,7 +15,7 @@
 usage(){
 cat <<EOF
 usage: geneSet_permutation_test.sh [-h] [-N TIMES] [-U UNIVERSE] [-W WHOLE GENE]
-                                   [-o OUTFILE] CONTROLS CASES GENESET GTF
+                                   [-A ALLOSOMES] [-o OUTFILE] CONTROLS CASES GENESET GTF
 
 Permutation test of CNV burden at a set of genes, normalized by gene length & exonic bases
 
@@ -36,16 +36,31 @@ Optional arguments:
                     geneset (default: all genes)
   -W  WHOLE GENE    Restrict analysis to CNVs that span the entire gene
                     (default: count any exonic overlap)
+  -A  ALLOSOMES     Include allosomes in analyses (default: false)
   -o  OUTFILE       Output file (default: /dev/stdout)
 EOF
 }
+
+#####DEV NOTE###
+# TRAINING PATHS
+################
+# CONTROLS=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DEL.E4.GRCh37.all.bed.gz
+# CASES=${WRKDIR}/data/CNV/CNV_MASTER/NDD/NDD.DEL.E4.GRCh37.all.bed.gz
+# GENESET=${SFARI_ANNO}/genelists/DDD_2016.genes.list
+# GTF=${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf
+# TIMES=100
+# UNIVERSE=${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
+# OUTFILE=/scratch/miket/rlc47temp/tmp.files/test.out
+# WG=0
+# ALLO=0
 
 #Parse arguments
 TIMES=1000
 OUTFILE=/dev/stdout
 UNIVERSE=ALL
 WG=0
-while getopts ":N:U:Wo:h" opt; do
+ALLO=0
+while getopts ":N:U:WA:o:h" opt; do
   case "$opt" in
     h)
       usage
@@ -60,6 +75,9 @@ while getopts ":N:U:Wo:h" opt; do
     W)
       WG=1
       ;;
+    A)
+      ALLO=1
+      ;;
     o)
       OUTFILE=${OPTARG}
       ;;
@@ -70,6 +88,8 @@ CONTROLS=$1
 CASES=$2
 GENESET=$3
 GTF=$4
+
+####NOTE: REPLACES ALL HYPHENS WITH UNDERSCORES IN GENE SYMBOLS FOR GREP COMPATIBILITY####
 
 #Check for required input
 if [ -z ${CONTROLS} ] || [ -z ${CASES} ] || [ -z ${GENESET} ] || [ -z ${GTF} ]; then
@@ -104,80 +124,109 @@ else
   CASE=${CASES}
 fi
 
+#Restricts CNVs to autosomes unless optioned
+if [ ${ALLO} -eq 0 ]; then
+  grep -e '^[0-9]\|^chr[0-9]' ${CTRL} > ${CTRL}2; mv ${CTRL}2 ${CTRL}
+  grep -e '^[0-9]\|^chr[0-9]' ${CASE} > ${CASE}2; mv ${CASE}2 ${CASE}
+fi
+
 #Parse exon definitions from GTF
 EXONS=`mktemp`
 fgrep -v "#" ${GTF} | sed 's/gene_name/\t/g' | awk -v FS="\t" -v OFS="\t" \
 '{ if ($3=="exon") print $1, $4, $5, $10 }' | sed 's/\;/\t/g' | \
 awk -v FS="\t" -v OFS="\t" '{ print $1, $2, $3, $4 }' | tr -d "\"" | \
-sed 's/^chr//g' | sort -Vk1,1 -k2,2n -k3,3n -k4,4 > ${EXONS}
-
-#Subset exon definitions to genes that exist in the universal set
-#If no universal set provided, define universal set as list of unique gene 
-#symbols with at least one exon
-if [ ${UNIVERSE} != "ALL" ]; then
-  sed 's/\-/_/g' ${UNIVERSE} | fgrep -wf - <( sed 's/\-/_/g' ${EXONS} ) | \
-  sed 's/_/\-/g' > ${EXONS}2
-  mv ${EXONS}2 ${EXONS}
-else
-  UNIVERSE=`mktemp`
-  cut -f4 ${EXONS} | sort | uniq > ${UNIVERSE}
-fi
+sed 's/^chr//g' | sed 's/\-/_/g' | sort -Vk1,1 -k2,2n -k3,3n -k4,4 > ${EXONS}
 
 #Parse gene boundary definitions from GTF
 BOUNDARIES=`mktemp`
 fgrep -v "#" ${GTF} | sed 's/gene_name/\t/g' | awk -v FS="\t" -v OFS="\t" \
 '{ if ($3=="gene") print $1, $4, $5, $10 }' | sed 's/\;/\t/g' | \
 awk -v FS="\t" -v OFS="\t" '{ print $1, $2, $3, $4 }' | tr -d "\"" | \
-sed 's/^chr//g' | sort -Vk1,1 -k2,2n -k3,3n -k4,4 > ${BOUNDARIES}
+sed 's/^chr//g' | sed 's/\-/_/g' | sort -Vk1,1 -k2,2n -k3,3n -k4,4 > ${BOUNDARIES}
 
-#Subset gene boundary definitions to genes that exist in the universal set
-sed 's/\-/_/g' ${UNIVERSE} | fgrep -wf - <( sed 's/\-/_/g' ${BOUNDARIES} ) | \
-sed 's/_/\-/g' > ${BOUNDARIES}2
-mv ${BOUNDARIES}2 ${BOUNDARIES}
+#Subset exons and boundaries to autosomes unless optioned
+if [ ${ALLO} -eq 0 ]; then
+  grep -e '^[0-9]\|^chr[0-9]' ${EXONS} > ${EXONS}2; mv ${EXONS}2 ${EXONS}
+  grep -e '^[0-9]\|^chr[0-9]' ${BOUNDARIES} > ${BOUNDARIES}2; mv ${BOUNDARIES}2 ${BOUNDARIES}
+fi
 
-#Compute boundary size, exonic bases, and baseline dCNVs per gene
-BASELINE=`mktemp`
-while read gene; do
-  echo ${gene}
-  #Boundary size
-  awk -v gene=${gene} '{ if ($4==gene) print $0 }' ${BOUNDARIES} | \
-  sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | \
-  awk '{ sum+=$3-$2 }END{ print sum }'
-  #Exonic bases
-  awk -v gene=${gene} '{ if ($4==gene) print $0 }' ${EXONS} | \
-  sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | \
-  awk '{ sum+=$3-$2 }END{ print sum }'
+#Restrict universal set to gene symbols that appear in exons and/or boundaries
+#If no universal set provided, define universal set as list of unique gene 
+#symbols with at least one exon and/or gene boundary defined
+UNIV=`mktemp`
+if [ ${UNIVERSE} != "ALL" ]; then
+  sed 's/\-/_/g' ${UNIVERSE} | fgrep -wf - <( cat ${EXONS} ${BOUNDARIES} ) | \
+  cut -f4 | sort | uniq > ${UNIV}
+else
+  cat ${EXONS} ${BOUNDARIES} | cut -f4 | sort | uniq > ${UNIV}
+fi
+
+#Subset exon & boundary definitions to genes that exist in the universal set
+fgrep -wf ${UNIV} ${EXONS} > ${EXONS}2; mv ${EXONS}2 ${EXONS}
+fgrep -wf ${UNIV} ${BOUNDARIES} > ${BOUNDARIES}2; mv ${BOUNDARIES}2 ${BOUNDARIES}
+
+#Substitute dashes for underscores in supplied gene list
+QUERY=`mktemp`
+sed 's/\-/_/g' ${GENESET} > ${QUERY}
+
+#Count number of query genes with a match in either exon/boundary file
+QUERY_IN_UNIV=$( fgrep -wf ${QUERY} ${UNIV} | wc -l )
+
+# #Compute boundary size, exonic bases, and baseline dCNVs per gene
+# echo -e "STATUS::$(date)::BUILDING GENE UNIVERSE REFERENCE"
+# BASELINE=`mktemp`
+# while read gene; do
+#   for dummy in 1; do
+#     echo ${gene}
+#     #Boundary size
+#     awk -v gene=${gene} '{ if ($4==gene) print $0 }' ${BOUNDARIES} | \
+#     sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | \
+#     awk '{ sum+=$3-$2 }END{ print sum }'
+#     #Exonic bases
+#     awk -v gene=${gene} '{ if ($4==gene) print $0 }' ${EXONS} | \
+#     sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | \
+#     awk '{ sum+=$3-$2 }END{ print sum }'
+#     if [ ${WG} -eq 1 ]; then
+#       #Boundary-based dCNV
+#       paste <( awk -v gene=${gene} '{ if ($4==gene) print $0 }' ${BOUNDARIES} | \
+#                bedtools intersect -wb -f 1 -a - -b ${CASE} | cut -f5- | \
+#                sort -Vk1,1 -k2,2n -k3,3n -k4,4 | uniq | wc -l ) \
+#             <( awk -v gene=${gene} '{ if ($4==gene) print $0 }' ${BOUNDARIES} | \
+#                bedtools intersect -wb -f 1 -a - -b ${CTRL} | cut -f5- | \
+#                sort -Vk1,1 -k2,2n -k3,3n -k4,4 | uniq | wc -l ) | \
+#       awk -v OFS="\t" '{ sum+=$1-$2 } END { print sum }'
+#     else
+#       #Exon-based dCNV
+#       paste <( awk -v gene=${gene} '{ if ($4==gene) print $0 }' ${EXONS} | \
+#                bedtools intersect -u -a ${CASE} -b - | wc -l ) \
+#             <( awk -v gene=${gene} '{ if ($4==gene) print $0 }' ${EXONS} | \
+#                bedtools intersect -u -a ${CTRL} -b - | wc -l ) | \
+#       awk -v OFS="\t" '{ sum+=$1-$2 } END { print sum }'
+#     fi
+#   done | paste -s 
+# done < ${UNIVERSE} > ${BASELINE}
+
+#Compute baseline dCNV for query set
+if [ ${WG} -eq 1 ]; then
+  #Boundary-based dCNV
+  OBS_dCNV=$( paste <( fgrep -wf ${QUERY} ${BOUNDARIES} | \
+           bedtools intersect -wb -f 1 -a - -b ${CASE} | cut -f5- | \
+           sort -Vk1,1 -k2,2n -k3,3n -k4,4 | uniq | wc -l ) \
+        <( fgrep -wf ${QUERY} ${BOUNDARIES} | \
+           bedtools intersect -wb -f 1 -a - -b ${CTRL} | cut -f5- | \
+           sort -Vk1,1 -k2,2n -k3,3n -k4,4 | uniq | wc -l ) | \
+  awk -v OFS="\t" '{ sum+=$1-$2 } END { print sum }' )
+else
   #Exon-based dCNV
-  paste <( awk -v gene=${gene} '{ if ($4==gene) print $0 }' ${EXONS} | \
+  OBS_dCNV=$( paste <( fgrep -wf ${QUERY} ${EXONS} | \
            bedtools intersect -u -a ${CASE} -b - | wc -l ) \
-        <( awk -v gene=${gene} '{ if ($4==gene) print $0 }' ${EXONS} | \
+        <( fgrep -wf ${QUERY} ${EXONS} | \
            bedtools intersect -u -a ${CTRL} -b - | wc -l ) | \
-  awk -v OFS="\t" '{ sum+=$1-$2 } END { print sum }'
-done < ${UNIVERSE}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#Get baseline dCNV
-baseline=$( paste <( bedtools intersect -c -a ${ANNOS} -b ${CASE} | \
-    awk -v OFS="\t" '{ print $1, $2, $3, $NF }' ) \
-  <( bedtools intersect -c -a ${ANNOS} -b ${CTRL} | awk '{ print $NF }' ) | \
-  awk -v OFS="\t" '{ sum+=$4-$5 } END { print sum }' )
+  awk -v OFS="\t" '{ sum+=$1-$2 } END { print sum }' )
+fi
 
 #Make temporary files for iterating permutations
-ANNOS_SHUF=`mktemp`
+SHUF_GENES=`mktemp`
 PERM_OUTPUT=`mktemp`
 
 #Repeat for number of permutations specified by user
@@ -185,25 +234,33 @@ for i in $( seq 1 ${TIMES} ); do
   #Print status
   echo "Beginning permutation ${i} of ${TIMES}"
 
-  #Shuffle annotations
-  if [ ${EXCLUDE} != "0" ]; then
-    bedtools shuffle -f 0.1 -excl ${EXCLUDE} \
-    -i ${ANNOS} -g ${GENOME} > ${ANNOS_SHUF}
-  else
-    bedtools shuffle -noOverlapping -maxTries 10000 -i ${ANNOS} -g ${GENOME} > ${ANNOS_SHUF}
-  fi
+  #Sample new set of genes
+  shuf ${UNIV} | head -n${QUERY_IN_UNIV} > ${SHUF_GENES}
 
-  #Count pileup of case/control at each element
-  paste <( bedtools intersect -c -a ${ANNOS_SHUF} -b ${CASE} | \
-    awk -v OFS="\t" '{ print $1, $2, $3, $NF }' ) \
-  <( bedtools intersect -c -a ${ANNOS_SHUF} -b ${CTRL} | awk '{ print $NF }' ) | \
-  awk -v OFS="\t" '{ sum+=$4-$5 } END { print sum }' >> ${PERM_OUTPUT}
+  #Recompute dCNV
+  if [ ${WG} -eq 1 ]; then
+    #Boundary-based dCNV
+    paste <( fgrep -wf ${SHUF_GENES} ${BOUNDARIES} | \
+             bedtools intersect -wb -f 1 -a - -b ${CASE} | cut -f5- | \
+             sort -Vk1,1 -k2,2n -k3,3n -k4,4 | uniq | wc -l ) \
+          <( fgrep -wf ${SHUF_GENES} ${BOUNDARIES} | \
+             bedtools intersect -wb -f 1 -a - -b ${CTRL} | cut -f5- | \
+             sort -Vk1,1 -k2,2n -k3,3n -k4,4 | uniq | wc -l ) | \
+    awk -v OFS="\t" '{ sum+=$1-$2 } END { print sum }'
+  else
+    #Exon-based dCNV
+    paste <( fgrep -wf ${SHUF_GENES} ${EXONS} | \
+             bedtools intersect -u -a ${CASE} -b - | wc -l ) \
+          <( fgrep -wf ${SHUF_GENES} ${EXONS} | \
+             bedtools intersect -u -a ${CTRL} -b - | wc -l ) | \
+    awk -v OFS="\t" '{ sum+=$1-$2 } END { print sum }'
+  fi >> ${PERM_OUTPUT}
 done
 
 #Parameterize null distribution and compute p-value
 RES_STAT=`mktemp`
 Rscript -e  "dat <- read.table(\"${PERM_OUTPUT}\",header=F)[,1];\
-             mu <- mean(dat); sd <- sd(dat); z <- (${baseline}-mu)/sd; p <- 1-pnorm(z);\
+             mu <- mean(dat); sd <- sd(dat); z <- (${OBS_dCNV}-mu)/sd; p <- 1-pnorm(z);\
              write.table(data.frame(round(mu,4),round(sd,4),round(z,4),p),\
               \"${RES_STAT}\",col.names=F,row.names=F,quote=F,sep=\"\t\")"
 
@@ -211,14 +268,14 @@ Rscript -e  "dat <- read.table(\"${PERM_OUTPUT}\",header=F)[,1];\
 for dummy in 1; do
   echo -e "#observed\tperms_greater\tperms_less_or_equal\texpected_mean\texpected_sd\tdifference\tfold_enrichment\tfold_min_95CI\tfold_max_95CI\tZscore\tpvalue"
   for second in 2; do
-    echo ${baseline}
-    awk -v baseline=${baseline} '{ if ($1>baseline) print $0 }' ${PERM_OUTPUT} | wc -l
-    awk -v baseline=${baseline} '{ if ($1<=baseline) print $0 }' ${PERM_OUTPUT} | wc -l
+    echo ${OBS_dCNV}
+    awk -v baseline=${OBS_dCNV} '{ if ($1>baseline) print $0 }' ${PERM_OUTPUT} | wc -l
+    awk -v baseline=${OBS_dCNV} '{ if ($1<=baseline) print $0 }' ${PERM_OUTPUT} | wc -l
     cut -f1-2 ${RES_STAT}
-    awk -v baseline=${baseline} '{ print baseline-$1 }' ${RES_STAT}
-    awk -v baseline=${baseline} '{ print baseline/$1 }' ${RES_STAT}
-    awk -v baseline=${baseline} '{ print (baseline/$1)-(1.96*($2/$1)) }' ${RES_STAT}
-    awk -v baseline=${baseline} '{ print (baseline/$1)+(1.96*($2/$1)) }' ${RES_STAT}
+    awk -v baseline=${OBS_dCNV} '{ print baseline-$1 }' ${RES_STAT}
+    awk -v baseline=${OBS_dCNV} '{ print baseline/$1 }' ${RES_STAT}
+    awk -v baseline=${OBS_dCNV} '{ print (baseline/$1)-(1.96*($2/$1)) }' ${RES_STAT}
+    awk -v baseline=${OBS_dCNV} '{ print (baseline/$1)+(1.96*($2/$1)) }' ${RES_STAT}
     cut -f3-4 ${RES_STAT}
   done | paste -s
 done > ${OUTFILE}

@@ -23,13 +23,14 @@ qqconf <- function(p.expected){
 }
 
 #Main clean QQ function
-cleanQQ <-  function(pvector,          #vector of observed p-values
-                     color="red",      #color to shade significant points
-                     nominal=0.05,     #threshold for nominal significance
-                     adjusted=NULL,    #threshold for adjusted significance (NULL=Bonferroni)
-                     xlab.omit=F,      #omit x-axis label
-                     ylab.omit=F,      #omit y-axis label
-                     print.stats=T     #print lambda and K-S p-value
+cleanQQ <-  function(pvector,           #vector of observed p-values
+                     color="red",       #color to shade significant points
+                     CI.color="gray70", #color to shade 95% CI
+                     nominal=0.05,      #threshold for nominal significance
+                     adjusted=NULL,     #threshold for adjusted significance (NULL=Bonferroni)
+                     xlab.omit=F,       #omit x-axis label
+                     ylab.omit=F,       #omit y-axis label
+                     print.stats=T      #print lambda and K-S p-value
 ){
   #Enxure p-value vector is numeric
   if (!is.numeric(pvector)){
@@ -75,7 +76,7 @@ cleanQQ <-  function(pvector,          #vector of observed p-values
   rect(xleft=par("usr")[1],xright=par("usr")[2],
        ybottom=par("usr")[3],ytop=par("usr")[4],
        border=NA,col="gray98")
-  polygon(x=conf.int[,1],y=conf.int[,2],col="gray70",border=NA)
+  polygon(x=conf.int[,1],y=conf.int[,2],col=CI.color,border=NA)
   abline(v=axTicks(1),col="gray92")
   abline(h=axTicks(2),col="gray92")
   abline(h=-log10(adjusted),col=color)

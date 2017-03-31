@@ -99,12 +99,9 @@ for VF in E2 E3 E4 N1; do
       mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${VF}/${CNV}/${pheno}
       for n in 10 100 1000 10000 100000 1000000; do
         while read size sd; do
-          # bsub -q short -sla miket_sc -J collectPermutations_${pheno}_${CNV}_${VF}_${size}bp_x${n} 
-          for i in $( seq -w 0001 1000 | paste -s ); do 
-            if [ -e ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${VF}/${CNV}/${pheno}/results_${size}bp_${sd}bp_x${n}_i${i}.txt ]; then 
-              fgrep -v "#" ${WRKDIR}/analysis/benchmarking/set_enrichments/permutation_testing_${VF}/${CNV}/${pheno}/results_${size}bp_${sd}bp_x${n}_i${i}.txt | awk '{ print $NF }' \
-            fi; \
-           done > ${WRKDIR}/analysis/benchmarking/set_enrichments/results/${VF}/${CNV}/${pheno}/${VF}_results_${size}bp_${sd}bp_x${n}.txt
+          bsub -q short -sla miket_sc -J collectPermutations_${pheno}_${CNV}_${VF}_${size}bp_x${n} -u nobody \
+          "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_set_enrichment_permutations.sh \
+          ${VF} ${CNV} ${pheno} ${n} ${size} ${sd}"
         done < <( echo -e "5\t1\n50\t10\n500\t100\n5000\t1000\n50000\t10000" )
       done
     done
