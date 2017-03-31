@@ -174,14 +174,12 @@ for VF in E2 E3 E4 N1; do
 done
 
 
-#####Test gene set enrichment 
-${WRKDIR}/bin/rCNVmap/bin/geneSet_permutation_test.sh -N 1000 \
--U ${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list \
--o /scratch/miket/rlc47temp/tmp.files/test2.out \
-${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DEL.N1.GRCh37.all.bed.gz \
-${WRKDIR}/data/CNV/CNV_MASTER/NDD/NDD.DEL.N1.GRCh37.all.bed.gz \
-${SFARI_ANNO}/genelists/DDD_2016.genes.list \
-${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf
+
+
+
+
+
+
 
 
 
