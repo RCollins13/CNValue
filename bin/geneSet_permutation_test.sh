@@ -124,7 +124,7 @@ if [ ${ALLO} -eq 0 ]; then
 fi
 
 #Skip dictionary creation if hard override is optioned (saves time)
-if [ ${OVER} -eq 0 ]; then
+if [ ${OVER} == "0" ]; then
   #Parse exon definitions from GTF
   echo -e "STATUS::$(date)::BUILDING GENE UNIVERSE DICTIONARY FROM GTF..."
   EXONS=`mktemp`
