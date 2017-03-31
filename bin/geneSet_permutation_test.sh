@@ -41,19 +41,6 @@ Optional arguments:
 EOF
 }
 
-#####DEV NOTE###
-# TRAINING PATHS
-################
-# CONTROLS=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DEL.E4.GRCh37.all.bed.gz
-# CASES=${WRKDIR}/data/CNV/CNV_MASTER/NDD/NDD.DEL.E4.GRCh37.all.bed.gz
-# GENESET=${SFARI_ANNO}/genelists/DDD_2016.genes.list
-# GTF=${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf
-# TIMES=100
-# UNIVERSE=${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
-# OUTFILE=/scratch/miket/rlc47temp/tmp.files/test.out
-# WG=0
-# ALLO=0
-
 #Parse arguments
 TIMES=1000
 OUTFILE=/dev/stdout
@@ -131,6 +118,7 @@ if [ ${ALLO} -eq 0 ]; then
 fi
 
 #Parse exon definitions from GTF
+echo -e "STATUS::$(date)::BUILDING GENE UNIVERSE REFERENCE FROM GTF..."
 EXONS=`mktemp`
 fgrep -v "#" ${GTF} | sed 's/gene_name/\t/g' | awk -v FS="\t" -v OFS="\t" \
 '{ if ($3=="exon") print $1, $4, $5, $10 }' | sed 's/\;/\t/g' | \

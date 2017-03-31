@@ -29,6 +29,7 @@ SFARI_ANNO=/data/talkowski/Samples/SFARI/ASC_analysis/annotations
 #####Prepare annotation directory tree
 mkdir ${WRKDIR}/analysis/benchmarking
 mkdir ${WRKDIR}/analysis/benchmarking/set_enrichments
+mkdir ${WRKDIR}/analysis/benchmarking/geneSet_enrichments
 
 ######Simulate 1,000 sets of intervals with various set of parameters
 #Copy genome and restrict to autosomes
@@ -107,6 +108,69 @@ for VF in E2 E3 E4 N1; do
     done
   done
 done
+
+######Simulate 1,000 random gene sets with various set of parameters
+#Create directory
+if [ -e ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/simulated_sets ]; then
+  rm -rf ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/simulated_sets
+fi
+mkdir ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/simulated_sets
+#Simulate test intervals
+for n in 5 10 50 100 1000 5000 10000; do
+  echo -e "\n\n\n${n}\n\n\n"
+  mkdir ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/simulated_sets/genes_n${n}
+  for i in $( seq -w 0001 1000 ); do
+    echo ${i}
+    shuf ${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list | head -n${n} > \
+    ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/simulated_sets/genes_n${n}/geneSet_n${n}_${i}.list
+  done
+done
+
+#####Test all VF filters for CNV/DEL/DUP for GERM and CNCR
+#1k independent tests per simulated set of parameters
+#1k permutations per test
+for VF in E2 E3 E4 N1; do
+  if [ -e ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF} ]; then
+    rm -rf ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF}
+  fi
+  mkdir ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF}
+  for CNV in CNV DEL DUP; do
+    if [ -e ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF}/${CNV} ]; then
+      rm -rf ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF}/${CNV}
+    fi
+    mkdir ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF}/${CNV}
+    for pheno in GERM CNCR; do
+      if [ -e ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF}/${CNV}/${pheno} ]; then
+        rm -rf ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF}/${CNV}/${pheno}
+      fi
+      mkdir ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF}/${CNV}/${pheno}
+      for n in 10 100 1000 10000 100000 1000000; do
+        while read size sd; do
+          #Code to launch simulations per all 1k test sets
+            bsub -q short -sla miket_sc -u nobody -J ${VF}_${CNV}_${pheno}_annoSet_permutation_test_${size}bp_${sd}bp_x${n} \
+            "${WRKDIR}/bin/rCNVmap/analysis_scripts/run_geneSet_enrichment_permutations.sh \
+             ${VF} ${CNV} ${pheno} ${n} ${size} ${sd}"
+        done < <( echo -e "5\t1\n50\t10\n500\t100\n5000\t1000\n50000\t10000" )
+      done
+    done
+  done
+done
+
+
+#####Test gene set enrichment 
+${WRKDIR}/bin/rCNVmap/bin/geneSet_permutation_test.sh -N 1000 \
+-U ${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list \
+-o /scratch/miket/rlc47temp/tmp.files/test2.out \
+${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DEL.N1.GRCh37.all.bed.gz \
+${WRKDIR}/data/CNV/CNV_MASTER/NDD/NDD.DEL.N1.GRCh37.all.bed.gz \
+${SFARI_ANNO}/genelists/DDD_2016.genes.list \
+${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf
+
+
+
+
+
+
 
 
 
