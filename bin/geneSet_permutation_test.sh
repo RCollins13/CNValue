@@ -141,9 +141,9 @@ if [ ${OVER} == "0" ]; then
   sed 's/^chr//g' | sed 's/\-/_/g' | sort -Vk1,1 -k2,2n -k3,3n -k4,4 > ${BOUNDARIES}
 else
   EXONS=`mktemp`
-  EXONS=${OVER}/exons.bed
+  cp ${OVER}/exons.bed ${EXONS}
   BOUNDARIES=`mktemp`
-  BOUNDARIES=${OVER}/boundaries.bed
+  cp ${OVER}/boundaries.bed ${EXONS}
 fi
 
 #Subset exons and boundaries to autosomes unless optioned

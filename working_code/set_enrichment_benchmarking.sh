@@ -161,7 +161,7 @@ for VF in E2 E3 E4 N1; do
         rm -rf ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF}/${CNV}/${pheno}
       fi
       mkdir ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF}/${CNV}/${pheno}
-      for n in 10 100 1000 10000 100000 1000000; do
+      for n in 5 10 50 100 1000 5000 10000; do
         for W in 0 1; do
           #Code to launch simulations per all 1k test sets
           bsub -q short -sla miket_sc -u nobody -J ${VF}_${CNV}_${pheno}_geneSet_permutation_test_n${n}_W${W} \
