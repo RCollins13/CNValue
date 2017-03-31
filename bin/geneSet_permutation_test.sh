@@ -37,6 +37,8 @@ Optional arguments:
   -W  WHOLE GENE    Restrict analysis to CNVs that span the entire gene
                     (default: count any exonic overlap)
   -A  ALLOSOMES     Include allosomes in analyses (default: false)
+  -H  OVERRIDE      Path to correctly formatted exons & boundaries directory
+                    Note: do not use this option unless you know what you're doing
   -o  OUTFILE       Output file (default: /dev/stdout)
 EOF
 }
@@ -47,7 +49,8 @@ OUTFILE=/dev/stdout
 UNIVERSE=ALL
 WG=0
 ALLO=0
-while getopts ":N:U:WA:o:h" opt; do
+OVER=0
+while getopts ":N:U:WA:H:o:h" opt; do
   case "$opt" in
     h)
       usage
@@ -64,6 +67,9 @@ while getopts ":N:U:WA:o:h" opt; do
       ;;
     A)
       ALLO=1
+      ;;
+    H)
+      OVER=${OPTARG}
       ;;
     o)
       OUTFILE=${OPTARG}
@@ -117,20 +123,28 @@ if [ ${ALLO} -eq 0 ]; then
   grep -e '^[0-9]\|^chr[0-9]' ${CASE} > ${CASE}2; mv ${CASE}2 ${CASE}
 fi
 
-#Parse exon definitions from GTF
-echo -e "STATUS::$(date)::BUILDING GENE UNIVERSE REFERENCE FROM GTF..."
-EXONS=`mktemp`
-fgrep -v "#" ${GTF} | sed 's/gene_name/\t/g' | awk -v FS="\t" -v OFS="\t" \
-'{ if ($3=="exon") print $1, $4, $5, $10 }' | sed 's/\;/\t/g' | \
-awk -v FS="\t" -v OFS="\t" '{ print $1, $2, $3, $4 }' | tr -d "\"" | \
-sed 's/^chr//g' | sed 's/\-/_/g' | sort -Vk1,1 -k2,2n -k3,3n -k4,4 > ${EXONS}
+#Skip dictionary creation if hard override is optioned (saves time)
+if [ ${OVER} -eq 0 ]; then
+  #Parse exon definitions from GTF
+  echo -e "STATUS::$(date)::BUILDING GENE UNIVERSE DICTIONARY FROM GTF..."
+  EXONS=`mktemp`
+  fgrep -v "#" ${GTF} | sed 's/gene_name/\t/g' | awk -v FS="\t" -v OFS="\t" \
+  '{ if ($3=="exon") print $1, $4, $5, $10 }' | sed 's/\;/\t/g' | \
+  awk -v FS="\t" -v OFS="\t" '{ print $1, $2, $3, $4 }' | tr -d "\"" | \
+  sed 's/^chr//g' | sed 's/\-/_/g' | sort -Vk1,1 -k2,2n -k3,3n -k4,4 > ${EXONS}
 
-#Parse gene boundary definitions from GTF
-BOUNDARIES=`mktemp`
-fgrep -v "#" ${GTF} | sed 's/gene_name/\t/g' | awk -v FS="\t" -v OFS="\t" \
-'{ if ($3=="gene") print $1, $4, $5, $10 }' | sed 's/\;/\t/g' | \
-awk -v FS="\t" -v OFS="\t" '{ print $1, $2, $3, $4 }' | tr -d "\"" | \
-sed 's/^chr//g' | sed 's/\-/_/g' | sort -Vk1,1 -k2,2n -k3,3n -k4,4 > ${BOUNDARIES}
+  #Parse gene boundary definitions from GTF
+  BOUNDARIES=`mktemp`
+  fgrep -v "#" ${GTF} | sed 's/gene_name/\t/g' | awk -v FS="\t" -v OFS="\t" \
+  '{ if ($3=="gene") print $1, $4, $5, $10 }' | sed 's/\;/\t/g' | \
+  awk -v FS="\t" -v OFS="\t" '{ print $1, $2, $3, $4 }' | tr -d "\"" | \
+  sed 's/^chr//g' | sed 's/\-/_/g' | sort -Vk1,1 -k2,2n -k3,3n -k4,4 > ${BOUNDARIES}
+else
+  EXONS=`mktemp`
+  EXONS=${OVER}/exons.bed
+  BOUNDARIES=`mktemp`
+  BOUNDARIES=${OVER}/boundaries.bed
+fi
 
 #Subset exons and boundaries to autosomes unless optioned
 if [ ${ALLO} -eq 0 ]; then

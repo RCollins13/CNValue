@@ -126,8 +126,25 @@ for n in 5 10 50 100 1000 5000 10000; do
   done
 done
 
+#####Generate filtered exon & boundary files for hard override (saves time)
+mkdir ${WRKDIR}/data/misc/exons_boundaries_dictionary
+#All exons
+fgrep -v "#" ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf | \
+sed 's/gene_name/\t/g' | awk -v FS="\t" -v OFS="\t" \
+'{ if ($3=="exon") print $1, $4, $5, $10 }' | sed 's/\;/\t/g' | \
+awk -v FS="\t" -v OFS="\t" '{ print $1, $2, $3, $4 }' | tr -d "\"" | \
+sed 's/^chr//g' | sed 's/\-/_/g' | sort -Vk1,1 -k2,2n -k3,3n -k4,4 > \
+${WRKDIR}/data/misc/exons_boundaries_dictionary/exons.bed
+#All boundaries
+fgrep -v "#" ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf | \
+sed 's/gene_name/\t/g' | awk -v FS="\t" -v OFS="\t" \
+'{ if ($3=="gene") print $1, $4, $5, $10 }' | sed 's/\;/\t/g' | \
+awk -v FS="\t" -v OFS="\t" '{ print $1, $2, $3, $4 }' | tr -d "\"" | \
+sed 's/^chr//g' | sed 's/\-/_/g' | sort -Vk1,1 -k2,2n -k3,3n -k4,4 > \
+${WRKDIR}/data/misc/exons_boundaries_dictionary/boundaries.bed
+
 #####Test all VF filters for CNV/DEL/DUP for GERM and CNCR
-#1k independent tests per simulated set of parameters
+#1k independent tests per gene set size
 #1k permutations per test
 for VF in E2 E3 E4 N1; do
   if [ -e ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF} ]; then
@@ -145,12 +162,12 @@ for VF in E2 E3 E4 N1; do
       fi
       mkdir ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF}/${CNV}/${pheno}
       for n in 10 100 1000 10000 100000 1000000; do
-        while read size sd; do
+        for W in 0 1; do
           #Code to launch simulations per all 1k test sets
-            bsub -q short -sla miket_sc -u nobody -J ${VF}_${CNV}_${pheno}_annoSet_permutation_test_${size}bp_${sd}bp_x${n} \
-            "${WRKDIR}/bin/rCNVmap/analysis_scripts/run_geneSet_enrichment_permutations.sh \
-             ${VF} ${CNV} ${pheno} ${n} ${size} ${sd}"
-        done < <( echo -e "5\t1\n50\t10\n500\t100\n5000\t1000\n50000\t10000" )
+          bsub -q short -sla miket_sc -u nobody -J ${VF}_${CNV}_${pheno}_geneSet_permutation_test_n${n}_W${W} \
+          "${WRKDIR}/bin/rCNVmap/analysis_scripts/run_geneSet_enrichment_permutations.sh \
+           ${VF} ${CNV} ${pheno} ${n} ${W}"
+         done
       done
     done
   done
