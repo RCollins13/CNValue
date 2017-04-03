@@ -30,7 +30,15 @@ SFARI_ANNO=/data/talkowski/Samples/SFARI/ASC_analysis/annotations
 mkdir ${WRKDIR}/data/master_annotations
 mkdir ${WRKDIR}/data/master_annotations/genelists
 
-#####Gencode
+
+
+
+
+##########################
+##########################
+#         GENCODE        #
+##########################
+##########################
 mkdir ${WRKDIR}/data/master_annotations/gencode
 #Download & unpack
 cd ${WRKDIR}/data/master_annotations/gencode
@@ -98,7 +106,14 @@ for filter in all protein_coding notHaplosufficient; do
   readlink -f ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.${filter}.bed
 done | paste - - -
 
-#####GENE LISTS
+
+
+
+##########################
+##########################
+#       GENE LISTS       #
+##########################
+##########################
 #GTEx tissue-specific expressed genes
 cp ${SFARI_ANNO}/genelists/GTEx*specific.genes.list \
 ${WRKDIR}/data/master_annotations/genelists/
@@ -210,6 +225,188 @@ sed '1d' ${WRKDIR}/data/misc/MacArthur_gene_lists/other_data/omim.full.tsv | \
 awk -v OFS="\n" '$4 !~ /NA/ { print $1, $3 }' | sed -e 's/|/\n/g' -e 's/,/\n/g' | \
 awk '{ if ($1!="NA") print $0 }' | sort | uniq | sed '/^$/d' > \
 ${WRKDIR}/data/master_annotations/genelists/OMIM_all.genes.list
+
+#Get count of all genes and autosomal genes per gene list
+while read list; do
+  echo -e "${list}"
+  #All genes
+  cat ${list} | wc -l
+  #Autosomal genes
+  sed 's/\-/_/g' ${list} | fgrep -wf - \
+  <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed ) | \
+  grep -e '^[0-9]' | cut -f4 | sort | uniq | wc -l
+done < <( l ${WRKDIR}/data/master_annotations/genelists/*genes.list | \
+  awk '{ print $9 }' ) | paste - - -
+
+
+
+##########################
+##########################
+#       NONCODING        #
+##########################
+##########################
+#Conservative HARs from Kiana
+#Note: must have uploaded from Slack into ${WRKDIR}/data/misc
+sed '1d' ${WRKDIR}/data/misc/HARs.bed | cut -f1-3 | sed 's/^chr//g' | sort -Vk1,1 -k2,2n -k3,3n | \
+bedtools merge -i - > ${WRKDIR}/data/master_annotations/noncoding/HARs_conservative.elements.bed
+#UCEs from Ruth (native hg19)
+sed '1d' ${WRKDIR}/data/misc/hg19_Wren_UCEs_0based_full_set_5column_withheader.txt | \
+cut -f1-3 | sed 's/^chr//g' | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+${WRKDIR}/data/master_annotations/noncoding/UCEs_McCole.elements.bed
+#UCNEs from UCNEBase
+cd ${WRKDIR}/data/misc/
+wget ftp://ccg.vital-it.ch/UCNEbase/ucnes/hg19_UCNE_coord.bed
+sed '1d' ${WRKDIR}/data/misc/hg19_UCNE_coord.bed | cut -f1-3 | sed 's/^chr//g' | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+${WRKDIR}/data/master_annotations/noncoding/UCNEs.elements.bed
+#Autosomal consensus syndromic CNV list
+cat <( sed '1d' ${SFARI_ANNO}/misc/recurrent_CNV_loci_hg19.bed | sed 's/,//g' | cut -f1-3 ) \
+<( sed '1d' ${SFARI_ANNO}/misc/PathogenicCNVs_allSources_nonredundant_hg19_CER.bed | cut -f1,4,5 ) | \
+sort -Vk1,1 -k2,2n -k3,3n | awk '{ if ($3-$2<=5000000) print $0 }' | bedtools merge -i - | \
+grep -e '^[0-9]' > ${WRKDIR}/data/master_annotations/noncoding/syndromic_CNVs.elements.bed
+#FIREs
+#Note: requires manually curated Schmitt_tissues.list
+while read abbrev tissue; do
+  fgrep -v "chrchr" ${SFARI_ANNO}/TADs/Schmitt2016/all_data_FIRE_calls/${abbrev}.FIRE.bed | \
+  sed 's/^chr//g' > ${TMPDIR}/${abbrev}.FIRE.bed
+  Rscript -e "options(scipen=1000); x <- read.table(\"${TMPDIR}/${abbrev}.FIRE.bed\",header=F); \
+  write.table(x,\"${TMPDIR}/${abbrev}.FIRE.bed\",sep=\"\\t\",quote=F,col.names=F,row.names=F)"
+  sort -Vk1,1 -k2,2n -k3,3n ${TMPDIR}/${abbrev}.FIRE.bed | bedtools merge -i - > \
+  ${WRKDIR}/data/master_annotations/noncoding/FIREs_${tissue}.elements.bed
+done < ${WRKDIR}/data/misc/Schmitt_tissues.list
+#Merged FIREs
+while read abbrev tissue; do
+  cat ${WRKDIR}/data/master_annotations/noncoding/FIREs_${tissue}.elements.bed
+done < <( fgrep PrimaryTissue ${WRKDIR}/data/misc/Schmitt_tissues.list ) | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -d -1 -i - > \
+${WRKDIR}/data/master_annotations/noncoding/FIREs_AllPrimaryTissues.elements.bed
+while read abbrev tissue; do
+  cat ${WRKDIR}/data/master_annotations/noncoding/FIREs_${tissue}.elements.bed
+done < <( fgrep CellLine ${WRKDIR}/data/misc/Schmitt_tissues.list ) | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -d -1 -i - > \
+${WRKDIR}/data/master_annotations/noncoding/FIREs_AllCellLines.elements.bed
+while read abbrev tissue; do
+  cat ${WRKDIR}/data/master_annotations/noncoding/FIREs_${tissue}.elements.bed
+done < ${WRKDIR}/data/misc/Schmitt_tissues.list | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -d -1 -i - > \
+${WRKDIR}/data/master_annotations/noncoding/FIREs_AllSources.elements.bed
+#Conserved FIREs
+awk -v OFS="\t" '{ print $1, $2, $3, 0 }' \
+${WRKDIR}/data/master_annotations/noncoding/FIREs_AllSources.elements.bed > \
+${TMPDIR}/FIREs_conserved.elements.bed
+while read abbrev tissue; do
+  bedtools intersect -c -a ${TMPDIR}/FIREs_conserved.elements.bed \
+  -b ${WRKDIR}/data/master_annotations/noncoding/FIREs_${tissue}.elements.bed | \
+  awk -v OFS="\t" '{ if ($5>0) print $1, $2, $3, $4+1; else print $1, $2, $3, $4 }' > \
+  ${TMPDIR}/FIREs_conserved.elements.bed2
+  mv ${TMPDIR}/FIREs_conserved.elements.bed2 ${TMPDIR}/FIREs_conserved.elements.bed
+done < ${WRKDIR}/data/misc/Schmitt_tissues.list
+awk -v OFS="\t" '{ if ($4>=12) print $1, $2, $3 }' ${TMPDIR}/FIREs_conserved.elements.bed > \
+${WRKDIR}/data/master_annotations/noncoding/FIREs_conserved.elements.bed
+awk -v OFS="\t" '{ if ($4>=19) print $1, $2, $3 }' ${TMPDIR}/FIREs_conserved.elements.bed > \
+${WRKDIR}/data/master_annotations/noncoding/FIREs_highlyConserved.elements.bed
+#TBRs (Schmitt et al)
+#Note: requires manually curated Schmitt_tissues.list
+while read abbrev tissue; do
+  sed 's/chr//g' ${SFARI_ANNO}/TADs/Schmitt2016/primary_cohort_TAD_boundaries/${abbrev}.IS.All_boundaries.bed | \
+  sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+  ${WRKDIR}/data/master_annotations/noncoding/TBRs_${tissue}.elements.bed
+done < ${WRKDIR}/data/misc/Schmitt_tissues.list
+#Merged TBRs
+while read abbrev tissue; do
+  cat ${WRKDIR}/data/master_annotations/noncoding/TBRs_${tissue}.elements.bed
+done < <( fgrep PrimaryTissue ${WRKDIR}/data/misc/Schmitt_tissues.list ) | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -d 40000 -i - > \
+${WRKDIR}/data/master_annotations/noncoding/TBRs_AllPrimaryTissues.elements.bed
+while read abbrev tissue; do
+  cat ${WRKDIR}/data/master_annotations/noncoding/TBRs_${tissue}.elements.bed
+done < <( fgrep CellLine ${WRKDIR}/data/misc/Schmitt_tissues.list ) | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -d 40000 -i - > \
+${WRKDIR}/data/master_annotations/noncoding/TBRs_AllCellLines.elements.bed
+while read abbrev tissue; do
+  cat ${WRKDIR}/data/master_annotations/noncoding/TBRs_${tissue}.elements.bed
+done < ${WRKDIR}/data/misc/Schmitt_tissues.list | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -d 40000 -i - > \
+${WRKDIR}/data/master_annotations/noncoding/TBRs_AllSources.elements.bed
+#Conserved TBRs (Schmitt et al)
+awk -v OFS="\t" '{ print $1, $2, $3, 0 }' \
+${WRKDIR}/data/master_annotations/noncoding/TBRs_AllSources.elements.bed > \
+${TMPDIR}/TBRs_conserved.elements.bed
+while read abbrev tissue; do
+  bedtools intersect -c -a ${TMPDIR}/TBRs_conserved.elements.bed \
+  -b ${WRKDIR}/data/master_annotations/noncoding/TBRs_${tissue}.elements.bed | \
+  awk -v OFS="\t" '{ if ($5>0) print $1, $2, $3, $4+1; else print $1, $2, $3, $4 }' > \
+  ${TMPDIR}/TBRs_conserved.elements.bed2
+  mv ${TMPDIR}/TBRs_conserved.elements.bed2 ${TMPDIR}/TBRs_conserved.elements.bed
+done < ${WRKDIR}/data/misc/Schmitt_tissues.list
+awk -v OFS="\t" '{ if ($4>=12) print $1, $2, $3 }' ${TMPDIR}/TBRs_conserved.elements.bed > \
+${WRKDIR}/data/master_annotations/noncoding/TBRs_conserved.elements.bed
+awk -v OFS="\t" '{ if ($4>=19) print $1, $2, $3 }' ${TMPDIR}/TBRs_conserved.elements.bed > \
+${WRKDIR}/data/master_annotations/noncoding/TBRs_highlyConserved.elements.bed
+#TADs (Schmitt et al)
+while read abbrev tissue; do
+  paste ${WRKDIR}/data/master_annotations/noncoding/TBRs_${tissue}.elements.bed \
+  <( sed '1d' ${WRKDIR}/data/master_annotations/noncoding/TBRs_${tissue}.elements.bed ) | \
+  awk -v OFS="\t" '{ if ($1==$4) print $1, $3, $5 }' | awk '{ if ($3-$2<=5000000) print $0 }' > \
+  ${WRKDIR}/data/master_annotations/noncoding/TADs_${tissue}.elements.bed
+done < ${WRKDIR}/data/misc/Schmitt_tissues.list
+#PhastCons conservation peaks
+
+#PhyloP conservation peaks
+
+#GERP conservation peaks
+
+#CpG Islands
+
+#Replication timing
+
+#Recombination rate
+
+#Repeat masker
+
+#Get count of elements per noncoding set
+while read list; do
+  for dummy in 1; do
+    echo -e "${list}"
+    #All elements (count)
+    cat ${list} | wc -l
+    #Write element size to temporary file
+    awk '{ print $3-$2 }' ${list} > ${TMPDIR}/element_size.tmp
+    #Mean size & std dev
+    Rscript -e "x <- read.table(\"${TMPDIR}/element_size.tmp\",header=F)[,1]; \
+    cat(paste(round(mean(x),2),\"\\n\",round(sd(x),2),\"\\n\",sep=\"\"))" | \
+    fgrep -v WARNING
+    #Autosomal elements (count)
+    grep -e '^[0-9]' ${list} | wc -l
+    #Write autosomal element size to temporary file
+    grep -e '^[0-9]' ${list} | awk '{ print $3-$2 }' > ${TMPDIR}/element_size.tmp
+    #Mean autosomal size & std dev
+    Rscript -e "x <- read.table(\"${TMPDIR}/element_size.tmp\",header=F)[,1]; \
+    cat(paste(round(mean(x),2),\"\\n\",round(sd(x),2),\"\\n\",sep=\"\"))" | \
+    fgrep -v WARNING
+  done | paste -s
+done < <( l ${WRKDIR}/data/master_annotations/noncoding/*elements.bed | \
+  awk '{ print $9 }' )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

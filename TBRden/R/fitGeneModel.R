@@ -19,9 +19,9 @@ fitGeneModel <- function(path,
   names(dat) <- c("gene","length","exon.bp","dCNV")
 
   #Fit multivariate linear model
-  lm(dCNV ~ length + exon.bp, data=dat)
+  model <- lm(dCNV ~ length + exon.bp, data=dat)
 
-
+  predict.lm(model,dat)
 
 
 

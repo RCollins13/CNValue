@@ -115,7 +115,7 @@ if [ -e ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/simulated_sets ]; th
   rm -rf ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/simulated_sets
 fi
 mkdir ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/simulated_sets
-#Simulate test intervals
+#Simulate sets
 for n in 5 10 50 100 1000 5000 10000; do
   echo -e "\n\n\n${n}\n\n\n"
   mkdir ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/simulated_sets/genes_n${n}
@@ -144,7 +144,7 @@ sed 's/^chr//g' | sed 's/\-/_/g' | sort -Vk1,1 -k2,2n -k3,3n -k4,4 > \
 ${WRKDIR}/data/misc/exons_boundaries_dictionary/boundaries.bed
 
 #####Test all VF filters for CNV/DEL/DUP for GERM and CNCR
-#1k independent tests per gene set size
+#100 independent tests per gene set size
 #1k permutations per test
 for VF in E2 E3 E4 N1; do
   if [ -e ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF} ]; then
@@ -168,6 +168,37 @@ for VF in E2 E3 E4 N1; do
           "${WRKDIR}/bin/rCNVmap/analysis_scripts/run_geneSet_enrichment_permutations.sh \
            ${VF} ${CNV} ${pheno} ${n} ${W}"
          done
+      done
+    done
+  done
+done
+
+#####Collect results from gene set shuffling permutation tests
+if [ -e ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/results ]; then
+  rm -rf ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/results
+fi
+mkdir ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/results
+for VF in E2 E3 E4 N1; do
+  if [ -e ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/results/${VF} ]; then
+    rm -rf ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/results/${VF}
+  fi
+  mkdir ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/results/${VF}
+  for CNV in CNV DEL DUP; do
+    if [ -e ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/results/${VF}/${CNV} ]; then
+      rm -rf ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/results/${VF}/${CNV}
+    fi
+    mkdir ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/results/${VF}/${CNV}
+    for pheno in GERM CNCR; do
+      if [ -e ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/results/${VF}/${CNV}/${pheno} ]; then
+        rm -rf ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/results/${VF}/${CNV}/${pheno}
+      fi
+      mkdir ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/results/${VF}/${CNV}/${pheno}
+      for n in 5 10 50 100 1000 5000 10000; do
+        for W in 0 1; do
+          bsub -q short -sla miket_sc -J collectPermutations_${pheno}_${CNV}_${VF}_${size}bp_x${n} -u nobody \
+          "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_set_enrichment_permutations.sh \
+          ${VF} ${CNV} ${pheno} ${n} ${size} ${sd}"
+        done
       done
     done
   done
