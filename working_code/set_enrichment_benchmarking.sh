@@ -196,8 +196,8 @@ for VF in E2 E3 E4 N1; do
       for n in 5 10 50 100 1000 5000 10000; do
         for W in 0 1; do
           bsub -q short -sla miket_sc -J collectPermutations_${pheno}_${CNV}_${VF}_${size}bp_x${n} -u nobody \
-          "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_set_enrichment_permutations.sh \
-          ${VF} ${CNV} ${pheno} ${n} ${size} ${sd}"
+          "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_geneSet_enrichment_permutations.sh \
+          ${VF} ${CNV} ${pheno} ${n} ${W}"
         done
       done
     done
