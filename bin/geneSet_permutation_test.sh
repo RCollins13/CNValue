@@ -143,7 +143,7 @@ else
   EXONS=`mktemp`
   cp ${OVER}/exons.bed ${EXONS}
   BOUNDARIES=`mktemp`
-  cp ${OVER}/boundaries.bed ${EXONS}
+  cp ${OVER}/boundaries.bed ${BOUNDARIES}
 fi
 
 #Subset exons and boundaries to autosomes unless optioned
