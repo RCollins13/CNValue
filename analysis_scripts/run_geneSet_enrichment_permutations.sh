@@ -35,7 +35,7 @@ n=$4
 W=$5
 
 #####run
-for i in $( seq -w 0001 0100 ); do
+for i in $( seq -w 0001 1000 ); do
 	echo -e "STARTING TEST ${i}"
   if [ ${W} -eq 0 ]; then
     ${WRKDIR}/bin/rCNVmap/bin/geneSet_permutation_test.sh -N 1000 \
