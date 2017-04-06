@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-#TEST
-
 ##############################
 #    Rare CNV Map Project    #
 ##############################
@@ -32,14 +30,9 @@ SFARI_ANNO=/data/talkowski/Samples/SFARI/ASC_analysis/annotations
 tissue=$1
 
 #####run
-for i in $( seq -w 0001 0100 | paste -s ); do
-  if [ ${W} == 0 ]; then
-  	if [ -e ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF}/${CNV}/${pheno}/results_exons_n${n}_i${i}.txt ]; then 
-  	  fgrep -v "#" ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF}/${CNV}/${pheno}/results_exons_n${n}_i${i}.txt | awk '{ print $NF }'
-  	fi
-  else
-    if [ -e ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF}/${CNV}/${pheno}/results_wholegenes_n${n}_i${i}.txt ]; then 
-      fgrep -v "#" ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF}/${CNV}/${pheno}/results_wholegenes_n${n}_i${i}.txt | awk '{ print $NF }'
-    fi
-  fi
-done > ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/results/${VF}/${CNV}/${pheno}/${VF}_results_n${n}_W${W}.txt
+fgrep ">" ${WRKDIR}/data/misc/EnhancerAtlas/${tissue}.fasta | \
+sed -e 's/>//g' -e 's/\:/\t/g' -e 's/\-/\t/g' -e 's/_/\t/g' -e 's/^chr//g' | \
+awk -v OFS="\t" '{ if ($4=="") $4="."; print }' | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -c 4 -o distinct -i - | \
+sed -f ${WRKDIR}/data/master_annotations/gencode/ENSG_to_symbols.sed > \
+${WRKDIR}/data/master_annotations/noncoding/enhancers_${tissue}.elements.bed

@@ -394,12 +394,16 @@ wget http://enhanceratlas.org/data/enhseq/Spleen.fasta
 wget http://enhanceratlas.org/data/enhseq/Thymus.fasta
 while read tissue; do
   echo "${tissue}"
-  fgrep ">" ${WRKDIR}/data/misc/EnhancerAtlas/${tissue}.fasta | \
-  sed -e 's/>//g' -e 's/\:/\t/g' -e 's/\-/\t/g' -e 's/_/\t/g' -e 's/^chr//g' | \
-  awk -v OFS="\t" '{ if ($4=="") $4="."; print }' | \
-  sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -c 4 -o distinct -i - | \
-  sed -f ${WRKDIR}/data/master_annotations/gencode/ENSG_to_symbols.sed > \
-  ${WRKDIR}/data/master_annotations/noncoding/enhancers_${tissue}.elements.bed
+  #CODE:
+  # fgrep ">" ${WRKDIR}/data/misc/EnhancerAtlas/${tissue}.fasta | \
+  # sed -e 's/>//g' -e 's/\:/\t/g' -e 's/\-/\t/g' -e 's/_/\t/g' -e 's/^chr//g' | \
+  # awk -v OFS="\t" '{ if ($4=="") $4="."; print }' | \
+  # sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -c 4 -o distinct -i - | \
+  # sed -f ${WRKDIR}/data/master_annotations/gencode/ENSG_to_symbols.sed > \
+  # ${WRKDIR}/data/master_annotations/noncoding/enhancers_${tissue}.elements.bed
+  #PARALLELIZE:
+  bsub -q short -sla miket_sc -u nobody -J ${tissue}_curateEnhancers \
+  "${WRKDIR}/bin/rCNVmap/analysis_scripts/curate_enhancers.sh ${tissue}"
 done < <( l ${WRKDIR}/data/misc/EnhancerAtlas/*fasta | awk '{ print $9 }' | \
   sed -e 's/\//\t/g' -e 's/\.fasta//g' | awk '{ print $NF }' )
 #Super Enhancers (dbSUPER)
