@@ -105,6 +105,16 @@ for filter in all protein_coding notHaplosufficient; do
   #Full path to file
   readlink -f ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.${filter}.bed
 done | paste - - -
+#Create master sed file for transforming ENSG* IDs into gene symbols
+awk -v FS="\t" '{ if ($3=="gene") print $0 }' \
+${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf | \
+sed -e 's/gene_id/\t/g' -e 's/gene_name/\t/g' -e 's/\;\ transcript_id/\t/g' -e 's/\;\ transcript_type/\t/g' | \
+awk -v OFS="\t" -v FS="\t" '{ print $10, $12 }' | tr -d "\"" | sed 's/^ //g' | \
+sort | uniq > ${TMPDIR}/ENSG_to_symbols.tmp
+paste <( cut -f1 ${TMPDIR}/ENSG_to_symbols.tmp | cut -f1 -d\. ) \
+<( cut -f2 ${TMPDIR}/ENSG_to_symbols.tmp | sed 's/\-/\\\-/g' ) | \
+awk '{ print "s/"$1"/"$2"/g" }' > \
+${WRKDIR}/data/master_annotations/gencode/ENSG_to_symbols.sed
 
 
 
@@ -350,6 +360,52 @@ while read abbrev tissue; do
   awk -v OFS="\t" '{ if ($1==$4) print $1, $3, $5 }' | awk '{ if ($3-$2<=5000000) print $0 }' > \
   ${WRKDIR}/data/master_annotations/noncoding/TADs_${tissue}.elements.bed
 done < ${WRKDIR}/data/misc/Schmitt_tissues.list
+#Enhancers (EnhancerAtlas)
+mkdir ${WRKDIR}/data/misc/EnhancerAtlas
+cd ${WRKDIR}/data/misc/EnhancerAtlas
+wget http://enhanceratlas.org/data/enhseq/Astrocyte.fasta
+wget http://enhanceratlas.org/data/enhseq/Bronchia_epithelial.fasta
+wget http://enhanceratlas.org/data/enhseq/Esophagus.fasta
+wget http://enhanceratlas.org/data/enhseq/Fetal_brain.fasta
+wget http://enhanceratlas.org/data/enhseq/Fetal_heart.fasta
+wget http://enhanceratlas.org/data/enhseq/Fetal_kidney.fasta
+wget http://enhanceratlas.org/data/enhseq/Fetal_lung.fasta
+wget http://enhanceratlas.org/data/enhseq/Fetal_muscle_leg.fasta
+wget http://enhanceratlas.org/data/enhseq/Fetal_placenta.fasta
+wget http://enhanceratlas.org/data/enhseq/Fetal_small_intestine.fasta
+wget http://enhanceratlas.org/data/enhseq/Fetal_spinal_cord.fasta
+wget http://enhanceratlas.org/data/enhseq/Fetal_stomach.fasta
+wget http://enhanceratlas.org/data/enhseq/Fetal_thymus.fasta
+wget http://enhanceratlas.org/data/enhseq/Fibroblast_foreskin.fasta
+wget http://enhanceratlas.org/data/enhseq/Foreskin_keratinocyte.fasta
+wget http://enhanceratlas.org/data/enhseq/Heart.fasta
+wget http://enhanceratlas.org/data/enhseq/Left_ventricle.fasta
+wget http://enhanceratlas.org/data/enhseq/Liver.fasta
+wget http://enhanceratlas.org/data/enhseq/Lung.fasta
+wget http://enhanceratlas.org/data/enhseq/Macrophage.fasta
+wget http://enhanceratlas.org/data/enhseq/Myotube.fasta
+wget http://enhanceratlas.org/data/enhseq/Osteoblast.fasta
+wget http://enhanceratlas.org/data/enhseq/Ovary.fasta
+wget http://enhanceratlas.org/data/enhseq/Pancreas.fasta
+wget http://enhanceratlas.org/data/enhseq/Pancreatic_islet.fasta
+wget http://enhanceratlas.org/data/enhseq/Skeletal_muscle.fasta
+wget http://enhanceratlas.org/data/enhseq/Small_intestine.fasta
+wget http://enhanceratlas.org/data/enhseq/Spleen.fasta
+wget http://enhanceratlas.org/data/enhseq/Thymus.fasta
+while read tissue; do
+  echo "${tissue}"
+  fgrep ">" ${WRKDIR}/data/misc/EnhancerAtlas/${tissue}.fasta | \
+  sed -e 's/>//g' -e 's/\:/\t/g' -e 's/\-/\t/g' -e 's/_/\t/g' -e 's/^chr//g' | \
+  awk -v OFS="\t" '{ if ($4=="") $4="."; print }' | \
+  sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -c 4 -o distinct -i - | \
+  sed -f ${WRKDIR}/data/master_annotations/gencode/ENSG_to_symbols.sed > \
+  ${WRKDIR}/data/master_annotations/noncoding/enhancers_${tissue}.elements.bed
+done < <( l ${WRKDIR}/data/misc/EnhancerAtlas/*fasta | awk '{ print $9 }' | \
+  sed -e 's/\//\t/g' -e 's/\.fasta//g' | awk '{ print $NF }' )
+#Super Enhancers (dbSUPER)
+
+
+
 #PhastCons conservation peaks
 
 #PhyloP conservation peaks
