@@ -513,7 +513,7 @@ while read tissue; do
     mv ${WRKDIR}/data/master_annotations/noncoding/superEnhancers_${tissue}.elements.bed \
     ${newname}
   fi
-done < ${WRKDIR}/data/misc/SuperEnhancer_tissues.list
+done < <( tail -n3 ${WRKDIR}/data/misc/SuperEnhancer_tissues.list )
 #Conserved super enhancers
 while read tissue; do
   cat ${WRKDIR}/data/master_annotations/noncoding/superEnhancers_${tissue}.elements.bed
@@ -527,21 +527,43 @@ while read tissue; do
   ${TMPDIR}/merged_superEnhancers.tmp2
   mv ${TMPDIR}/merged_superEnhancers.tmp2 ${TMPDIR}/merged_superEnhancers.tmp
 done < <( sed 's/\-//g' ${WRKDIR}/data/misc/SuperEnhancer_tissues.list ) 
-awk -v OFS="\t" '{ if ($4>30) print $1, $2, $3 }' ${TMPDIR}/merged_superEnhancers.tmp > \
+awk -v OFS="\t" '{ if ($4>32) print $1, $2, $3 }' ${TMPDIR}/merged_superEnhancers.tmp > \
 ${WRKDIR}/data/master_annotations/noncoding/superEnhancers_conserved.elements.bed
-awk -v OFS="\t" '{ if ($4>54) print $1, $2, $3 }' ${TMPDIR}/merged_superEnhancers.tmp > \
+awk -v OFS="\t" '{ if ($4>57) print $1, $2, $3 }' ${TMPDIR}/merged_superEnhancers.tmp > \
 ${WRKDIR}/data/master_annotations/noncoding/superEnhancers_highlyConserved.elements.bed
-
-
-
-
-
-
 #ChromHMM on 98 epigenomes
+#Note: requires manually curated tissue file, ${WRKDIR}/data/misc/Roadmap_Epi_tissues.list
+#Note: also requires maunually curated ChromHMM mappings, 
 mkdir ${WRKDIR}/data/misc/ChromHMM
 cd ${WRKDIR}/data/misc/ChromHMM
 wget http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/core_K27ac/jointModel/final/all.mnemonics.bedFiles.tgz
 tar -xzvf ${WRKDIR}/data/misc/ChromHMM/all.mnemonics.bedFiles.tgz
+while read EID tissue; do
+  echo ${tissue}
+  while read code state; do
+    zcat ${WRKDIR}/data/misc/ChromHMM/${EID}_18_core_K27ac_mnemonics.bed.gz | \
+    awk -v OFS="\t" -v code=${code} '{ if ($4==code) print $1, $2, $3 }' | \
+    sed 's/^chr//g' | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+    ${WRKDIR}/data/master_annotations/noncoding/${state}_${tissue}.elements.bed
+  done < ${WRKDIR}/data/misc/ChromHMM_18way_states.list
+done < ${WRKDIR}/data/misc/Roadmap_Epi_tissues.list
+#eQTLs by tissue (GTEx)
+mkdir ${WRKDIR}/data/misc/GTEx_eQTL
+cd ${WRKDIR}/data/misc/GTEx_eQTL
+wget https://gtexportal.org/static/datasets/gtex_analysis_v6p/single_tissue_eqtl_data/GTEx_Analysis_v6p_eQTL.tar
+tar -xvf ${WRKDIR}/data/misc/GTEx_eQTL/GTEx_Analysis_v6p_eQTL.tar
+while read tissue; do
+  ntissue=$( echo ${tissue} | sed 's/\-/_/g' )
+  zcat ${WRKDIR}/data/misc/GTEx_eQTL/GTEx_Analysis_v6p_eQTL/${tissue}_Analysis.v6p.signif_snpgene_pairs.txt.gz | \
+  cut -f1-2 | sed 's/\./\t/g' | cut -f1-2 | sed '1d' | sed 's/_/\t/g' | awk -v OFS="\t" \
+  '{ print $1, $2, $2+length($4), $6 }' | sort -Vk1,1 -k2,2n -k3,3n | \
+  bedtools merge -c 4 -o distinct -i - | \
+  sed -f ${WRKDIR}/data/master_annotations/gencode/ENSG_to_symbols.sed > \
+  ${WRKDIR}/data/master_annotations/noncoding/eQTLs_${ntissue}.elements.bed
+done < <( l ${WRKDIR}/data/misc/GTEx_eQTL/GTEx_Analysis_v6p_eQTL/*_Analysis.v6p.signif_snpgene_pairs.txt.gz | \
+  sed 's/\//\t/g' | awk '{ print $NF }' | \
+  sed 's/_Analysis\.v6p\.signif_snpgene_pairs\.txt\.gz//g' | sort -Vk1,1 )
+
 
 #PhastCons conservation peaks
 
@@ -557,7 +579,7 @@ tar -xzvf ${WRKDIR}/data/misc/ChromHMM/all.mnemonics.bedFiles.tgz
 
 #Repeat masker
 
-#Get count of elements per noncoding set
+#Get count of elements per noncoding set (all)
 while read list; do
   for dummy in 1; do
     echo -e "${list}"
@@ -579,8 +601,32 @@ while read list; do
     fgrep -v WARNING
   done | paste -s
 done < <( l ${WRKDIR}/data/master_annotations/noncoding/*elements.bed | \
-  awk '{ print $9 }' )
-
+  awk '{ print $9 }' | fgrep Flanking_TSS | fgrep -v Upstream | fgrep -v Downstream )
+#Get count of elements per noncoding set (ChromHMM, ordered by state)
+while read code state; do
+  while read list; do
+    for dummy in 1; do
+      echo -e "${list}"
+      #All elements (count)
+      cat ${list} | wc -l
+      #Write element size to temporary file
+      awk '{ print $3-$2 }' ${list} > ${TMPDIR}/element_size.tmp
+      #Mean size & std dev
+      Rscript -e "x <- read.table(\"${TMPDIR}/element_size.tmp\",header=F)[,1]; \
+      cat(paste(round(mean(x),2),\"\\n\",round(sd(x),2),\"\\n\",sep=\"\"))" | \
+      fgrep -v WARNING
+      #Autosomal elements (count)
+      grep -e '^[0-9]' ${list} | wc -l
+      #Write autosomal element size to temporary file
+      grep -e '^[0-9]' ${list} | awk '{ print $3-$2 }' > ${TMPDIR}/element_size.tmp
+      #Mean autosomal size & std dev
+      Rscript -e "x <- read.table(\"${TMPDIR}/element_size.tmp\",header=F)[,1]; \
+      cat(paste(round(mean(x),2),\"\\n\",round(sd(x),2),\"\\n\",sep=\"\"))" | \
+      fgrep -v WARNING
+    done | paste -s
+  done < <( l ${WRKDIR}/data/master_annotations/noncoding/*elements.bed | \
+    awk '{ print $9 }' | fgrep ${state} )
+done < ${WRKDIR}/data/misc/ChromHMM_18way_states.list
 
 
 
