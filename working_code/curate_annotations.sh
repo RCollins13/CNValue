@@ -407,8 +407,16 @@ while read tissue; do
 done < <( l ${WRKDIR}/data/misc/EnhancerAtlas/*fasta | awk '{ print $9 }' | \
   sed -e 's/\//\t/g' -e 's/\.fasta//g' | awk '{ print $NF }' )
 #Super Enhancers (dbSUPER)
-
-
+#Note: requires manually curated source-tissue linking file
+mkdir ${WRKDIR}/data/misc/dbSUPER
+cd ${WRKDIR}/data/misc/dbSUPER
+wget http://bioinfo.au.tsinghua.edu.cn/dbsuper/data/bed/hg19/all_hg19_bed.zip
+unzip ${WRKDIR}/data/misc/dbSUPER/all_hg19_bed.zip
+#ChromHMM on 127 Roadmap epigenomes
+mkdir ${WRKDIR}/data/misc/ChromHMM
+cd ${WRKDIR}/data/misc/ChromHMM
+wget http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/coreMarks/jointModel/final/all.expanded.browserFiles.tgz
+tar -xzvf ${WRKDIR}/data/misc/ChromHMM/all.expanded.browserFiles.tgz
 
 #PhastCons conservation peaks
 
