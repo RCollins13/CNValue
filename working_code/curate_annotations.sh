@@ -78,9 +78,14 @@ for filter in all protein_coding notHaplosufficient; do
   #Median element size
   awk '{ print $3-$2 }' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.${filter}.bed | \
   sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
+  #Count of elements (autosomal)
+  grep -e '^[1-9]' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.${filter}.bed | wc -l
+  #Median element size (autosomal)
+  grep -e '^[1-9]' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.${filter}.bed | \
+  awk '{ print $3-$2 }' | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
   #Full path to file
   readlink -f ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.${filter}.bed
-done | paste - - -
+done | paste - - - - -
 #Create master bed file of gene boundaries
 fgrep -v "#" ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf | \
 sed 's/gene_name/\t/g' | awk -v FS="\t" -v OFS="\t" '{ if ($3=="gene") print $1, $4, $5, $10 }' | \
@@ -102,8 +107,53 @@ for filter in all protein_coding notHaplosufficient; do
   #Median element size
   awk '{ print $3-$2 }' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.${filter}.bed | \
   sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
+  #Count of elements (autosomal)
+  grep -e '^[1-9]' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.${filter}.bed | wc -l
+  #Median element size (autosomal)
+  grep -e '^[1-9]' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.${filter}.bed | \
+  awk '{ print $3-$2 }' | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
   #Full path to file
   readlink -f ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.${filter}.bed
+done | paste - - - - -
+#Create master bed file of gene promoters
+fgrep -v "#" ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf | \
+sed 's/gene_name/\t/g' | awk -v FS="\t" -v OFS="\t" '{ if ($3=="gene") print $1, $4, $5, $7, $10 }' | \
+sed 's/\;/\t/g' | awk -v FS="\t" -v OFS="\t" '{ print $1, $2, $3, $4, $5 }' | tr -d "\"" | \
+sed 's/^chr//g' | awk -v OFS="\t" '{ if ($4=="+") print $1, $2-5000, $2, $4, $5; else print $1, $3, $3+5000, $4, $5 }' | \
+awk -v OFS="\t" '{ if ($2<1) $2=1; print }' | sort -Vk1,1 -k2,2n -k3,3n -k4,4 > \
+${WRKDIR}/data/master_annotations/gencode/gencode.v19.promoters.all.bed
+#Create master bed file of gene promoters from protein-coding genes
+sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list | \
+fgrep -wf - <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.promoters.all.bed ) | \
+sed 's/_/\-/g' > ${WRKDIR}/data/master_annotations/gencode/gencode.v19.promoters.protein_coding.bed
+#Create master bed file of gene boundaries from protein-coding, not-clearly-haplosufficient genes
+sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/ExAC_notHaplosufficient.genes.list | \
+fgrep -wf - <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.promoters.protein_coding.bed ) | \
+sed 's/_/\-/g' > ${WRKDIR}/data/master_annotations/gencode/gencode.v19.promoters.notHaplosufficient.bed
+#Get number of elements, median element size, and full path for all gencode promoters
+for filter in all protein_coding notHaplosufficient; do
+  #Count of elements
+  cat ${WRKDIR}/data/master_annotations/gencode/gencode.v19.promoters.${filter}.bed | wc -l
+  #Median element size
+  awk '{ print $3-$2 }' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.promoters.${filter}.bed | \
+  sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
+  #Count of elements (autosomal)
+  grep -e '^[1-9]' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.promoters.${filter}.bed | wc -l
+  #Median element size (autosomal)
+  grep -e '^[1-9]' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.promoters.${filter}.bed | \
+  awk '{ print $3-$2 }' | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
+  #Full path to file
+  readlink -f ${WRKDIR}/data/master_annotations/gencode/gencode.v19.promoters.${filter}.bed
+done | paste - - - - -
+#Get number of elements, median element size, and full path for all gencode promoter tracks
+for filter in all protein_coding notHaplosufficient; do
+  #Count of elements
+  cat ${WRKDIR}/data/master_annotations/gencode/gencode.v19.promoters.${filter}.bed | wc -l
+  #Median element size
+  awk '{ print $3-$2 }' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.promoters.${filter}.bed | \
+  sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
+  #Full path to file
+  readlink -f ${WRKDIR}/data/master_annotations/gencode/gencode.v19.promoters.${filter}.bed
 done | paste - - -
 #Create master sed file for transforming ENSG* IDs into gene symbols
 awk -v FS="\t" '{ if ($3=="gene") print $0 }' \
@@ -406,17 +456,92 @@ while read tissue; do
   "${WRKDIR}/bin/rCNVmap/analysis_scripts/curate_enhancers.sh ${tissue}"
 done < <( l ${WRKDIR}/data/misc/EnhancerAtlas/*fasta | awk '{ print $9 }' | \
   sed -e 's/\//\t/g' -e 's/\.fasta//g' | awk '{ print $NF }' )
+#Conserved enhancers
+while read tissue; do
+  cat ${WRKDIR}/data/master_annotations/noncoding/enhancers_${tissue}.elements.bed
+done < <( l ${WRKDIR}/data/misc/EnhancerAtlas/*fasta | awk '{ print $9 }' | \
+  sed -e 's/\//\t/g' -e 's/\.fasta//g' | awk '{ print $NF }' ) | cut -f1-3 | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | awk -v OFS="\t" '{ print $1, $2, $3, 0 }' > \
+${TMPDIR}/merged_enhancers.tmp
+while read tissue; do
+  bedtools intersect -c -a ${TMPDIR}/merged_enhancers.tmp \
+  -b ${WRKDIR}/data/master_annotations/noncoding/enhancers_${tissue}.elements.bed | \
+  awk -v OFS="\t" '{ if ($5>0) $5=1; print $1, $2, $3, $4+$5 }' > \
+  ${TMPDIR}/merged_enhancers.tmp2
+  mv ${TMPDIR}/merged_enhancers.tmp2 ${TMPDIR}/merged_enhancers.tmp
+done < <( l ${WRKDIR}/data/misc/EnhancerAtlas/*fasta | awk '{ print $9 }' | \
+  sed -e 's/\//\t/g' -e 's/\.fasta//g' | awk '{ print $NF }' ) 
+awk -v OFS="\t" '{ if ($4>15) print $1, $2, $3 }' ${TMPDIR}/merged_enhancers.tmp > \
+${WRKDIR}/data/master_annotations/noncoding/enhancers_conserved.elements.bed
+awk -v OFS="\t" '{ if ($4>26) print $1, $2, $3 }' ${TMPDIR}/merged_enhancers.tmp > \
+${WRKDIR}/data/master_annotations/noncoding/enhancers_highlyConserved.elements.bed
 #Super Enhancers (dbSUPER)
-#Note: requires manually curated source-tissue linking file
+#Note: requires manually curated tissue file, ${WRKDIR}/data/misc/SuperEnhancer_tissues.list
 mkdir ${WRKDIR}/data/misc/dbSUPER
 cd ${WRKDIR}/data/misc/dbSUPER
 wget http://bioinfo.au.tsinghua.edu.cn/dbsuper/data/bed/hg19/all_hg19_bed.zip
 unzip ${WRKDIR}/data/misc/dbSUPER/all_hg19_bed.zip
-#ChromHMM on 127 Roadmap epigenomes
+while read tissue; do
+  echo ${tissue}
+  otissue=$( echo ${tissue} | sed 's/_/\ /g' )
+  #Get super enhancers from file
+  cut -f1-3 "${WRKDIR}/data/misc/dbSUPER/all_hg19_bed/${otissue}.bed" | \
+  sed 's/^chr//g' | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | \
+  awk -v OFS="\t" '{ print $1, $2, $3, "SUPER_"NR }' > \
+  ${WRKDIR}/data/master_annotations/noncoding/superEnhancers_${tissue}.elements.bed
+  #Add all protein-coding genes within ±50kb
+  awk -v OFS="\t" '{ print $1, $2-50000, $3+50000, $4 }' \
+  ${WRKDIR}/data/master_annotations/noncoding/superEnhancers_${tissue}.elements.bed | \
+  awk -v OFS="\t" '{ if ($2<1) $2=1; print }' | bedtools intersect -wb -a - \
+  -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.promoters.protein_coding.bed > \
+  ${TMPDIR}/superEnh_wGenes.tmp
+  while read chr start end enhID; do
+    genes=$( fgrep -w ${enhID} ${TMPDIR}/superEnh_wGenes.tmp | cut -f9 | \
+      sort | uniq | paste -s -d, | sed 's/\ //g' )
+    if [ -z ${genes} ]; then
+      genes="."
+    fi
+    echo -e "${chr}\t${start}\t${end}\t${genes}"
+  done < ${WRKDIR}/data/master_annotations/noncoding/superEnhancers_${tissue}.elements.bed > \
+  ${WRKDIR}/data/master_annotations/noncoding/superEnhancers_${tissue}.elements.bed2
+  mv ${WRKDIR}/data/master_annotations/noncoding/superEnhancers_${tissue}.elements.bed2 \
+  ${WRKDIR}/data/master_annotations/noncoding/superEnhancers_${tissue}.elements.bed
+  #Rename file
+  newname=$( echo "${WRKDIR}/data/master_annotations/noncoding/superEnhancers_${tissue}.elements.bed" | \
+  sed 's/\-//g' )
+  if [ ${WRKDIR}/data/master_annotations/noncoding/superEnhancers_${tissue}.elements.bed != "${newname}" ]; then
+    mv ${WRKDIR}/data/master_annotations/noncoding/superEnhancers_${tissue}.elements.bed \
+    ${newname}
+  fi
+done < ${WRKDIR}/data/misc/SuperEnhancer_tissues.list
+#Conserved super enhancers
+while read tissue; do
+  cat ${WRKDIR}/data/master_annotations/noncoding/superEnhancers_${tissue}.elements.bed
+done < <( sed 's/\-//g' ${WRKDIR}/data/misc/SuperEnhancer_tissues.list ) | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | awk -v OFS="\t" '{ print $1, $2, $3, 0 }' > \
+${TMPDIR}/merged_superEnhancers.tmp
+while read tissue; do
+  bedtools intersect -c -a ${TMPDIR}/merged_superEnhancers.tmp \
+  -b ${WRKDIR}/data/master_annotations/noncoding/superEnhancers_${tissue}.elements.bed | \
+  awk -v OFS="\t" '{ if ($5>0) $5=1; print $1, $2, $3, $4+$5 }' > \
+  ${TMPDIR}/merged_superEnhancers.tmp2
+  mv ${TMPDIR}/merged_superEnhancers.tmp2 ${TMPDIR}/merged_superEnhancers.tmp
+done < <( sed 's/\-//g' ${WRKDIR}/data/misc/SuperEnhancer_tissues.list ) 
+awk -v OFS="\t" '{ if ($4>30) print $1, $2, $3 }' ${TMPDIR}/merged_superEnhancers.tmp > \
+${WRKDIR}/data/master_annotations/noncoding/superEnhancers_conserved.elements.bed
+awk -v OFS="\t" '{ if ($4>54) print $1, $2, $3 }' ${TMPDIR}/merged_superEnhancers.tmp > \
+${WRKDIR}/data/master_annotations/noncoding/superEnhancers_highlyConserved.elements.bed
+
+
+
+
+
+
+#ChromHMM on 98 epigenomes
 mkdir ${WRKDIR}/data/misc/ChromHMM
 cd ${WRKDIR}/data/misc/ChromHMM
-wget http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/coreMarks/jointModel/final/all.expanded.browserFiles.tgz
-tar -xzvf ${WRKDIR}/data/misc/ChromHMM/all.expanded.browserFiles.tgz
+wget http://egg2.wustl.edu/roadmap/data/byFileType/chromhmmSegmentations/ChmmModels/core_K27ac/jointModel/final/all.mnemonics.bedFiles.tgz
+tar -xzvf ${WRKDIR}/data/misc/ChromHMM/all.mnemonics.bedFiles.tgz
 
 #PhastCons conservation peaks
 
