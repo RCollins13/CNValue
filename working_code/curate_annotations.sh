@@ -647,6 +647,33 @@ while read tissue; do
 done < <( l ${WRKDIR}/data/misc/GTEx_eQTL/GTEx_Analysis_v6p_eQTL/*_Analysis.v6p.signif_snpgene_pairs.txt.gz | \
   sed 's/\//\t/g' | awk '{ print $NF }' | \
   sed 's/_Analysis\.v6p\.signif_snpgene_pairs\.txt\.gz//g' | sort -Vk1,1 )
+#Conserved eQTLs
+while read tissue; do
+  ntissue=$( echo ${tissue} | sed 's/\-/_/g' )
+  cut -f1-3 ${WRKDIR}/data/master_annotations/noncoding/eQTLs_${ntissue}.elements.bed
+done < <( l ${WRKDIR}/data/misc/GTEx_eQTL/GTEx_Analysis_v6p_eQTL/*_Analysis.v6p.signif_snpgene_pairs.txt.gz | \
+  sed 's/\//\t/g' | awk '{ print $NF }' | \
+  sed 's/_Analysis\.v6p\.signif_snpgene_pairs\.txt\.gz//g' | sort -Vk1,1 ) | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | awk -v OFS="\t" \
+'{ print $1, $2, $3, "0" }' > ${TMPDIR}/eQTLs_merged.bed
+while read tissue; do
+  ntissue=$( echo ${tissue} | sed 's/\-/_/g' )
+  bedtools intersect -c -a ${TMPDIR}/eQTLs_merged.bed \
+  -b ${WRKDIR}/data/master_annotations/noncoding/eQTLs_${ntissue}.elements.bed | \
+  awk '{ if ($5>0) $5=1; print $1, $2, $3, $4+$5 }' > \
+  ${TMPDIR}/eQTLs_merged.bed2
+  mv ${TMPDIR}/eQTLs_merged.bed2 ${TMPDIR}/eQTLs_merged.bed
+done < <( l ${WRKDIR}/data/misc/GTEx_eQTL/GTEx_Analysis_v6p_eQTL/*_Analysis.v6p.signif_snpgene_pairs.txt.gz | \
+  sed 's/\//\t/g' | awk '{ print $NF }' | \
+  sed 's/_Analysis\.v6p\.signif_snpgene_pairs\.txt\.gz//g' | sort -Vk1,1 )
+awk -v OFS="\t" '{ if ($4/44>0.5) print $1, $2, $3 }' ${TMPDIR}/eQTLs_merged.bed | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+${WRKDIR}/data/master_annotations/noncoding/eQTLs_conserved.elements.bed
+
+
+
+
+
 #CpG Islands
 cd ${WRKDIR}/data/misc
 wget http://hgdownload.cse.ucsc.edu/goldenpath/hg19/database/cpgIslandExtUnmasked.txt.gz
@@ -721,8 +748,18 @@ ${WRKDIR}/data/master_annotations/noncoding/lateReplicating_Koren.elements.bed
 #Differentially methylated regions (DMRs)
 mkdir ${WRKDIR}/data/misc/DMRs
 cd ${WRKDIR}/data/misc/DMRs
-
-
+wget ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE46nnn/GSE46644/suppl/GSE46644_SamplesOverview.txt.gz
+wget ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE46nnn/GSE46644/suppl/GSE46644_SupplementaryTable.txt.gz
+wget ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE46nnn/GSE46644/suppl/GSE46644_SupplementaryTable_readme.txt.gz
+${WRKDIR}/bin/rCNVmap/analysis_scripts/curate_DMRs.R \
+${WRKDIR}/data/misc/DMRs/GSE46644_SupplementaryTable.txt.gz \
+${WRKDIR}/data/misc/DMRs/
+while read tissue; do
+  sort -Vk1,1 -k2,2n -k3,3n ${WRKDIR}/data/misc/DMRs/${tissue}_mean.DMRs.bed | \
+  bedtools merge -i - > \
+  ${WRKDIR}/data/master_annotations/noncoding/DMRs_${tissue}.elements.bed
+done < <( l ${WRKDIR}/data/misc/DMRs/*bed | awk '{ print $9 }' | cut -f1 -d\. | \
+  sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/_mean//g' )
 
 #Get count of elements per noncoding set (all)
 while read list; do
@@ -747,7 +784,7 @@ while read list; do
     fgrep -v WARNING
   done | paste -s
 done < <( l ${WRKDIR}/data/master_annotations/noncoding/*elements.bed | \
-  awk '{ print $9 }' | fgrep Conserved_consensus )
+  awk '{ print $9 }' | fgrep DMRs )
 #Get count of elements per noncoding set (ChromHMM, ordered by state)
 while read code state; do
   while read list; do

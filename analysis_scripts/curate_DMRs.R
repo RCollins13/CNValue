@@ -13,7 +13,7 @@ splitDMRs <- function(path,outdir){
   #Iterate over all DMRs and return the column of the 
   #most hypomethylated sample
   mins <- as.vector(unlist(apply(dat[,-c(1:3)],1,function(vals){
-    return(which(vals==min(vals,na.rm=T))+3)
+    return(which(vals==min(vals,na.rm=T))[1]+3)
   })))
   
   #Iterate over all samples and write tissue-specific 
