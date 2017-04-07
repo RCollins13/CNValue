@@ -10,8 +10,6 @@
 # Code development credits availble on GitHub
 
 #Master annotation curation code
-
-#####Set parameters
 WRKDIR=/data/talkowski/Samples/rCNVmap
 cd ${WRKDIR}
 h37=/data/talkowski/tools/ref/Ensembl_hgGRCh37_71_reord_bwa07/Ensembl_hgGRCh37_71_ERCC_reord.fa
@@ -395,7 +393,7 @@ ${TMPDIR}/TBRs_conserved.elements.bed
 while read abbrev tissue; do
   bedtools intersect -c -a ${TMPDIR}/TBRs_conserved.elements.bed \
   -b ${WRKDIR}/data/master_annotations/noncoding/TBRs_${tissue}.elements.bed | \
-  awk -v OFS="\t" '{ if ($5>0) print $1, $2, $3, $4+1; else print $1, $2, $3, $4 }' > \
+  awk -v OFS="\t" '{ if ($5>0) $5=1; print $1, $2, $3, $4+$5 }' > \
   ${TMPDIR}/TBRs_conserved.elements.bed2
   mv ${TMPDIR}/TBRs_conserved.elements.bed2 ${TMPDIR}/TBRs_conserved.elements.bed
 done < ${WRKDIR}/data/misc/Schmitt_tissues.list
@@ -410,6 +408,68 @@ while read abbrev tissue; do
   awk -v OFS="\t" '{ if ($1==$4) print $1, $3, $5 }' | awk '{ if ($3-$2<=5000000) print $0 }' > \
   ${WRKDIR}/data/master_annotations/noncoding/TADs_${tissue}.elements.bed
 done < ${WRKDIR}/data/misc/Schmitt_tissues.list
+#Compartments 
+while read abbrev tissue; do
+  echo ${tissue}
+  if [ -e ${SFARI_ANNO}/TADs/Schmitt2016/Compartment_primary_cohort/${abbrev}.pc.bw ]; then
+    ${WRKDIR}/bin/utils/bigWigToBedGraph \
+    ${SFARI_ANNO}/TADs/Schmitt2016/Compartment_primary_cohort/${abbrev}.pc.bw \
+    ${SFARI_ANNO}/TADs/Schmitt2016/Compartment_primary_cohort/${abbrev}.pc.bg;
+  else
+    lower=$( echo ${abbrev} | tr "A-Z" "a-z" )
+    ${WRKDIR}/bin/utils/bigWigToBedGraph \
+    ${SFARI_ANNO}/TADs/Schmitt2016/Compartment_primary_cohort/${lower}.pc.bw \
+    ${SFARI_ANNO}/TADs/Schmitt2016/Compartment_primary_cohort/${abbrev}.pc.bg
+  fi
+done < ${WRKDIR}/data/misc/Schmitt_tissues.list
+while read abbrev tissue; do
+  cutoff=$( cut -f4 ${SFARI_ANNO}/TADs/Schmitt2016/Compartment_primary_cohort/${abbrev}.pc.bg | \
+  sort -nrk1,1 | perl -e '$d=.1;@l=<>;print $l[int($d*$#l)]' )
+  awk -v OFS="\t" -v cutoff=${cutoff} '{ if ($4>=cutoff) print $1, $2, $3 }' \
+  ${SFARI_ANNO}/TADs/Schmitt2016/Compartment_primary_cohort/${abbrev}.pc.bg | \
+  sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | sed 's/^chr//g' > \
+  ${WRKDIR}/data/master_annotations/noncoding/strongCompartmentsA_${tissue}.elements.bed
+  cutoff=$( cut -f4 ${SFARI_ANNO}/TADs/Schmitt2016/Compartment_primary_cohort/${abbrev}.pc.bg | \
+  sort -nrk1,1 | perl -e '$d=.9;@l=<>;print $l[int($d*$#l)]' )
+  awk -v OFS="\t" -v cutoff=${cutoff} '{ if ($4<=cutoff) print $1, $2, $3 }' \
+  ${SFARI_ANNO}/TADs/Schmitt2016/Compartment_primary_cohort/${abbrev}.pc.bg | \
+  sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | sed 's/^chr//g' > \
+  ${WRKDIR}/data/master_annotations/noncoding/strongCompartmentsB_${tissue}.elements.bed
+done < ${WRKDIR}/data/misc/Schmitt_tissues.list
+#Conserved A compartments
+while read abbrev tissue; do
+  cut -f1-3 ${WRKDIR}/data/master_annotations/noncoding/strongCompartmentsA_${tissue}.elements.bed
+done < ${WRKDIR}/data/misc/Schmitt_tissues.list | sort -Vk1,1 -k2,2n -k3,3n | \
+bedtools merge -i - | awk -v OFS="\t" '{ print $0, "0" }' > ${TMPDIR}/strongCompartmentsA_conserved.elements.bed
+while read abbrev tissue; do
+  bedtools intersect -c -a ${TMPDIR}/strongCompartmentsA_conserved.elements.bed \
+  -b ${WRKDIR}/data/master_annotations/noncoding/strongCompartmentsA_${tissue}.elements.bed | \
+  awk -v OFS="\t" '{ if ($5>0) $5=1; print $1, $2, $3, $4+$5 }' > \
+  ${TMPDIR}/strongCompartmentsA_conserved.elements.bed2
+  mv ${TMPDIR}/strongCompartmentsA_conserved.elements.bed2 \
+  ${TMPDIR}/strongCompartmentsA_conserved.elements.bed
+done < ${WRKDIR}/data/misc/Schmitt_tissues.list
+awk -v OFS="\t" '{ if ($4/21>0.5) print $1, $2, $3 }' ${TMPDIR}/strongCompartmentsA_conserved.elements.bed > \
+${WRKDIR}/data/master_annotations/noncoding/strongCompartmentsA_conserved.elements.bed
+awk -v OFS="\t" '{ if ($4/21>=0.9) print $1, $2, $3 }' ${TMPDIR}/strongCompartmentsA_conserved.elements.bed > \
+${WRKDIR}/data/master_annotations/noncoding/strongCompartmentsA_highlyConserved.elements.bed
+#Conserved B compartments
+while read abbrev tissue; do
+  cut -f1-3 ${WRKDIR}/data/master_annotations/noncoding/strongCompartmentsB_${tissue}.elements.bed
+done < ${WRKDIR}/data/misc/Schmitt_tissues.list | sort -Vk1,1 -k2,2n -k3,3n | \
+bedtools merge -i - | awk -v OFS="\t" '{ print $0, "0" }' > ${TMPDIR}/strongCompartmentsB_conserved.elements.bed
+while read abbrev tissue; do
+  bedtools intersect -c -a ${TMPDIR}/strongCompartmentsB_conserved.elements.bed \
+  -b ${WRKDIR}/data/master_annotations/noncoding/strongCompartmentsB_${tissue}.elements.bed | \
+  awk -v OFS="\t" '{ if ($5>0) $5=1; print $1, $2, $3, $4+$5 }' > \
+  ${TMPDIR}/strongCompartmentsB_conserved.elements.bed2
+  mv ${TMPDIR}/strongCompartmentsB_conserved.elements.bed2 \
+  ${TMPDIR}/strongCompartmentsB_conserved.elements.bed
+done < ${WRKDIR}/data/misc/Schmitt_tissues.list
+awk -v OFS="\t" '{ if ($4/21>0.5) print $1, $2, $3 }' ${TMPDIR}/strongCompartmentsB_conserved.elements.bed > \
+${WRKDIR}/data/master_annotations/noncoding/strongCompartmentsB_conserved.elements.bed
+awk -v OFS="\t" '{ if ($4/21>=0.9) print $1, $2, $3 }' ${TMPDIR}/strongCompartmentsB_conserved.elements.bed > \
+${WRKDIR}/data/master_annotations/noncoding/strongCompartmentsB_highlyConserved.elements.bed
 #Enhancers (EnhancerAtlas)
 mkdir ${WRKDIR}/data/misc/EnhancerAtlas
 cd ${WRKDIR}/data/misc/EnhancerAtlas
@@ -531,7 +591,7 @@ awk -v OFS="\t" '{ if ($4>32) print $1, $2, $3 }' ${TMPDIR}/merged_superEnhancer
 ${WRKDIR}/data/master_annotations/noncoding/superEnhancers_conserved.elements.bed
 awk -v OFS="\t" '{ if ($4>57) print $1, $2, $3 }' ${TMPDIR}/merged_superEnhancers.tmp > \
 ${WRKDIR}/data/master_annotations/noncoding/superEnhancers_highlyConserved.elements.bed
-#ChromHMM on 98 epigenomes
+#ChromHMM on 75 epigenomes
 #Note: requires manually curated tissue file, ${WRKDIR}/data/misc/Roadmap_Epi_tissues.list
 #Note: also requires maunually curated ChromHMM mappings, 
 mkdir ${WRKDIR}/data/misc/ChromHMM
@@ -547,37 +607,122 @@ while read EID tissue; do
     ${WRKDIR}/data/master_annotations/noncoding/${state}_${tissue}.elements.bed
   done < ${WRKDIR}/data/misc/ChromHMM_18way_states.list
 done < ${WRKDIR}/data/misc/Roadmap_Epi_tissues.list
+#Conserved ChromHMM for all states
+while read code state; do
+  echo ${state}
+  while read EID tissue; do
+    cat ${WRKDIR}/data/master_annotations/noncoding/${state}_${tissue}.elements.bed
+  done < ${WRKDIR}/data/misc/Roadmap_Epi_tissues.list | \
+  sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | awk -v OFS="\t" \
+  '{ print $1, $2, $3, 0 }' > ${TMPDIR}/${state}_merged.bed
+  while read EID tissue; do
+    bedtools intersect -c -a ${TMPDIR}/${state}_merged.bed \
+    -b ${WRKDIR}/data/master_annotations/noncoding/${state}_${tissue}.elements.bed | \
+    awk -v OFS="\t" '{ if ($5>0) $5=1; print $1, $2, $3, $4+$5 }' > \
+    ${TMPDIR}/${state}_merged.bed2
+    mv ${TMPDIR}/${state}_merged.bed2 ${TMPDIR}/${state}_merged.bed
+    awk -v OFS="\t" '{ if ($4/75>0.5) print $1, $2, $3 }' ${TMPDIR}/${state}_merged.bed > \
+    ${WRKDIR}/data/master_annotations/noncoding/${state}_conserved.elements.bed
+    awk -v OFS="\t" '{ if ($4/75>0.9) print $1, $2, $3 }' ${TMPDIR}/${state}_merged.bed > \
+    ${WRKDIR}/data/master_annotations/noncoding/${state}_highlyConserved.elements.bed
+  done < ${WRKDIR}/data/misc/Roadmap_Epi_tissues.list
+done < ${WRKDIR}/data/misc/ChromHMM_18way_states.list
 #eQTLs by tissue (GTEx)
 mkdir ${WRKDIR}/data/misc/GTEx_eQTL
 cd ${WRKDIR}/data/misc/GTEx_eQTL
 wget https://gtexportal.org/static/datasets/gtex_analysis_v6p/single_tissue_eqtl_data/GTEx_Analysis_v6p_eQTL.tar
 tar -xvf ${WRKDIR}/data/misc/GTEx_eQTL/GTEx_Analysis_v6p_eQTL.tar
 while read tissue; do
-  ntissue=$( echo ${tissue} | sed 's/\-/_/g' )
-  zcat ${WRKDIR}/data/misc/GTEx_eQTL/GTEx_Analysis_v6p_eQTL/${tissue}_Analysis.v6p.signif_snpgene_pairs.txt.gz | \
-  cut -f1-2 | sed 's/\./\t/g' | cut -f1-2 | sed '1d' | sed 's/_/\t/g' | awk -v OFS="\t" \
-  '{ print $1, $2, $2+length($4), $6 }' | sort -Vk1,1 -k2,2n -k3,3n | \
-  bedtools merge -c 4 -o distinct -i - | \
-  sed -f ${WRKDIR}/data/master_annotations/gencode/ENSG_to_symbols.sed > \
-  ${WRKDIR}/data/master_annotations/noncoding/eQTLs_${ntissue}.elements.bed
+  #CODE:
+  # ntissue=$( echo ${tissue} | sed 's/\-/_/g' )
+  # zcat ${WRKDIR}/data/misc/GTEx_eQTL/GTEx_Analysis_v6p_eQTL/${tissue}_Analysis.v6p.signif_snpgene_pairs.txt.gz | \
+  # cut -f1-2 | sed 's/\./\t/g' | cut -f1-2 | sed '1d' | sed 's/_/\t/g' | awk -v OFS="\t" \
+  # '{ print $1, $2, $2+length($4), $6 }' | sort -Vk1,1 -k2,2n -k3,3n | \
+  # bedtools merge -c 4 -o distinct -i - | \
+  # sed -f ${WRKDIR}/data/master_annotations/gencode/ENSG_to_symbols.sed > \
+  # ${WRKDIR}/data/master_annotations/noncoding/eQTLs_${ntissue}.elements.bed
+  #PARALLELIZE:
+  bsub -q short -sla miket_sc -u nobody -J ${tissue}_eQTLs \
+  "${WRKDIR}/bin/rCNVmap/analysis_scripts/curate_eQTLs.sh ${tissue}"
 done < <( l ${WRKDIR}/data/misc/GTEx_eQTL/GTEx_Analysis_v6p_eQTL/*_Analysis.v6p.signif_snpgene_pairs.txt.gz | \
   sed 's/\//\t/g' | awk '{ print $NF }' | \
   sed 's/_Analysis\.v6p\.signif_snpgene_pairs\.txt\.gz//g' | sort -Vk1,1 )
-
-
-#PhastCons conservation peaks
-
-#PhyloP conservation peaks
-
-#GERP conservation peaks
-
 #CpG Islands
-
+cd ${WRKDIR}/data/misc
+wget http://hgdownload.cse.ucsc.edu/goldenpath/hg19/database/cpgIslandExtUnmasked.txt.gz
+zcat ${WRKDIR}/data/misc/cpgIslandExtUnmasked.txt.gz | cut -f2-4 | sed 's/^chr//g' | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+${WRKDIR}/data/master_annotations/noncoding/CpG_islands.elements.bed
+#PhyloP conservation peaks
+mkdir ${WRKDIR}/data/misc/PhyloP
+cd ${WRKDIR}/data/misc/PhyloP
+for chr in $( seq 1 22 ); do
+  bsub -q filemove -sla miket_sc -J PhyloP_DL -u nobody \
+  "wget http://hgdownload.cse.ucsc.edu/goldenpath/hg19/phyloP46way/placentalMammals/chr${chr}.phyloP46way.placental.wigFix.gz `pwd`"
+done
+for chr in $( seq 1 22 ); do
+  ${WRKDIR}/bin/utils/wigToBigWig \
+  ${WRKDIR}/data/misc/PhyloP/chr${chr}.phyloP46way.placental.wigFix.gz \
+  <( sed 's/^/chr/g' /data/talkowski/rlc47/src/GRCh37.genome ) \
+  ${WRKDIR}/data/misc/PhyloP/chr${chr}.phyloP46way.placental.bigWig
+done 
+for chr in $( seq 1 22 ); do
+  echo ${chr}
+  ${WRKDIR}//bin/utils/bigWigToBedGraph -chrom=chr${chr} \
+  ${WRKDIR}/data/misc/PhyloP/chr${chr}.phyloP46way.placental.bigWig \
+  ${WRKDIR}/data/misc/PhyloP/chr${chr}.phyloP46way.placental.bg
+done 
+for chr in $( seq 1 22 ); do
+  awk -v OFS="\t" '{ if ($4>=1) print $1, $2, $3 }' \
+  ${WRKDIR}/data/misc/PhyloP/chr${chr}.phyloP46way.placental.bg | \
+  sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -d 100 -i - | \
+  awk -v OFS="\t" '{ if ($3-$2>=200) print $1, $2, $3 }' | sed 's/^chr//g'
+done > \
+${WRKDIR}/data/master_annotations/noncoding/evolutionarilyConserved_PhyloP.elements.bed
+#GERP conservation peaks
+mkdir ${WRKDIR}/data/misc/GERP
+cd ${WRKDIR}/data/misc/GERP
+wget http://mendel.stanford.edu/SidowLab/downloads/gerp/hg19.GERP_elements.tar.gz
+tar -xzvf ${WRKDIR}/data/misc/hg19.GERP_elements.tar.gz
+for chr in $( seq 1 22 ); do
+  cat ${WRKDIR}/data/misc/GERP/hg19_chr${chr}_elems.txt | \
+  awk -v OFS="\t" -v chr=${chr} '{ print chr, $1, $2 }'
+done | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+${WRKDIR}/data/master_annotations/noncoding/evolutionarilyConserved_GERP.elements.bed
+#Consensus conservation peaks
+bedtools intersect -r -f 0.1 -wa -wb \
+-a ${WRKDIR}/data/master_annotations/noncoding/evolutionarilyConserved_PhyloP.elements.bed \
+-b ${WRKDIR}/data/master_annotations/noncoding/evolutionarilyConserved_GERP.elements.bed | \
+awk -v OFS="\t" '{ print $1, $2, $3"\n"$4, $5, $6 }' | sort -Vk1,1 -k2,2n -k3,3n | \
+bedtools merge -i - > \
+${WRKDIR}/data/master_annotations/noncoding/evolutionarilyConserved_consensus.elements.bed
 #Replication timing
-
+cd ${WRKDIR}/data/misc
+wget http://mccarrolllab.com/wp-content/uploads/2015/03/Koren-et-al-Table-S2.zip
+unzip ${WRKDIR}/data/misc/Koren-et-al-Table-S2.zip
+mv ${WRKDIR}/data/misc/Koren\ et\ al\ Table\ S2.txt \
+${WRKDIR}/data/misc/Koren_et_al_Table_S2.txt
+paste ${WRKDIR}/data/misc/Koren_et_al_Table_S2.txt \
+<( sed '1d' ${WRKDIR}/data/misc/Koren_et_al_Table_S2.txt ) | awk -v OFS="\t" \
+'{ if ($1!=$4) $2=0; print $4, $2, $5, $6 }' | awk -v OFS="\t" \
+'{ if ($4>=1 && $4!="NaN" && $3>=$2) printf "%i\t%.0f\t%.0f\n", $1, $2, $3 }' | sort -Vk1,1 -k2,2n -k3,3n | \
+bedtools merge -d 10000 -i - > \
+${WRKDIR}/data/master_annotations/noncoding/earlyReplicating_Koren.elements.bed
+paste ${WRKDIR}/data/misc/Koren_et_al_Table_S2.txt \
+<( sed '1d' ${WRKDIR}/data/misc/Koren_et_al_Table_S2.txt ) | awk -v OFS="\t" \
+'{ if ($1!=$4) $2=0; print $4, $2, $5, $6 }' | awk -v OFS="\t" \
+'{ if ($4<=-1 && $4!="NaN" && $3>=$2) printf "%i\t%.0f\t%.0f\n", $1, $2, $3 }' | sort -Vk1,1 -k2,2n -k3,3n | \
+bedtools merge -d 10000 -i - > \
+${WRKDIR}/data/master_annotations/noncoding/lateReplicating_Koren.elements.bed
 #Recombination rate
 
 #Repeat masker
+
+#Differentially methylated regions (DMRs)
+mkdir ${WRKDIR}/data/misc/DMRs
+cd ${WRKDIR}/data/misc/DMRs
+
+
 
 #Get count of elements per noncoding set (all)
 while read list; do
@@ -597,11 +742,12 @@ while read list; do
     grep -e '^[0-9]' ${list} | awk '{ print $3-$2 }' > ${TMPDIR}/element_size.tmp
     #Mean autosomal size & std dev
     Rscript -e "x <- read.table(\"${TMPDIR}/element_size.tmp\",header=F)[,1]; \
+    options(scipen=1000);\
     cat(paste(round(mean(x),2),\"\\n\",round(sd(x),2),\"\\n\",sep=\"\"))" | \
     fgrep -v WARNING
   done | paste -s
 done < <( l ${WRKDIR}/data/master_annotations/noncoding/*elements.bed | \
-  awk '{ print $9 }' | fgrep Flanking_TSS | fgrep -v Upstream | fgrep -v Downstream )
+  awk '{ print $9 }' | fgrep Conserved_consensus )
 #Get count of elements per noncoding set (ChromHMM, ordered by state)
 while read code state; do
   while read list; do
