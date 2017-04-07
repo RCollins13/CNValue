@@ -660,7 +660,7 @@ while read tissue; do
   ntissue=$( echo ${tissue} | sed 's/\-/_/g' )
   bedtools intersect -c -a ${TMPDIR}/eQTLs_merged.bed \
   -b ${WRKDIR}/data/master_annotations/noncoding/eQTLs_${ntissue}.elements.bed | \
-  awk '{ if ($5>0) $5=1; print $1, $2, $3, $4+$5 }' > \
+  awk -v OFS="\t" '{ if ($5>0) $5=1; print $1, $2, $3, $4+$5 }' > \
   ${TMPDIR}/eQTLs_merged.bed2
   mv ${TMPDIR}/eQTLs_merged.bed2 ${TMPDIR}/eQTLs_merged.bed
 done < <( l ${WRKDIR}/data/misc/GTEx_eQTL/GTEx_Analysis_v6p_eQTL/*_Analysis.v6p.signif_snpgene_pairs.txt.gz | \
@@ -669,11 +669,9 @@ done < <( l ${WRKDIR}/data/misc/GTEx_eQTL/GTEx_Analysis_v6p_eQTL/*_Analysis.v6p.
 awk -v OFS="\t" '{ if ($4/44>0.5) print $1, $2, $3 }' ${TMPDIR}/eQTLs_merged.bed | \
 sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
 ${WRKDIR}/data/master_annotations/noncoding/eQTLs_conserved.elements.bed
-
-
-
-
-
+awk -v OFS="\t" '{ if ($4/44>0.9) print $1, $2, $3 }' ${TMPDIR}/eQTLs_merged.bed | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+${WRKDIR}/data/master_annotations/noncoding/eQTLs_highlyConserved.elements.bed
 #CpG Islands
 cd ${WRKDIR}/data/misc
 wget http://hgdownload.cse.ucsc.edu/goldenpath/hg19/database/cpgIslandExtUnmasked.txt.gz
@@ -760,6 +758,39 @@ while read tissue; do
   ${WRKDIR}/data/master_annotations/noncoding/DMRs_${tissue}.elements.bed
 done < <( l ${WRKDIR}/data/misc/DMRs/*bed | awk '{ print $9 }' | cut -f1 -d\. | \
   sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/_mean//g' )
+#Partially methylated domains (PMDs)
+#Note: had to manually curate PMDs per tissue from Supplementary Table 8 of
+#Schultz et al., Nature (2015)
+#Also needs manually curated abbreviation-to-tissue linking file
+while read abbrev tissue; do
+  echo ${tissue}
+  cat ${WRKDIR}/data/misc/PMDs_curated/${abbrev}*bed | \
+  sort -Vk1,1 -k2,2n -k3,3n > \
+  ${WRKDIR}/data/master_annotations/noncoding/PMDs_${tissue}.elements.bed
+done < ${WRKDIR}/data/misc/Schultz_PMD_tissues.list
+#Conserved PMDs
+while read abbrev tissue; do
+  cat ${WRKDIR}/data/master_annotations/noncoding/PMDs_${tissue}.elements.bed
+done < ${WRKDIR}/data/misc/Schultz_PMD_tissues.list | sort -Vk1,1 -k2,2n -k3,3n | \
+bedtools merge -i - | awk -v OFS="\t" '{ print $1, $2, $3, "0" }' > \
+${TMPDIR}/PMDs_conserved.tmp
+while read abbrev tissue; do
+  bedtools intersect -c -a ${TMPDIR}/PMDs_conserved.tmp \
+  -b ${WRKDIR}/data/master_annotations/noncoding/PMDs_${tissue}.elements.bed | \
+  awk -v OFS="\t" '{ if ($5>0) $5=1; print $1, $2, $3, $4+$5 }' > \
+  ${TMPDIR}/PMDs_conserved.tmp2
+  mv ${TMPDIR}/PMDs_conserved.tmp2 ${TMPDIR}/PMDs_conserved.tmp
+done < ${WRKDIR}/data/misc/Schultz_PMD_tissues.list
+awk -v OFS="\t" '{ if ($4/18>0.5) print $1, $2, $3 }' ${TMPDIR}/PMDs_conserved.tmp > \
+${WRKDIR}/data/master_annotations/noncoding/PMDs_conserved.elements.bed
+awk -v OFS="\t" '{ if ($4/18>0.9) print $1, $2, $3 }' ${TMPDIR}/PMDs_conserved.tmp > \
+${WRKDIR}/data/master_annotations/noncoding/PMDs_highlyConserved.elements.bed
+#GWAS catalogue (split by disease phenotype)
+#Note: must have downloaded GWAS catalogue and moved it to cluster already
+sed 's/\ /_/g' ${WRKDIR}/data/misc/gwas_catalog_v1.0.1-associations_e88_r2017-04-03.tsv | \
+awk -v FS="\t" -v OFS="\t" '{ if ($34=="N") print $0 }' | awk -v FS="\t" -v OFS="\t" \
+'$1 ~ /2013|2014|2015|2016|2017/ { print $12, $13, $13+1, $35 }' | \
+awk -v OFS="\t" -v FS="\t" '{ if ($1!="" && $2!="" && $3!="" && $4!="") print $0 }' | cut -f4 | sort | uniq
 
 #Get count of elements per noncoding set (all)
 while read list; do
@@ -784,7 +815,7 @@ while read list; do
     fgrep -v WARNING
   done | paste -s
 done < <( l ${WRKDIR}/data/master_annotations/noncoding/*elements.bed | \
-  awk '{ print $9 }' | fgrep DMRs )
+  awk '{ print $9 }' | fgrep PMD )
 #Get count of elements per noncoding set (ChromHMM, ordered by state)
 while read code state; do
   while read list; do
