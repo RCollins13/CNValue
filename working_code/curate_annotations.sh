@@ -739,10 +739,6 @@ paste ${WRKDIR}/data/misc/Koren_et_al_Table_S2.txt \
 '{ if ($4<=-1 && $4!="NaN" && $3>=$2) printf "%i\t%.0f\t%.0f\n", $1, $2, $3 }' | sort -Vk1,1 -k2,2n -k3,3n | \
 bedtools merge -d 10000 -i - > \
 ${WRKDIR}/data/master_annotations/noncoding/lateReplicating_Koren.elements.bed
-#Recombination rate
-
-#Repeat masker
-
 #Differentially methylated regions (DMRs)
 mkdir ${WRKDIR}/data/misc/DMRs
 cd ${WRKDIR}/data/misc/DMRs
@@ -787,10 +783,315 @@ awk -v OFS="\t" '{ if ($4/18>0.9) print $1, $2, $3 }' ${TMPDIR}/PMDs_conserved.t
 ${WRKDIR}/data/master_annotations/noncoding/PMDs_highlyConserved.elements.bed
 #GWAS catalogue (split by disease phenotype)
 #Note: must have downloaded GWAS catalogue and moved it to cluster already
+#Must have also cleaned GWAS catalogue and moved phenotype matrix on cluster
 sed 's/\ /_/g' ${WRKDIR}/data/misc/gwas_catalog_v1.0.1-associations_e88_r2017-04-03.tsv | \
-awk -v FS="\t" -v OFS="\t" '{ if ($34=="N") print $0 }' | awk -v FS="\t" -v OFS="\t" \
-'$1 ~ /2013|2014|2015|2016|2017/ { print $12, $13, $13+1, $35 }' | \
-awk -v OFS="\t" -v FS="\t" '{ if ($1!="" && $2!="" && $3!="" && $4!="") print $0 }' | cut -f4 | sort | uniq
+awk -v FS="\t" -v OFS="\t" '{ if ($34=="N" && $29>=8) print $0 }' | awk -v FS="\t" -v OFS="\t" \
+'$1 ~ /2013|2014|2015|2016|2017/ { print $12, $13, $35 }' | \
+awk -v OFS="\t" -v FS="\t" '$1 !~ /x/ { print $1, $2, $3 }' | \
+awk -v OFS="\t" -v FS="\t" '{ if ($1!="" && $2!="" && $3!="") print $0 }' > \
+${TMPDIR}/GWAS_catalogue.formatted.tmp
+awk -v OFS="\t" -v FS="\t" '$1 !~ /\;/ { print $1, $2, $2+1, $3 }' \
+${TMPDIR}/GWAS_catalogue.formatted.tmp > \
+${WRKDIR}/data/misc/gwas_catalog_cleaned.sites_and_phenos.bed
+while read chrs starts skip pheno; do
+  chr=$( echo ${chrs} | sed 's/\;/\n/g' | sort | uniq | head -n1 )
+  echo "${starts}" | sed 's/\;/\n/g' | awk -v OFS="\t" -v chr=${chr} -v pheno=${pheno} \
+  '{ print chr, $1, $1+2, pheno }'
+done < <( awk -v OFS="\t" -v FS="\t" '$1 ~ /\;/ { print $1, $2, $2+1, $3 }' \
+  ${TMPDIR}/GWAS_catalogue.formatted.tmp ) >> \
+${WRKDIR}/data/misc/gwas_catalog_cleaned.sites_and_phenos.bed
+while read pheno; do
+  echo ${pheno}
+  #Get column according to phenotype
+  col=$( head -n1 ${WRKDIR}/data/misc/GWAS_catalogue_phenoInclusionMatrix.txt | \
+    sed 's/\t/\n/g' | awk -v OFS="\t" '{ print NR, $1 }' | fgrep -w ${pheno} | cut -f1 )
+  #Get terms associated with that column and pull associated sites, add ±10kb, and merge
+  awk -v col=${col} -v OFS="\t" '{ if ($(col)==1) print $1 }' \
+  ${WRKDIR}/data/misc/GWAS_catalogue_phenoInclusionMatrix.txt | \
+  fgrep -f - ${WRKDIR}/data/misc/gwas_catalog_cleaned.sites_and_phenos.bed | \
+  awk -v OFS="\t" '{ print "chr"$1, $2-5000, $3+5000 }' | awk -v OFS="\t" \
+  '{ if ($2<1) $2=1; print }' | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+  ${TMPDIR}/${pheno}.loci.hg38.bed
+  #Lift over from hg38 to GRCh37
+  liftOver -minMatch=0.5 ${TMPDIR}/${pheno}.loci.hg38.bed \
+  /data/talkowski/rlc47/src/hg38ToHg19.over.chain.gz ${TMPDIR}/${pheno}.loci.hg19.bed \
+  ${TMPDIR}/${pheno}.loci.hg38_liftOverFail.bed
+  #Print stats on loci that failed remapping
+  cat ${TMPDIR}/${pheno}.loci.hg19.bed | wc -l
+  cat ${TMPDIR}/${pheno}.loci.hg38.bed | wc -l
+  #Clean and write to file
+  sed 's/^chr//g' ${TMPDIR}/${pheno}.loci.hg19.bed | sort -Vk1,1 -k2,2n -k3,3n > \
+  ${WRKDIR}/data/master_annotations/noncoding/GWAS_loci_${pheno}.elements.bed
+done < <( head -n1 ${WRKDIR}/data/misc/GWAS_catalogue_phenoInclusionMatrix.txt | \
+  cut -f2- | sed 's/\t/\n/g' ) | fgrep -v Reading | fgrep -v Mapping | paste - - -
+#Segmental duplications
+cd ${WRKDIR}/data/misc/
+wget http://hgdownload.cse.ucsc.edu/goldenpath/hg19/database/genomicSuperDups.txt.gz
+zcat ${WRKDIR}/data/misc/genomicSuperDups.txt.gz | awk -v OFS="\t" \
+'{ print $2, $3, $4 }' | sed 's/^chr//g' | sort -Vk1,1 -k2,2n -k3,3n | \
+bedtools merge -i - > \
+${WRKDIR}/data/master_annotations/noncoding/SegDups.elements.bed
+#Repeat masker
+cd ${WRKDIR}/data/misc/
+wget http://hgdownload.cse.ucsc.edu/goldenpath/hg19/database/rmsk.txt.gz
+while read class; do
+  echo ${class}
+  zcat ${WRKDIR}/data/misc/rmsk.txt.gz | awk -v OFS="\t" -v class=${class} \
+  '{ if ($12==class) print $6, $7, $8 }' | sed 's/^chr//g' | \
+  sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+  ${WRKDIR}/data/master_annotations/noncoding/RepeatMasker_${class}.elements.bed
+done < <( zcat ${WRKDIR}/data/misc/rmsk.txt.gz | cut -f12 | sort | uniq | \
+  grep -ve 'Other\|RNA\|Unknown\|\?' )
+#Recombination frequency
+cd ${WRKDIR}/data/misc/
+wget https://www.decode.com/additional/sex-averaged.rmap
+cutoff=$( sed '1d' ${WRKDIR}/data/misc/sex-averaged.rmap | awk '{ if ($3>0) print $4 }' | \
+sort -nrk1,1 | perl -e '$d=.1;@l=<>;print $l[int($d*$#l)]' | sed 's/\ //g' )
+sed '1d' ${WRKDIR}/data/misc/sex-averaged.rmap | awk -v OFS="\t" -v cutoff=${cutoff} \
+'{ if ($3>0 && $4>=cutoff) print $1, $2-5000, $2+5000 }' | sort -Vk1,1 -k2,2n -k3,3n | \
+bedtools merge -i - > ${TMPDIR}/recomb_hotspots.hg18.bed
+liftOver -minMatch=0.5 ${TMPDIR}/recomb_hotspots.hg18.bed \
+/data/talkowski/rlc47/src/hg18ToHg19.over.chain ${TMPDIR}/recomb_hotspots.hg19.bed \
+${TMPDIR}/recomb_hotspots.hg18_liftOverFail.bed
+sed 's/^chr//g' ${TMPDIR}/recomb_hotspots.hg19.bed | sort -Vk1,1 -k2,2n -k3,3n | \
+bedtools merge -i - > \
+${WRKDIR}/data/master_annotations/noncoding/Recombination_Hotspots.elements.bed
+#DHS - primary tissues & primary cells
+mkdir ${WRKDIR}/data/misc/DHS
+cd ${WRKDIR}/data/misc/DHS
+wget -O ./FetalArmMuscle_DHS.bed.gz https://www.encodeproject.org/files/ENCFF852IEJ/@@download/ENCFF852IEJ.bed.gz
+wget -O ./FetalHeart_DHS.bed.gz https://www.encodeproject.org/files/ENCFF559XLA/@@download/ENCFF559XLA.bed.gz
+wget -O ./Heart_DHS.bed.gz https://www.encodeproject.org/files/ENCFF822VOH/@@download/ENCFF822VOH.bed.gz
+wget -O ./FetalStomach_DHS.bed.gz https://www.encodeproject.org/files/ENCFF191JBX/@@download/ENCFF191JBX.bed.gz
+wget -O ./Stomach_DHS.bed.gz https://www.encodeproject.org/files/ENCFF701AFB/@@download/ENCFF701AFB.bed.gz
+wget -O ./FetalLargeIntestine_DHS.bed.gz https://www.encodeproject.org/files/ENCFF539JKS/@@download/ENCFF539JKS.bed.gz
+wget -O ./FetalBackMuscle_DHS.bed.gz https://www.encodeproject.org/files/ENCFF317QQX/@@download/ENCFF317QQX.bed.gz
+wget -O ./FetalLegMuscle_DHS.bed.gz https://www.encodeproject.org/files/ENCFF332HJI/@@download/ENCFF332HJI.bed.gz
+wget -O ./FetalLeftLung_DHS.bed.gz https://www.encodeproject.org/files/ENCFF473MAD/@@download/ENCFF473MAD.bed.gz
+wget -O ./FetalSmallIntestine_DHS.bed.gz https://www.encodeproject.org/files/ENCFF866PBJ/@@download/ENCFF866PBJ.bed.gz
+wget -O ./FetalBrain_DHS.bed.gz https://www.encodeproject.org/files/ENCFF251UGS/@@download/ENCFF251UGS.bed.gz
+wget -O ./FetalKidney_DHS.bed.gz https://www.encodeproject.org/files/ENCFF475AOQ/@@download/ENCFF475AOQ.bed.gz
+wget -O ./FetalLung_DHS.bed.gz https://www.encodeproject.org/files/ENCFF605MPK/@@download/ENCFF605MPK.bed.gz
+wget -O ./FetalRenalCortexInterstitium_DHS.bed.gz https://www.encodeproject.org/files/ENCFF617JOF/@@download/ENCFF617JOF.bed.gz
+wget -O ./RenalCortexInterstitium_DHS.bed.gz https://www.encodeproject.org/files/ENCFF914YLY/@@download/ENCFF914YLY.bed.gz
+wget -O ./FetalRightLung_DHS.bed.gz https://www.encodeproject.org/files/ENCFF828TWL/@@download/ENCFF828TWL.bed.gz
+wget -O ./AdrenalGland_DHS.bed.gz https://www.encodeproject.org/files/ENCFF488DIV/@@download/ENCFF488DIV.bed.gz
+wget -O ./FetalAdrenalGland_DHS.bed.gz https://www.encodeproject.org/files/ENCFF189FNX/@@download/ENCFF189FNX.bed.gz
+wget -O ./RenalPelvis_DHS.bed.gz https://www.encodeproject.org/files/ENCFF958VNA/@@download/ENCFF958VNA.bed.gz
+wget -O ./FetalRenalPelvis_DHS.bed.gz https://www.encodeproject.org/files/ENCFF306IHB/@@download/ENCFF306IHB.bed.gz
+wget -O ./FetalRightKidney_DHS.bed.gz https://www.encodeproject.org/files/ENCFF593JZH/@@download/ENCFF593JZH.bed.gz
+wget -O ./FetalThymus_DHS.bed.gz https://www.encodeproject.org/files/ENCFF196JFB/@@download/ENCFF196JFB.bed.gz
+wget -O ./FetalLeftKidney_DHS.bed.gz https://www.encodeproject.org/files/ENCFF246DEW/@@download/ENCFF246DEW.bed.gz
+wget -O ./Placenta_DHS.bed.gz https://www.encodeproject.org/files/ENCFF012LUH/@@download/ENCFF012LUH.bed.gz
+wget -O ./FetalSpinalCord_DHS.bed.gz https://www.encodeproject.org/files/ENCFF795ISF/@@download/ENCFF795ISF.bed.gz
+wget -O ./FetalLeftRenalCortexInterstitium_DHS.bed.gz https://www.encodeproject.org/files/ENCFF622RNC/@@download/ENCFF622RNC.bed.gz
+wget -O ./FetalLeftRenalPelvis_DHS.bed.gz https://www.encodeproject.org/files/ENCFF802SNU/@@download/ENCFF802SNU.bed.gz
+wget -O ./FetalRightRenalPelvis_DHS.bed.gz https://www.encodeproject.org/files/ENCFF242ABW/@@download/ENCFF242ABW.bed.gz
+wget -O ./FetalTrunkMuscle_DHS.bed.gz https://www.encodeproject.org/files/ENCFF484TJS/@@download/ENCFF484TJS.bed.gz
+wget -O ./Ovary_DHS.bed.gz https://www.encodeproject.org/files/ENCFF119HQB/@@download/ENCFF119HQB.bed.gz
+wget -O ./FetalRetina_DHS.bed.gz https://www.encodeproject.org/files/ENCFF576YYS/@@download/ENCFF576YYS.bed.gz
+wget -O ./FetalRightRenalCortexInterstitium_DHS.bed.gz https://www.encodeproject.org/files/ENCFF408KGV/@@download/ENCFF408KGV.bed.gz
+wget -O ./Testis_DHS.bed.gz https://www.encodeproject.org/files/ENCFF785AEY/@@download/ENCFF785AEY.bed.gz
+wget -O ./FetalTestis_DHS.bed.gz https://www.encodeproject.org/files/ENCFF502RSX/@@download/ENCFF502RSX.bed.gz
+wget -O ./Thyroid_DHS.bed.gz https://www.encodeproject.org/files/ENCFF563DYP/@@download/ENCFF563DYP.bed.gz
+wget -O ./TransverseColon_DHS.bed.gz https://www.encodeproject.org/files/ENCFF697ZFE/@@download/ENCFF697ZFE.bed.gz
+wget -O ./PancreasBody_DHS.bed.gz https://www.encodeproject.org/files/ENCFF454JYJ/@@download/ENCFF454JYJ.bed.gz
+wget -O ./FetalFacialProminence_DHS.bed.gz https://www.encodeproject.org/files/ENCFF243KHX/@@download/ENCFF243KHX.bed.gz
+wget -O ./FetalEye_DHS.bed.gz https://www.encodeproject.org/files/ENCFF504ZVA/@@download/ENCFF504ZVA.bed.gz
+wget -O ./FetalLimb_DHS.bed.gz https://www.encodeproject.org/files/ENCFF423FPL/@@download/ENCFF423FPL.bed.gz
+wget -O ./Pancreas_DHS.bed.gz https://www.encodeproject.org/files/ENCFF890KUA/@@download/ENCFF890KUA.bed.gz
+wget -O ./SigmoidColon_DHS.bed.gz https://www.encodeproject.org/files/ENCFF693FUF/@@download/ENCFF693FUF.bed.gz
+wget -O ./FetalTongue_DHS.bed.gz https://www.encodeproject.org/files/ENCFF831SBJ/@@download/ENCFF831SBJ.bed.gz
+wget -O ./Uterus_DHS.bed.gz https://www.encodeproject.org/files/ENCFF645GPP/@@download/ENCFF645GPP.bed.gz
+wget -O ./AmmonsHorn_DHS.bed.gz https://www.encodeproject.org/files/ENCFF236UMJ/@@download/ENCFF236UMJ.bed.gz
+wget -O ./CerebellarCortex_DHS.bed.gz https://www.encodeproject.org/files/ENCFF482VEA/@@download/ENCFF482VEA.bed.gz
+wget -O ./EsophagusSquamousEpithelium_DHS.bed.gz https://www.encodeproject.org/files/ENCFF570SFB/@@download/ENCFF570SFB.bed.gz
+wget -O ./FetalForelimb_DHS.bed https://www.encodeproject.org/files/ENCFF268PYO/@@download/ENCFF268PYO.bed.gz
+wget -O ./GastrocnemiusMedialis_DHS.bed.gz https://www.encodeproject.org/files/ENCFF067SRV/@@download/ENCFF067SRV.bed.gz
+wget -O ./GlobusPallidus_DHS.bed.gz https://www.encodeproject.org/files/ENCFF461EHY/@@download/ENCFF461EHY.bed.gz
+wget -O ./FetalLeftVentricle_DHS.bed.gz https://www.encodeproject.org/files/ENCFF315TJF/@@download/ENCFF315TJF.bed.gz
+wget -O ./FetalHindlimbMuscle_DHS.bed.gz https://www.encodeproject.org/files/ENCFF745LBF/@@download/ENCFF745LBF.bed.gz
+wget -O ./InferiorParietalCortex_DHS.bed.gz https://www.encodeproject.org/files/ENCFF913FRG/@@download/ENCFF913FRG.bed.gz
+wget -O ./IsletOfLangerhans_DHS.bed.gz https://www.encodeproject.org/files/ENCFF001UXL/@@download/ENCFF001UXL.bed.gz
+wget -O ./MedullaOblongata_DHS.bed.gz https://www.encodeproject.org/files/ENCFF177LYE/@@download/ENCFF177LYE.bed.gz
+wget -O ./Midbrain_DHS.bed.gz https://www.encodeproject.org/files/ENCFF490EZU/@@download/ENCFF490EZU.bed.gz
+wget -O ./MiddleFrontalGyrus_DHS.bed.gz https://www.encodeproject.org/files/ENCFF440HVH/@@download/ENCFF440HVH.bed.gz
+wget -O ./OccipitalLobe_DHS.bed.gz https://www.encodeproject.org/files/ENCFF261WWC/@@download/ENCFF261WWC.bed.gz
+wget -O ./Pons_DHS.bed.gz https://www.encodeproject.org/files/ENCFF615GGO/@@download/ENCFF615GGO.bed.gz
+wget -O ./Prostate_DHS.bed.gz https://www.encodeproject.org/files/ENCFF267AWH/@@download/ENCFF267AWH.bed.gz
+wget -O ./LiverRightLobe_DHS.bed.gz https://www.encodeproject.org/files/ENCFF865CGA/@@download/ENCFF865CGA.bed.gz
+wget -O ./Skin_DHS.bed.gz https://www.encodeproject.org/files/ENCFF976WFS/@@download/ENCFF976WFS.bed.gz
+wget -O ./Spleen_DHS.bed.gz https://www.encodeproject.org/files/ENCFF382VKO/@@download/ENCFF382VKO.bed.gz
+wget -O ./SuperiorTemporalGyrus_DHS.bed.gz https://www.encodeproject.org/files/ENCFF835REN/@@download/ENCFF835REN.bed.gz
+wget -O ./FetalThoracicMuscle_DHS.bed.gz https://www.encodeproject.org/files/ENCFF917UMO/@@download/ENCFF917UMO.bed.gz
+wget -O ./UmbilicalCord_DHS.bed.gz https://www.encodeproject.org/files/ENCFF442KIW/@@download/ENCFF442KIW.bed.gz
+wget -O ./FetalUrinaryBladder_DHS.bed.gz https://www.encodeproject.org/files/ENCFF230RHI/@@download/ENCFF230RHI.bed.gz
+wget -O ./Bcell_DHS.bed.gz https://www.encodeproject.org/files/ENCFF001VYW/@@download/ENCFF001VYW.bed.gz
+wget -O ./Tcell_DHS.bed.gz https://www.encodeproject.org/files/ENCFF026SFK/@@download/ENCFF026SFK.bed.gz
+wget -O ./Monocyte_DHS.bed.gz https://www.encodeproject.org/files/ENCFF564MST/@@download/ENCFF564MST.bed.gz
+wget -O ./NKcell_DHS.bed.gz https://www.encodeproject.org/files/ENCFF224LJW/@@download/ENCFF224LJW.bed.gz
+zcat ${WRKDIR}/data/misc/DHS/SuperiorTemporalGyrus_DHS.bed.gz | awk -v OFS="\t" \
+'{ print $1, $2, $3, $4, $5, $6, $9, $7, $8, $9 }' > \
+${WRKDIR}/data/misc/DHS/SuperiorTemporalGyrus_DHS.bed
+gzip -f ${WRKDIR}/data/misc/DHS/SuperiorTemporalGyrus_DHS.bed
+${WRKDIR}/data/misc/DHS/SuperiorTemporalGyrus_DHS.bed
+while read tissue; do
+  echo ${tissue}
+  #All DHS
+  zcat ${WRKDIR}/data/misc/DHS/${tissue}_DHS.bed.gz | sed 's/^chr//g' | \
+  cut -f1-3 | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+  ${WRKDIR}/data/master_annotations/noncoding/DHS_${tissue}.elements.bed
+  #Strong DHS (top 10%)
+  cutoff=$( zcat ${WRKDIR}/data/misc/DHS/${tissue}_DHS.bed.gz | cut -f7 | \
+  sort -nrk1,1 | perl -e '$d=.1;@l=<>;print $l[int($d*$#l)]' )
+  zcat ${WRKDIR}/data/misc/DHS/${tissue}_DHS.bed.gz | awk -v OFS="\t" -v cutoff=${cutoff} \
+  '{ if ($7>=cutoff) print $1, $2, $3 }' | sed 's/^chr//g' | \
+  sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+  ${WRKDIR}/data/master_annotations/noncoding/StrongDHS_${tissue}.elements.bed
+done < <( l ${WRKDIR}/data/misc/DHS/*_DHS.bed.gz | awk '{ print $9 }' | \
+  sed -e 's/_DHS/\t/g' -e 's/\//\t/g' | awk '{ print $(NF-1) }' )
+#Conserved DHS
+while read tissue; do
+  cat ${WRKDIR}/data/master_annotations/noncoding/DHS_${tissue}.elements.bed
+done < <( l ${WRKDIR}/data/misc/DHS/*_DHS.bed.gz | awk '{ print $9 }' | \
+  sed -e 's/_DHS/\t/g' -e 's/\//\t/g' | awk '{ print $(NF-1) }' ) | \
+  sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | awk -v OFS="\t" \
+  '{ print $1, $2, $3, "0" }' > ${TMPDIR}/DHS_merged.bed
+while read tissue; do
+  bedtools intersect -c -a ${TMPDIR}/DHS_merged.bed \
+  -b ${WRKDIR}/data/master_annotations/noncoding/DHS_${tissue}.elements.bed | \
+  awk -v OFS="\t" '{ if ($5>0) $5=1; print $1, $2, $3, $4+$5 }' > \
+  ${TMPDIR}/DHS_merged.bed2
+  mv ${TMPDIR}/DHS_merged.bed2 ${TMPDIR}/DHS_merged.bed
+done < <( l ${WRKDIR}/data/misc/DHS/*_DHS.bed.gz | awk '{ print $9 }' | \
+  sed -e 's/_DHS/\t/g' -e 's/\//\t/g' | awk '{ print $(NF-1) }' )
+awk -v OFS="\t" '{ if ($4/72>0.5) print $1, $2, $3 }' ${TMPDIR}/DHS_merged.bed > \
+${WRKDIR}/data/master_annotations/noncoding/DHS_conserved.elements.bed
+awk -v OFS="\t" '{ if ($4/72>0.9) print $1, $2, $3 }' ${TMPDIR}/DHS_merged.bed > \
+${WRKDIR}/data/master_annotations/noncoding/DHS_highlyConserved.elements.bed
+#H3K27ac peaks
+mkdir ${WRKDIR}/data/misc/H3K27ac/
+cd ${WRKDIR}/data/misc/H3K27ac/
+wget -O ./FetalAdrenalGland_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF433MRW/@@download/ENCFF433MRW.bed.gz
+wget -O ./AdrenalGland_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF812UKC/@@download/ENCFF812UKC.bed.gz
+wget -O ./Pancreas_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF821IQZ/@@download/ENCFF821IQZ.bed.gz
+wget -O ./GastrocnemiusMedialis_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF090ODW/@@download/ENCFF090ODW.bed.gz
+wget -O ./FetalSmallIntestine_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF264TVA/@@download/ENCFF264TVA.bed.gz
+wget -O ./SmallIntestine_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF452ODQ/@@download/ENCFF452ODQ.bed.gz
+wget -O ./Spleen_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF434AUI/@@download/ENCFF434AUI.bed.gz
+wget -O ./FetalStomach_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF720RQS/@@download/ENCFF720RQS.bed.gz
+wget -O ./Stomach_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF868AQH/@@download/ENCFF868AQH.bed.gz
+wget -O ./Thyroid_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF093DSS/@@download/ENCFF093DSS.bed.gz
+wget -O ./LeftVentricle_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF546TJN/@@download/ENCFF546TJN.bed.gz
+wget -O ./RectalMucosa_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF030XSU/@@download/ENCFF030XSU.bed.gz
+wget -O ./Psoas_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF761BZK/@@download/ENCFF761BZK.bed.gz
+wget -O ./ThoracicAorta_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF737DEL/@@download/ENCFF737DEL.bed.gz
+wget -O ./FetalThymus_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF419EUC/@@download/ENCFF419EUC.bed.gz
+wget -O ./PeyersPatch_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF357MJZ/@@download/ENCFF357MJZ.bed.gz
+wget -O ./Adipose_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF222CHB/@@download/ENCFF222CHB.bed.gz
+wget -O ./FetalAmnion_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF206LAP/@@download/ENCFF206LAP.bed.gz
+wget -O ./BreastEpithelium_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF154XFN/@@download/ENCFF154XFN.bed.gz
+wget -O ./ColonicMucosa_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF723NUR/@@download/ENCFF723NUR.bed.gz
+wget -O ./CoronaryArtery_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF130AWQ/@@download/ENCFF130AWQ.bed.gz
+wget -O ./EndocrinePancreas_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF885UNK/@@download/ENCFF885UNK.bed.gz
+wget -O ./Esophagus_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF694EXU/@@download/ENCFF694EXU.bed.gz
+wget -O ./EsophagusMuscularisMucosa_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF903OJB/@@download/ENCFF903OJB.bed.gz
+wget -O ./EsophagusSquamousEpithelium_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF187KWD/@@download/ENCFF187KWD.bed.gz
+wget -O ./GastroesophagealSphincter_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF177WNT/@@download/ENCFF177WNT.bed.gz
+wget -O ./RightVentricle_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF995GJW/@@download/ENCFF995GJW.bed.gz
+wget -O ./FetalLargeIntestine_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF906VKA/@@download/ENCFF906VKA.bed.gz
+wget -O ./Lung_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF768OEM/@@download/ENCFF768OEM.bed.gz
+wget -O ./ColonMuscle_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF740FVQ/@@download/ENCFF740FVQ.bed.gz
+wget -O ./DuodenumMuscle_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF063BDL/@@download/ENCFF063BDL.bed.gz
+wget -O ./FetalLegMuscle_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF563PBB/@@download/ENCFF563PBB.bed.gz
+wget -O ./FetalTrunkMuscle_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF711AVI/@@download/ENCFF711AVI.bed.gz
+wget -O ./Ovary_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF546HYT/@@download/ENCFF546HYT.bed.gz
+wget -O ./FetalPlacenta_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF107GTA/@@download/ENCFF107GTA.bed.gz
+wget -O ./RectalSmoothMuscle_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF123SVJ/@@download/ENCFF123SVJ.bed.gz
+wget -O ./RightAtriumAuricularRegion_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF159NYF/@@download/ENCFF159NYF.bed.gz
+wget -O ./RightAtrium_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF101VMB/@@download/ENCFF101VMB.bed.gz
+wget -O ./LiverRightLobe_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF285MWK/@@download/ENCFF285MWK.bed.gz
+wget -O ./SigmoidColon_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF027RPB/@@download/ENCFF027RPB.bed.gz
+wget -O ./SkeletalMuscle_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF411NIE/@@download/ENCFF411NIE.bed.gz
+wget -O ./FetalSpinalCord_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF252NNW/@@download/ENCFF252NNW.bed.gz
+wget -O ./StomachSmoothMuscle_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF777CUK/@@download/ENCFF777CUK.bed.gz
+wget -O ./SubcutaneousAbdominalAdiposeTissue_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF467ZOW/@@download/ENCFF467ZOW.bed.gz
+wget -O ./TibialNerve_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF221LDE/@@download/ENCFF221LDE.bed.gz
+wget -O ./TransverseColon_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF242DHB/@@download/ENCFF242DHB.bed.gz
+wget -O ./LeftLungUpperLobe_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF667IAI/@@download/ENCFF667IAI.bed.gz
+wget -O ./UrinaryBladder_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF746KLC/@@download/ENCFF746KLC.bed.gz
+wget -O ./Uterus_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF045LNJ/@@download/ENCFF045LNJ.bed.gz
+wget -O ./Vagina_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF829ZKD/@@download/ENCFF829ZKD.bed.gz
+wget -O ./Bcell_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF579EPE/@@download/ENCFF579EPE.bed.gz
+wget -O ./Tcell_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF343VOU/@@download/ENCFF343VOU.bed.gz
+wget -O ./Monocyte_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF706YSV/@@download/ENCFF706YSV.bed.gz
+wget -O ./NKcell_H3K27ac.bed.gz https://www.encodeproject.org/files/ENCFF755QEH/@@download/ENCFF755QEH.bed.gz
+while read tissue; do
+  echo ${tissue}
+  #All peaks
+  zcat ${WRKDIR}/data/misc/H3K27ac/${tissue}_H3K27ac.bed.gz | sed 's/^chr//g' | \
+  cut -f1-3 | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+  ${WRKDIR}/data/master_annotations/noncoding/H3K27ac_${tissue}.elements.bed
+  #Strong H3K27ac (top 10%)
+  cutoff=$( zcat ${WRKDIR}/data/misc/H3K27ac/${tissue}_H3K27ac.bed.gz | cut -f7 | \
+  sort -nrk1,1 | perl -e '$d=.1;@l=<>;print $l[int($d*$#l)]' )
+  zcat ${WRKDIR}/data/misc/H3K27ac/${tissue}_H3K27ac.bed.gz | awk -v OFS="\t" -v cutoff=${cutoff} \
+  '{ if ($7>=cutoff) print $1, $2, $3 }' | sed 's/^chr//g' | \
+  sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+  ${WRKDIR}/data/master_annotations/noncoding/StrongH3K27ac_${tissue}.elements.bed
+done < <( l ${WRKDIR}/data/misc/H3K27ac/*_H3K27ac.bed.gz | awk '{ print $9 }' | \
+  sed -e 's/_H3K27ac/\t/g' -e 's/\//\t/g' | awk '{ print $(NF-1) }' )
+#Conserved H3K27ac
+while read tissue; do
+  cat ${WRKDIR}/data/master_annotations/noncoding/H3K27ac_${tissue}.elements.bed
+done < <( l ${WRKDIR}/data/misc/H3K27ac/*_H3K27ac.bed.gz | awk '{ print $9 }' | \
+  sed -e 's/_H3K27ac/\t/g' -e 's/\//\t/g' | awk '{ print $(NF-1) }' ) | \
+  sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | awk -v OFS="\t" \
+  '{ print $1, $2, $3, "0" }' > ${TMPDIR}/H3K27ac_merged.bed
+while read tissue; do
+  bedtools intersect -c -a ${TMPDIR}/H3K27ac_merged.bed \
+  -b ${WRKDIR}/data/master_annotations/noncoding/H3K27ac_${tissue}.elements.bed | \
+  awk -v OFS="\t" '{ if ($5>0) $5=1; print $1, $2, $3, $4+$5 }' > \
+  ${TMPDIR}/H3K27ac_merged.bed2
+  mv ${TMPDIR}/H3K27ac_merged.bed2 ${TMPDIR}/H3K27ac_merged.bed
+done < <( l ${WRKDIR}/data/misc/H3K27ac/*_H3K27ac.bed.gz | awk '{ print $9 }' | \
+  sed -e 's/_H3K27ac/\t/g' -e 's/\//\t/g' | awk '{ print $(NF-1) }' )
+awk -v OFS="\t" '{ if ($4/54>0.5) print $1, $2, $3 }' ${TMPDIR}/H3K27ac_merged.bed > \
+${WRKDIR}/data/master_annotations/noncoding/H3K27ac_conserved.elements.bed
+awk -v OFS="\t" '{ if ($4/54>0.9) print $1, $2, $3 }' ${TMPDIR}/H3K27ac_merged.bed > \
+${WRKDIR}/data/master_annotations/noncoding/H3K27ac_highlyConserved.elements.bed
+
+
+#TF Binding Sites
+cd ${WRKDIR}/data/misc
+wget http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeRegTfbsClustered/wgEncodeRegTfbsClusteredV3.bed.gz
+while read TF; do
+  echo ${TF}
+  #All TF (mild filtering)
+  zcat ${WRKDIR}/data/misc/wgEncodeRegTfbsClusteredV3.bed.gz | \
+  awk -v OFS="\t" -v TF=${TF} '{ if ($4==TF && $5>200 && $6>1) print $1, $2, $3 }' | \
+  sed 's/^chr//g' | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+  ${WRKDIR}/data/master_annotations/noncoding/TFBS_${TF}.elements.bed
+  #Strong TF (heavy filtering)
+  zcat ${WRKDIR}/data/misc/wgEncodeRegTfbsClusteredV3.bed.gz | \
+  awk -v OFS="\t" -v TF=${TF} '{ if ($4==TF && $5>900 && $6>2) print $1, $2, $3 }' | \
+  sed 's/^chr//g' | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+  ${WRKDIR}/data/master_annotations/noncoding/StrongTFBS_${TF}.elements.bed
+done < <( zcat ${WRKDIR}/data/misc/wgEncodeRegTfbsClusteredV3.bed.gz | \
+  awk '{ if ($6>2) print $4 }' | sort | uniq )
+#TFBS union
+while read TF; do
+  cat ${WRKDIR}/data/master_annotations/noncoding/TFBS_${TF}.elements.bed
+done < <( zcat ${WRKDIR}/data/misc/wgEncodeRegTfbsClusteredV3.bed.gz | \
+  awk '{ if ($6>2) print $4 }' | sort | uniq ) | sort -Vk1,1 -k2,2n -k3,3n | \
+  bedtools merge -i - > \
+  ${WRKDIR}/data/master_annotations/noncoding/TFBS_union.elements.bed
+while read TF; do
+  cat ${WRKDIR}/data/master_annotations/noncoding/StrongTFBS_${TF}.elements.bed
+done < <( zcat ${WRKDIR}/data/misc/wgEncodeRegTfbsClusteredV3.bed.gz | \
+  awk '{ if ($6>2) print $4 }' | sort | uniq ) | sort -Vk1,1 -k2,2n -k3,3n | \
+  bedtools merge -i - > \
+  ${WRKDIR}/data/master_annotations/noncoding/StrongTFBS_union.elements.bed
 
 #Get count of elements per noncoding set (all)
 while read list; do
@@ -815,7 +1116,7 @@ while read list; do
     fgrep -v WARNING
   done | paste -s
 done < <( l ${WRKDIR}/data/master_annotations/noncoding/*elements.bed | \
-  awk '{ print $9 }' | fgrep PMD )
+  awk '{ print $9 }' | fgrep DHS | fgrep onserved )
 #Get count of elements per noncoding set (ChromHMM, ordered by state)
 while read code state; do
   while read list; do
