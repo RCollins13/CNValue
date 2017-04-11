@@ -666,10 +666,6 @@ ENDOCRINE	StrongH3K27ac	/data/talkowski/Samples/rCNVmap/data/master_annotations/
 ENDOCRINE	SuperEnhancer	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/superEnhancers_Adrenal_Gland.elements.bed
 ENDOCRINE	TAD	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/TADs_AdrenalGlandPrimaryTissue.elements.bed
 ENDOCRINE	TBR	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/TBRs_AdrenalGlandPrimaryTissue.elements.bed
-EYE	DHS	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/DHS_FetalEye.elements.bed
-EYE	DHS	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/DHS_FetalRetina.elements.bed
-EYE	StrongDHS	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/StrongDHS_FetalEye.elements.bed
-EYE	StrongDHS	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/StrongDHS_FetalRetina.elements.bed
 FAT	ChromHMM_ActiveEnhancer1	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/ChromHMM_Active_Enhancer_Class1_Adipose_Nuclei.elements.bed
 FAT	ChromHMM_ActiveEnhancer2	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/ChromHMM_Active_Enhancer_Class2_Adipose_Nuclei.elements.bed
 FAT	ChromHMM_ActiveTSS	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/ChromHMM_Active_TSS_Adipose_Nuclei.elements.bed
@@ -699,6 +695,10 @@ FAT	StrongH3K27ac	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncod
 FAT	StrongH3K27ac	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/StrongH3K27ac_SubcutaneousAbdominalAdiposeTissue.elements.bed
 FAT	SuperEnhancer	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/superEnhancers_Adipose_Nuclei.elements.bed
 FAT	SuperEnhancer	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/superEnhancers_Adipose_Tissue.elements.bed
+HEADNECK	DHS	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/DHS_FetalEye.elements.bed
+HEADNECK	DHS	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/DHS_FetalRetina.elements.bed
+HEADNECK	StrongDHS	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/StrongDHS_FetalEye.elements.bed
+HEADNECK	StrongDHS	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/StrongDHS_FetalRetina.elements.bed
 HEADNECK	ChromHMM_ActiveEnhancer1	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/ChromHMM_Active_Enhancer_Class1_Esophagus.elements.bed
 HEADNECK	ChromHMM_ActiveEnhancer2	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/ChromHMM_Active_Enhancer_Class2_Esophagus.elements.bed
 HEADNECK	ChromHMM_ActiveTSS	/data/talkowski/Samples/rCNVmap/data/master_annotations/noncoding/ChromHMM_Active_TSS_Esophagus.elements.bed

@@ -1143,7 +1143,11 @@ while read code state; do
     awk '{ print $9 }' | fgrep ${state} )
 done < ${WRKDIR}/data/misc/ChromHMM_18way_states.list
 
+#Consolidate all tissue-specific annoation classes into organ system-level tracks
+while read tissue; do
 
+done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
+sort | uniq )
 
 
 
