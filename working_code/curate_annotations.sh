@@ -1060,8 +1060,6 @@ awk -v OFS="\t" '{ if ($4/54>0.5) print $1, $2, $3 }' ${TMPDIR}/H3K27ac_merged.b
 ${WRKDIR}/data/master_annotations/noncoding/H3K27ac_conserved.elements.bed
 awk -v OFS="\t" '{ if ($4/54>0.9) print $1, $2, $3 }' ${TMPDIR}/H3K27ac_merged.bed > \
 ${WRKDIR}/data/master_annotations/noncoding/H3K27ac_highlyConserved.elements.bed
-
-
 #TF Binding Sites
 cd ${WRKDIR}/data/misc
 wget http://hgdownload.cse.ucsc.edu/goldenPath/hg19/encodeDCC/wgEncodeRegTfbsClustered/wgEncodeRegTfbsClusteredV3.bed.gz
@@ -1145,7 +1143,47 @@ done < ${WRKDIR}/data/misc/ChromHMM_18way_states.list
 
 #Consolidate all tissue-specific annoation classes into organ system-level tracks
 while read tissue; do
+  echo ${tissue}
+  while read anno; do
+    echo ${anno}
+    while read file; do
+      cat ${file}
+    done < <( awk -v tissue=${tissue} -v anno=${anno} \
+    '{ if ($1==tissue && $2==anno) print $3 }' \
+    ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list ) | \
+    sort -Vk1,1 -k2,2n -k3,3n | cut -f1-3 | bedtools merge -i - > \
+    ${WRKDIR}/data/master_annotations/noncoding/${tissue}_MASTER.${anno}.elements.bed
+  done < <( awk -v tissue=${tissue} '{ if ($1==tissue) print $2 }' \
+    ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
+    sort | uniq )
+done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
+sort | uniq )
 
+#Get count of elements per noncoding set (per organ system group)
+while read organ; do
+  while read list; do
+    for dummy in 1; do
+      echo -e "${list}"
+      #All elements (count)
+      cat ${list} | wc -l
+      #Write element size to temporary file
+      awk '{ print $3-$2 }' ${list} > ${TMPDIR}/element_size.tmp
+      #Mean size & std dev
+      Rscript -e "x <- read.table(\"${TMPDIR}/element_size.tmp\",header=F)[,1]; \
+      cat(paste(round(mean(x),2),\"\\n\",round(sd(x),2),\"\\n\",sep=\"\"))" | \
+      fgrep -v WARNING
+      #Autosomal elements (count)
+      grep -e '^[0-9]' ${list} | wc -l
+      #Write autosomal element size to temporary file
+      grep -e '^[0-9]' ${list} | awk '{ print $3-$2 }' > ${TMPDIR}/element_size.tmp
+      #Mean autosomal size & std dev
+      Rscript -e "x <- read.table(\"${TMPDIR}/element_size.tmp\",header=F)[,1]; \
+      options(scipen=1000);\
+      cat(paste(round(mean(x),2),\"\\n\",round(sd(x),2),\"\\n\",sep=\"\"))" | \
+      fgrep -v WARNING
+    done | paste -s
+  done < <( l ${WRKDIR}/data/master_annotations/noncoding/*elements.bed | \
+    awk '{ print $9 }' | fgrep ${organ}_MASTER )
 done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
 sort | uniq )
 
