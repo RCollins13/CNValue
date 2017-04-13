@@ -164,7 +164,8 @@ for dummy in 1; do
     awk -v baseline=${baseline} -v fold=${fold} \
     '{ print fold-(1.96*($2/sqrt(($1^2)))) }' ${RES_STAT}
     awk -v baseline=${baseline} -v fold=${fold} \
-    '{ print fold+(1.96*($2/sqrt(($1^2)))) }' ${RES_STAT}    cut -f3-4 ${RES_STAT}
+    '{ print fold+(1.96*($2/sqrt(($1^2)))) }' ${RES_STAT}
+    cut -f3-4 ${RES_STAT}
   done | paste -s
 done > ${OUTFILE}
 
