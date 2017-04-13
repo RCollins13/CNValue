@@ -68,9 +68,8 @@ CASES=$2
 LIST=$3
 GENOME=$4
 
-###MUST ADD: #GET PATH TO RCNVMAP GIT REPO DIRECTORY
-REPO=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-echo ${REPO}
+###MUST ADD: #GET PATH TO RCNVMAP BIN SUBDIRECTORY
+BIN=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 #Check for required input
 if [ -z ${CONTROLS} ] || [ -z ${CASES} ] || [ -z ${LIST} ] || [ -z ${GENOME} ]; then
@@ -92,7 +91,7 @@ fi
 
 #Iterate over list of annotations and run burden tests
 while read name path; do
-  ${REPO}/bin/annoSet_permutation_test.sh -N ${TIMES} -x ${EXCLUDE} \
+  ${BIN}/annoSet_permutation_test.sh -N ${TIMES} -x ${EXCLUDE} \
   -o ${OUTDIR}/${PREFIX}.${name}.CNV_burden_results.txt \
   ${CONTROLS} ${CASES} ${PATH} ${GENOME}
 done < ${LIST}
