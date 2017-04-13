@@ -1155,14 +1155,45 @@ while read tissue; do
     ${WRKDIR}/data/master_annotations/noncoding/${tissue}_MASTER.${anno}.elements.bed
   done < <( awk -v tissue=${tissue} '{ if ($1==tissue) print $2 }' \
     ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
-    sort | uniq )
+    sort | uniq | fgrep FIRE )
 done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
 sort | uniq )
 
 #Get count of elements per noncoding set (per organ system group)
+while read anno; do
+  while read tissue; do
+    list=${WRKDIR}/data/master_annotations/noncoding/${tissue}_MASTER.${anno}.elements.bed
+    for dummy in 1; do
+      echo -e "${tissue}\t${anno}"
+      echo -e "${list}"
+      #All elements (count)
+      cat ${list} | wc -l
+      #Write element size to temporary file
+      awk '{ print $3-$2 }' ${list} > ${TMPDIR}/element_size.tmp
+      #Mean size & std dev
+      Rscript -e "x <- read.table(\"${TMPDIR}/element_size.tmp\",header=F)[,1]; \
+      cat(paste(round(mean(x),2),\"\\n\",round(sd(x),2),\"\\n\",sep=\"\"))" | \
+      fgrep -v WARNING
+      #Autosomal elements (count)
+      grep -e '^[0-9]' ${list} | wc -l
+      #Write autosomal element size to temporary file
+      grep -e '^[0-9]' ${list} | awk '{ print $3-$2 }' > ${TMPDIR}/element_size.tmp
+      #Mean autosomal size & std dev
+      Rscript -e "x <- read.table(\"${TMPDIR}/element_size.tmp\",header=F)[,1]; \
+      options(scipen=1000);\
+      cat(paste(round(mean(x),2),\"\\n\",round(sd(x),2),\"\\n\",sep=\"\"))" | \
+      fgrep -v WARNING
+    done | paste -s
+  done < <( awk -v anno=${anno} '{ if ($2==anno) print $1 }' \
+    ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
+    sort | uniq )
+done < <( cut -f2 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
+    sort | uniq  )
+
 while read organ; do
   while read list; do
     for dummy in 1; do
+      echo ${organ}
       echo -e "${list}"
       #All elements (count)
       cat ${list} | wc -l
