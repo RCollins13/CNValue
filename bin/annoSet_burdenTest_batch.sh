@@ -69,7 +69,8 @@ LIST=$3
 GENOME=$4
 
 ###MUST ADD: #GET PATH TO RCNVMAP GIT REPO DIRECTORY
-REPO=XXXXXXXXX
+REPO=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+echo ${REPO}
 
 #Check for required input
 if [ -z ${CONTROLS} ] || [ -z ${CASES} ] || [ -z ${LIST} ] || [ -z ${GENOME} ]; then
