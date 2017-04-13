@@ -157,8 +157,9 @@ for dummy in 1; do
     awk -v baseline=${baseline} '{ if ($1>baseline) print $0 }' ${PERM_OUTPUT} | wc -l
     awk -v baseline=${baseline} '{ if ($1<=baseline) print $0 }' ${PERM_OUTPUT} | wc -l
     cut -f1-2 ${RES_STAT}
-    awk -v baseline=${baseline} '{ print baseline-$1 }' ${RES_STAT}
-    awk -v baseline=${baseline} '{ print baseline/$1 }' ${RES_STAT}
+    delta=$( awk -v baseline=${baseline} '{ print baseline-$1 }' ${RES_STAT} )
+    echo ${delta}
+    awk -v delta=${delta} '{ print (sqrt(($1)^2)+delta)/sqrt(($1)^2) }' ${RES_STAT}
     awk -v baseline=${baseline} '{ print (baseline/$1)-(1.96*($2/$1)) }' ${RES_STAT}
     awk -v baseline=${baseline} '{ print (baseline/$1)+(1.96*($2/$1)) }' ${RES_STAT}
     cut -f3-4 ${RES_STAT}
