@@ -15,7 +15,7 @@
 #Usage statement
 usage(){
 cat <<EOF
-usage: annoSet_permutation_test.sh [-h] [-N TIMES] [-x EXCLUDE] [-o OUTFILE] CONTROLS CASES ANNO GENOME
+usage: annoSet_permutation_test.sh [-h] [-q QUIET] [-N TIMES] [-x EXCLUDE] [-o OUTFILE] CONTROLS CASES ANNO GENOME
 
 Permutation test of CNV burden at a set of genomic annotations by annotation shuffling
 
@@ -30,6 +30,7 @@ Positional arguments:
 
 Optional arguments:
   -h  HELP          Show this help message and exit
+  -q  QUIET         Suppresses (some) standard output
   -N  TIMES         Number of permutations to perform (default: 1,000)
   -x  EXCLUDE       BED-style intervals to exclude when simulating intervals
   -o  OUTFILE       Output file (default: /dev/stdout)
@@ -40,11 +41,15 @@ EOF
 TIMES=1000
 OUTFILE=/dev/stdout
 EXCLUDE=0
-while getopts ":N:x:o:h" opt; do
+QUIET=0
+while getopts ":N:x:o:hq" opt; do
   case "$opt" in
     h)
       usage
       exit 0
+      ;;
+    q)
+      QUIET=1
       ;;
     N)
       TIMES=${OPTARG}
@@ -124,8 +129,10 @@ PERM_OUTPUT=`mktemp`
 
 #Repeat for number of permutations specified by user
 for i in $( seq 1 ${TIMES} ); do
-  #Print status
-  echo "Beginning permutation ${i} of ${TIMES}"
+  if [ ${QUIET} == 0 ]; then
+    #Print status
+    echo "Beginning permutation ${i} of ${TIMES}"
+  fi
 
   #Shuffle annotations
   if [ ${EXCLUDE} != "0" ]; then
