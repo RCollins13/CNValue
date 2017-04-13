@@ -90,8 +90,8 @@ if ! [ -e ${OUTDIR} ]; then
 fi
 
 #Iterate over list of annotations and run burden tests
-while read name path; do
+while read NAME ANNO; do
   ${BIN}/annoSet_permutation_test.sh -N ${TIMES} -x ${EXCLUDE} \
-  -o ${OUTDIR}/${PREFIX}.${name}.CNV_burden_results.txt \
-  ${CONTROLS} ${CASES} ${PATH} ${GENOME}
+  -o ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt \
+  ${CONTROLS} ${CASES} ${ANNO} ${GENOME}
 done < ${LIST}

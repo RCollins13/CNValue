@@ -109,7 +109,8 @@ else
 fi
 
 #Restrict annotation set to autosomes
-grep -e '^[0-9]\|^chr[0-9]' ${ANNOS} > ${ANNOS}2; mv ${ANNOS}2 ${ANNOS}
+grep -e '^[0-9]\|^chr[0-9]' ${ANNOS} > ${ANNOS}2
+mv ${ANNOS}2 ${ANNOS}
 
 #Get baseline dCNV
 baseline=$( paste <( bedtools intersect -c -a ${ANNOS} -b ${CASE} | \

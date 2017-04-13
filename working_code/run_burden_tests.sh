@@ -53,14 +53,15 @@ while read pheno; do
         bsub -q normal -sla miket_sc -u nobody -J ${VF}_${CNV}_${pheno}_annoSet_burden_tests \
         "${WRKDIR}/bin/rCNVmap/bin/annoSet_burdenTest_batch.sh -N 1000 \
           -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
-          -p ${pheno}_${CNV}_${filt}_${VF}
+          -p ${pheno}_${CNV}_${filt}_${VF} \
           -o ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/ \
           ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
           ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
-MUST_ADD_LIST_OF_ANNOTATIONS_HERE \
+          ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.list \
           ${WRKDIR}/data/misc/GRCh37_autosomes.genome"
 
-done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | cut -f1 )
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          cut -f1 | fgrep -v CTRL )
 
 
 
