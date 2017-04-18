@@ -138,8 +138,12 @@ for i in $( seq 1 ${TIMES} ); do
   if [ ${EXCLUDE} != "0" ]; then
     bedtools shuffle -f 0.1 -excl ${EXCLUDE} \
     -i ${ANNOS} -g ${GENOME} > ${ANNOS_SHUF}
+    awk -v OFS="\t" '{ if ($3<$2) $2=$3; print }' ${ANNOS_SHUF} > ${ANNOS_SHUF}2
+    mv ${ANNOS_SHUF}2 ${ANNOS_SHUF}
   else
     bedtools shuffle -noOverlapping -maxTries 10000 -i ${ANNOS} -g ${GENOME} > ${ANNOS_SHUF}
+    awk -v OFS="\t" '{ if ($3<$2) $2=$3; print }' ${ANNOS_SHUF} > ${ANNOS_SHUF}2
+    mv ${ANNOS_SHUF}2 ${ANNOS_SHUF}
   fi
 
   #Count pileup of case/control at each element

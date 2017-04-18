@@ -34,7 +34,7 @@ n=$4
 W=$5
 
 #####run
-for i in $( seq -w 0001 0100 | paste -s ); do
+for i in $( seq -w 0001 1000 | paste -s ); do
   if [ ${W} == 0 ]; then
   	if [ -e ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF}/${CNV}/${pheno}/results_exons_n${n}_i${i}.txt ]; then 
   	  fgrep -v "#" ${WRKDIR}/analysis/benchmarking/geneSet_enrichments/permutation_testing_${VF}/${CNV}/${pheno}/results_exons_n${n}_i${i}.txt | awk '{ print $NF }'

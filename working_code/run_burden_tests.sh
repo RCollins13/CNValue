@@ -59,7 +59,9 @@ while read pheno; do
           ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
           ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.list \
           ${WRKDIR}/data/misc/GRCh37_autosomes.genome"
-
+      done
+    done
+  done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
 
