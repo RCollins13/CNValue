@@ -92,6 +92,7 @@ fi
 
 #Iterate over list of annotations and run burden tests
 while read NAME ANNO; do
+  echo "STARTING ${NAME}"
   ${BIN}/annoSet_permutation_test.sh -q -N ${TIMES} -x ${EXCLUDE} -L ${NAME} \
   -o ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt \
   ${CONTROLS} ${CASES} ${ANNO} ${GENOME}

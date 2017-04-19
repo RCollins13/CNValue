@@ -187,7 +187,7 @@ Rscript -e  "dat <- read.table(\"${PERM_OUTPUT}\",header=F); dat[,4] <- dat[,1]/
              z <- (obs.fold-mu[4])/sd[4]; p <- 1-pnorm(z); fold.est <- obs.fold/mu[4]; \
              fold.lower <- fold.est-(1.96*sd[4]); fold.upper <- fold.est+(1.96*sd[4]); \
              write.table(data.frame(${base_case},${base_ctrl},mu[1],mu[2],sd[1],sd[2],\
-             obs.fold,mu[4],fold.est,fold.lower,fold.upper,z,p),\
+             obs.fold,mu[4],sd[4],fold.est,fold.lower,fold.upper,z,p),\
               \"${RES_STAT}\",col.names=F,row.names=F,quote=F,sep=\"\t\")"
 
 #Print results to outfile
