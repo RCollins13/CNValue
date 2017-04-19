@@ -9,7 +9,7 @@
 # Contact: Ryan L. Collins <rlcollins@g.harvard.edu>
 # Code development credits availble on GitHub
 
-#Code to curate PhyloP conserved elements by chromosome
+#Code to curate organ-level master noncoding annotation tracks
 
 #####Set parameters
 WRKDIR=/data/talkowski/Samples/rCNVmap
@@ -27,11 +27,18 @@ PICARD=/data/talkowski/tools/bin/picard-tools-1.137/picard.jar
 SFARI_ANNO=/data/talkowski/Samples/SFARI/ASC_analysis/annotations
 
 #####Read arguments
-chr=$1
+tissue=$1
 
 #####Run
-awk -v OFS="\t" '{ if ($4>=1) print $1, $2, $3 }' \
-${WRKDIR}/data/misc/PhyloP/chr${chr}.phyloP46way.placental.bg | \
-sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -d 100 -i - | \
-awk -v OFS="\t" '{ if ($3-$2>=200) print $1, $2, $3 }' | sed 's/^chr//g' > \
-${WRKDIR}/data/misc/PhyloP/evolutionarilyConserved_PhyloP.chr${chr}.elements.bed
+while read anno; do
+  echo ${anno}
+  while read file; do
+    cat ${file}
+  done < <( awk -v tissue=${tissue} -v anno=${anno} \
+  '{ if ($1==tissue && $2==anno) print $3 }' \
+  ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list ) | \
+  sort -Vk1,1 -k2,2n -k3,3n | cut -f1-3 | bedtools merge -i - > \
+  ${WRKDIR}/data/master_annotations/noncoding/${tissue}_MASTER.${anno}.elements.bed
+done < <( awk -v tissue=${tissue} '{ if ($1==tissue) print $2 }' \
+  ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
+  sort | uniq )

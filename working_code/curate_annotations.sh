@@ -698,11 +698,18 @@ for chr in $( seq 1 22 ); do
   ${WRKDIR}/data/misc/PhyloP/chr${chr}.phyloP46way.placental.bg
 done 
 for chr in $( seq 1 22 ); do
-  awk -v OFS="\t" '{ if ($4>=1) print $1, $2, $3 }' \
-  ${WRKDIR}/data/misc/PhyloP/chr${chr}.phyloP46way.placental.bg | \
-  sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -d 100 -i - | \
-  awk -v OFS="\t" '{ if ($3-$2>=200) print $1, $2, $3 }' | sed 's/^chr//g'
-done > \
+  #CODE:
+  # awk -v OFS="\t" '{ if ($4>=1) print $1, $2, $3 }' \
+  # ${WRKDIR}/data/misc/PhyloP/chr${chr}.phyloP46way.placental.bg | \
+  # sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -d 100 -i - | \
+  # awk -v OFS="\t" '{ if ($3-$2>=200) print $1, $2, $3 }' | sed 's/^chr//g'
+  #PARALLELIZE:
+  bsub -q short -sla miket_sc -u nobody -J PhyloP_chr${chr} \
+  "${WRKDIR}/bin/rCNVmap/analysis_scripts/curate_PhyloP.sh ${chr}"
+done 
+for chr in $( seq 1 22 ); do
+  cat ${WRKDIR}/data/misc/PhyloP/evolutionarilyConserved_PhyloP.chr${chr}.elements.bed
+done | sort -Vk1,1 -k2,2n -k3,3n > \
 ${WRKDIR}/data/master_annotations/noncoding/evolutionarilyConserved_PhyloP.elements.bed
 #GERP conservation peaks
 mkdir ${WRKDIR}/data/misc/GERP
@@ -1144,18 +1151,22 @@ done < ${WRKDIR}/data/misc/ChromHMM_18way_states.list
 #Consolidate all tissue-specific annoation classes into organ system-level tracks
 while read tissue; do
   echo ${tissue}
-  while read anno; do
-    echo ${anno}
-    while read file; do
-      cat ${file}
-    done < <( awk -v tissue=${tissue} -v anno=${anno} \
-    '{ if ($1==tissue && $2==anno) print $3 }' \
-    ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list ) | \
-    sort -Vk1,1 -k2,2n -k3,3n | cut -f1-3 | bedtools merge -i - > \
-    ${WRKDIR}/data/master_annotations/noncoding/${tissue}_MASTER.${anno}.elements.bed
-  done < <( awk -v tissue=${tissue} '{ if ($1==tissue) print $2 }' \
-    ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
-    sort | uniq | fgrep FIRE )
+  #CODE:
+  # while read anno; do
+  #   echo ${anno}
+  #   while read file; do
+  #     cat ${file}
+  #   done < <( awk -v tissue=${tissue} -v anno=${anno} \
+  #   '{ if ($1==tissue && $2==anno) print $3 }' \
+  #   ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list ) | \
+  #   sort -Vk1,1 -k2,2n -k3,3n | cut -f1-3 | bedtools merge -i - > \
+  #   ${WRKDIR}/data/master_annotations/noncoding/${tissue}_MASTER.${anno}.elements.bed
+  # done < <( awk -v tissue=${tissue} '{ if ($1==tissue) print $2 }' \
+  #   ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
+  #   sort | uniq )
+  #PARALLELIZE:
+  bsub -q short -sla miket_sc -u nobody -J curate_${tissue}_tracks \
+  "${WRKDIR}/bin/rCNVmap/analysis_scripts/curate_master_organ_group_annotations.sh ${tissue}"
 done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
 sort | uniq )
 
