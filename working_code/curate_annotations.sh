@@ -573,7 +573,7 @@ while read tissue; do
     mv ${WRKDIR}/data/master_annotations/noncoding/superEnhancers_${tissue}.elements.bed \
     ${newname}
   fi
-done < <( tail -n3 ${WRKDIR}/data/misc/SuperEnhancer_tissues.list )
+done < ${WRKDIR}/data/misc/SuperEnhancer_tissues.list
 #Conserved super enhancers
 while read tissue; do
   cat ${WRKDIR}/data/master_annotations/noncoding/superEnhancers_${tissue}.elements.bed

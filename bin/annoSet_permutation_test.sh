@@ -15,7 +15,8 @@
 #Usage statement
 usage(){
 cat <<EOF
-usage: annoSet_permutation_test.sh [-h] [-q QUIET] [-N TIMES] [-x EXCLUDE] [-o OUTFILE] CONTROLS CASES ANNO GENOME
+usage: annoSet_permutation_test.sh [-h] [-q QUIET] [-N TIMES] [-x EXCLUDE] [-L LABEL]
+                                   [-o OUTFILE] CONTROLS CASES ANNO GENOME
 
 Permutation test of CNV burden at a set of genomic annotations by annotation shuffling
 
@@ -33,16 +34,18 @@ Optional arguments:
   -q  QUIET         Suppresses (some) standard output
   -N  TIMES         Number of permutations to perform (default: 1,000)
   -x  EXCLUDE       BED-style intervals to exclude when simulating intervals
+  -L  LABEL         Label of annotation set, printed to output file (default: "Results")
   -o  OUTFILE       Output file (default: /dev/stdout)
 EOF
 }
 
 #Parse arguments
-TIMES=1000
-OUTFILE=/dev/stdout
-EXCLUDE=0
 QUIET=0
-while getopts ":N:x:o:hq" opt; do
+TIMES=1000
+EXCLUDE=0
+LABEL="Results"
+OUTFILE=/dev/stdout
+while getopts ":N:x:L:o:hq" opt; do
   case "$opt" in
     h)
       usage
@@ -56,6 +59,9 @@ while getopts ":N:x:o:hq" opt; do
       ;;
     x)
       EXCLUDE=${OPTARG}
+      ;;
+    L)
+      LABEL=${OPTARG}
       ;;
     o)
       OUTFILE=${OPTARG}
@@ -78,39 +84,42 @@ fi
 TMPDIR=`mktemp -d`
 
 #Unzip input control CNV file if gzipped
+CTRL=`mktemp`
 GZI_CTRL=0
 if [ $( file ${CONTROLS} | fgrep "gzip compressed" | wc -l ) -gt 0 ]; then
   GZI_CTRL=1
-  CTRL=`mktemp`; mv ${CTRL} ${CTRL}.gz; CTRL=${CTRL}.gz
+  mv ${CTRL} ${CTRL}.gz; CTRL=${CTRL}.gz
   cp ${CONTROLS} ${CTRL}
   gunzip ${CTRL}
   CTRL=$( echo "${CTRL}" | sed 's/\.gz/\t/g' | cut -f1 )
 else
-  CTRL=${CONTROLS}
+  cp ${CONTROLS} ${CTRL}
 fi
 
 #Unzip input case CNV file if gzipped
+CASE=`mktemp`
 GZI_CASE=0
 if [ $( file ${CASES} | fgrep "gzip compressed" | wc -l ) -gt 0 ]; then
   GZI_CASE=1
-  CASE=`mktemp`; mv ${CASE} ${CASE}.gz; CASE=${CASE}.gz
+  mv ${CASE} ${CASE}.gz; CASE=${CASE}.gz
   cp ${CASES} ${CASE}
   gunzip ${CASE}
   CASE=$( echo "${CASE}" | sed 's/\.gz/\t/g' | cut -f1 )
 else
-  CASE=${CASES}
+  cp ${CASES} ${CASE}
 fi
 
 #Unzip input annotation set file if gzipped
+ANNOS=`mktemp`
 GZI_ANNO=0
 if [ $( file ${ANNO} | fgrep "gzip compressed" | wc -l ) -gt 0 ]; then
   GZI_ANNO=1
-  ANNOS=`mktemp`; mv ${ANNOS} ${ANNOS}.gz; ANNOS=${ANNOS}.gz
+  mv ${ANNOS} ${ANNOS}.gz; ANNOS=${ANNOS}.gz
   cp ${ANNO} ${ANNOS}
   gunzip ${ANNOS}
   ANNOS=$( echo "${ANNOS}" | sed 's/\.gz/\t/g' | cut -f1 )
 else
-  ANNOS=${ANNO}
+  cp ${ANNO} ${ANNOS}
 fi
 
 #Restrict annotation set to autosomes
@@ -162,9 +171,9 @@ Rscript -e  "dat <- read.table(\"${PERM_OUTPUT}\",header=F)[,1];\
 
 #Print results to outfile
 for dummy in 1; do
-  echo -e "#observed\tperms_greater\tperms_less_or_equal\texpected_mean\texpected_sd\tdifference\tfold_enrichment\tfold_min_95CI\tfold_max_95CI\tZscore\tpvalue"
+  echo -e "#test\observed\tperms_greater\tperms_less_or_equal\texpected_mean\texpected_sd\tdifference\tfold_enrichment\tfold_min_95CI\tfold_max_95CI\tZscore\tpvalue"
   for second in 2; do
-    echo ${baseline}
+    echo -e "${LABEL}\t${baseline}"
     awk -v baseline=${baseline} '{ if ($1>baseline) print $0 }' ${PERM_OUTPUT} | wc -l
     awk -v baseline=${baseline} '{ if ($1<=baseline) print $0 }' ${PERM_OUTPUT} | wc -l
     cut -f1-2 ${RES_STAT}
