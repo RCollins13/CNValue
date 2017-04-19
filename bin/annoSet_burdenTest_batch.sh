@@ -15,7 +15,8 @@
 #Usage statement
 usage(){
 cat <<EOF
-usage: annoSet_burdenTest_batch.sh [-h] [-N TIMES] [-x EXCLUDE] [-o OUTDIR] CONTROLS CASES LIST GENOME
+usage: annoSet_burdenTest_batch.sh [-h] [-N TIMES] [-x EXCLUDE] [-o OUTDIR]
+                                   CONTROLS CASES LIST GENOME
 
 Script to test CNV burden at genome annotation sets in batch mode 
 
@@ -91,7 +92,7 @@ fi
 
 #Iterate over list of annotations and run burden tests
 while read NAME ANNO; do
-  ${BIN}/annoSet_permutation_test.sh -q -N ${TIMES} -x ${EXCLUDE} \
+  ${BIN}/annoSet_permutation_test.sh -q -N ${TIMES} -x ${EXCLUDE} -L ${NAME} \
   -o ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt \
   ${CONTROLS} ${CASES} ${ANNO} ${GENOME}
 done < ${LIST}
