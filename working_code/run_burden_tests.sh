@@ -72,7 +72,8 @@ while read pheno; do
     # done
     #PARALLELIZE:
     bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_annoSet_burdens \
-    ""
+    "${WRKDIR}/bin/rCNVmap/analysis_scripts/parallelize_batched_annoSet_burdens.sh \
+    ${pheno} ${CNV}"
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )

@@ -33,6 +33,7 @@ CNV=$2
 #####Run
 for filt in all coding haplosufficient noncoding intergenic; do
   for VF in E2 E3 E4 N1; do
+    echo "\n\n${pheno} ${CNV} ${filt} ${CNV}\n\n"
     #Submit batch job
     ${WRKDIR}/bin/rCNVmap/bin/annoSet_burdenTest_batch.sh -N 1000 \
       -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
