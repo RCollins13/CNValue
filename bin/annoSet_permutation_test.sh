@@ -184,17 +184,17 @@ RES_STAT=`mktemp`
 # 14: p-value (uncorrected)
 Rscript -e  "dat <- read.table(\"${PERM_OUTPUT}\",header=F); dat[,4] <- dat[,1]/dat[,2];\
              obs.fold <- ${base_case}/${base_ctrl}; mu <- apply(dat,2,mean); sd <- apply(dat,2,sd);\
-             t <- (obs.fold-mu[4])/(sd[4]/sqrt(nrow(dat))); p <- pt(t,df=nrow(dat)-1,lower=F); fold.est <- obs.fold/mu[4]; \
+             z <- (obs.fold-mu[4])/sd[4]; p <- 1-pnorm(z); fold.est <- obs.fold/mu[4]; \
              fold.lower <- fold.est-(1.96*sd[4]); fold.upper <- fold.est+(1.96*sd[4]); \
              write.table(data.frame(${base_case},${base_ctrl},mu[1],mu[2],sd[1],sd[2],\
-             obs.fold,mu[4],sd[4],fold.est,fold.lower,fold.upper,t,p),\
+             obs.fold,mu[4],sd[4],fold.est,fold.lower,fold.upper,z,p),\
               \"${RES_STAT}\",col.names=F,row.names=F,quote=F,sep=\"\t\")"
 
 #Print results to outfile
 for dummy in 1; do
   echo -e "#test\tcase_observed\tcontrol_observed\tcase_expected\tcontrol_expected\t\
 case_expected_sd\tcontrol_expected_sd\tobs_case_vs_control\texp_case_vs_control\t\
-exp_case_vs_control_sd\tobs_vs_exp\tlower_CI\tupper_CI\ttScore\tp"
+exp_case_vs_control_sd\tobs_vs_exp\tlower_CI\tupper_CI\tZscore\tp"
   paste <( echo "${LABEL}" ) ${RES_STAT}
 done > ${OUTFILE}
 
