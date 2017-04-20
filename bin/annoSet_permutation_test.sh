@@ -194,7 +194,7 @@ Rscript -e  "dat <- read.table(\"${PERM_OUTPUT}\",header=F); dat[,4] <- dat[,1]/
 for dummy in 1; do
   echo -e "#test\tcase_observed\tcontrol_observed\tcase_expected\tcontrol_expected\t\
 case_expected_sd\tcontrol_expected_sd\tobs_case_vs_control\texp_case_vs_control\t\
-exp_case_cs_control_sd\tobs_vs_exp\tlower_CI\tupper_CI\tZscore\tp"
+exp_case_vs_control_sd\tobs_vs_exp\tlower_CI\tupper_CI\tZscore\tp"
   paste <( echo "${LABEL}" ) ${RES_STAT}
 done > ${OUTFILE}
 

@@ -15,7 +15,7 @@
 #Usage statement
 usage(){
 cat <<EOF
-usage: annoSet_burdenTest_batch.sh [-h] [-N TIMES] [-x EXCLUDE] [-o OUTDIR]
+usage: annoSet_burdenTest_batch.sh [-h] [-N TIMES] [-x EXCLUDE] [-o OUTDIR] [-f]
                                    CONTROLS CASES LIST GENOME
 
 Script to test CNV burden at genome annotation sets in batch mode 
@@ -35,6 +35,7 @@ Optional arguments:
   -x  EXCLUDE       BED-style intervals to exclude when simulating intervals
   -p  PREFIX        String to add to the front of all output files
   -o  OUTDIR        Output directory (default: current directory)
+  -f  FORCE         Overwrite output even if file with same name exists
 EOF
 }
 
@@ -43,7 +44,8 @@ TIMES=1000
 OUTFILE=/dev/stdout
 EXCLUDE=0
 PREFIX=""
-while getopts ":N:x:p:o:h" opt; do
+FORCE=0
+while getopts ":N:x:p:o:hf" opt; do
   case "$opt" in
     h)
       usage
@@ -60,6 +62,9 @@ while getopts ":N:x:p:o:h" opt; do
       ;;
     o)
       OUTDIR=${OPTARG}
+      ;;
+    f)
+      FORCE=1
       ;;
   esac
 done
@@ -92,8 +97,19 @@ fi
 
 #Iterate over list of annotations and run burden tests
 while read NAME ANNO; do
-  echo "STARTING ${NAME}"
-  ${BIN}/annoSet_permutation_test.sh -q -N ${TIMES} -x ${EXCLUDE} -L ${NAME} \
-  -o ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt \
-  ${CONTROLS} ${CASES} ${ANNO} ${GENOME}
+  if [ -e ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt ]; then
+    if [ ${FORCE} -eq 0 ]; then
+      echo "OUTPUT FILE FOR ${NAME} FOUND; SKIPPING"
+    else
+      echo "STARTING ${NAME}"
+      ${BIN}/annoSet_permutation_test.sh -q -N ${TIMES} -x ${EXCLUDE} -L ${NAME} \
+      -o ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt \
+      ${CONTROLS} ${CASES} ${ANNO} ${GENOME}
+    fi
+  else
+    echo "STARTING ${NAME}"
+    ${BIN}/annoSet_permutation_test.sh -q -N ${TIMES} -x ${EXCLUDE} -L ${NAME} \
+    -o ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt \
+    ${CONTROLS} ${CASES} ${ANNO} ${GENOME}
+  fi
 done < ${LIST}

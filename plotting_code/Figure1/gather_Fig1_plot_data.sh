@@ -135,6 +135,26 @@ for dummy in 1; do
   done < <( fgrep CNCR ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list ) | paste - - - | sort -nrk4,4
 done > ${WRKDIR}/data/plot_data/figure1/sample_counts_by_group.txt
 
+#####Get matrix of count of patients overlapping per phenotype group
+while read groupA etiA tierA descriptionA includeA excludeA colorA nA; do
+  while read groupB etiB tierB descriptionB includeB excludeB colorB nB; do
+    if [ ${groupA} == ${groupB} ]; then
+      echo ${nA}
+    else
+      if [ ${etiA} != ${etiB} ]; then
+        echo 0
+      else
+        cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list | \
+        fgrep -wf <( echo ${includeA} | sed 's/\;/\n/g' ) | \
+        fgrep -wvf <( echo ${excludeA} | sed 's/\;/\n/g' ) | \
+        fgrep -wf <( echo ${includeB} | sed 's/\;/\n/g' ) | \
+        fgrep -wvf <( echo ${excludeB} | sed 's/\;/\n/g' ) | wc -l
+      fi
+    fi
+  done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v CNCR ) | paste -s
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v CNCR ) > \
+${WRKDIR}/data/plot_data/figure1/germline_case_overlap.matrix.txt
+
 #####Get sizes of all E2 CNVs per filter tier 2 phenotype group
 for group in CTRL NEURO SOMA CNCR; do
   for filt in coding haplosufficient noncoding intergenic; do
