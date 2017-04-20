@@ -24,7 +24,7 @@ for filt in all coding haplosufficient noncoding intergenic; do
   for VF in E2 E3 E4 N1; do
     echo -e "\n\n${pheno} ${CNV} ${filt} ${VF}\n\n"
     #Submit batch job
-    ${WRKDIR}/bin/rCNVmap/bin/annoSet_burdenTest_batch.sh -N 1000 \
+    ${WRKDIR}/bin/rCNVmap/bin/annoSet_burdenTest_batch.sh -f -N 1000 \
       -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
       -p ${pheno}_${CNV}_${filt}_${VF} \
       -o ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/ \
