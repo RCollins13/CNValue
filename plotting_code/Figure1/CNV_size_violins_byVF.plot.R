@@ -10,7 +10,7 @@
 #Code to generate violin plots of CNV size per VF filter
 
 #####Set parameters
-WRKDIR <- "/Users/collins/Desktop/RCollins/Talkowski_Local/CNV_DB/rCNV_map/"
+WRKDIR <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/"
 options(scipen=1000,stringsAsFactors=F)
 logvect.all <- log10(as.vector(sapply(4:7,function(x){return((1:9)*10^x)})))
 logvect.mids <- log10(as.vector(sapply(4:6,function(x){return(c(5,10)*10^x)})))
@@ -60,7 +60,7 @@ plotsizes <- function(group,cols,xaxis=T,yaxis=T,h=1/80,line=T,
   #X-axis
   if(xaxis==T){
     axis(1,at=1:4,line=-1,tick=F,labels=c("1%","0.1%","0.01%","n=1"),cex.axis=0.8)
-    mtext(1,line=0.8,text="Variant Frequency",cex=0.6)
+    mtext(1,line=0.8,text="Maximum VF",cex=0.6)
   }
 
   #Plot violins
@@ -85,7 +85,7 @@ plotsizes <- function(group,cols,xaxis=T,yaxis=T,h=1/80,line=T,
 
 #Run plots
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure1/CNVsize_by_VF.violins.pdf",sep=""),
-    width=8,height=1.8)
+    width=8,height=1.6)
 par(mfrow=c(1,4))
 plotsizes(group="CTRL",cols=cols.CTRL)
 plotsizes(group="NEURO",cols=cols.NEURO)

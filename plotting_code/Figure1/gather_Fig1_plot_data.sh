@@ -135,32 +135,74 @@ for dummy in 1; do
   done < <( fgrep CNCR ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list ) | paste - - - | sort -nrk4,4
 done > ${WRKDIR}/data/plot_data/figure1/sample_counts_by_group.txt
 
+####Get number of phenotypic group assignments per patient
+cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list | \
+sed 's/,/\t/g' | awk '{ print NF }' | sort | uniq -c | awk -v OFS="\t" '{ print $2, $1 }' | \
+sort -nk1,1 > ${WRKDIR}/data/plot_data/figure1/phenotypes_per_sample_hist.txt
+
+####Get count of patients with a NEURO and/or a SOMA HPO assignment
+#Both
+cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list | fgrep -v TCGA | \
+fgrep -wf <( fgrep -w "NEURO" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+cut -f5 | sed 's/\;/\n/g' ) | fgrep -wf \
+<( fgrep -w "SOMA" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+cut -f5 | sed 's/\;/\n/g' ) | fgrep -v "0002664" | wc -l
+#NEURO, no SOMA
+cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list | fgrep -v TCGA | \
+fgrep -wf <( fgrep -w "NEURO" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+cut -f5 | sed 's/\;/\n/g' ) | fgrep -wvf \
+<( fgrep -w "SOMA" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+cut -f5 | sed 's/\;/\n/g' ) | fgrep -v "0002664" | wc -l
+#SOMA, no NEURO
+cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list | fgrep -v TCGA | \
+fgrep -wvf <( fgrep -w "NEURO" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+cut -f5 | sed 's/\;/\n/g' ) | fgrep -wf \
+<( fgrep -w "SOMA" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+cut -f5 | sed 's/\;/\n/g' ) | fgrep -v "0002664" | wc -l
+
 #####Get matrix of count of patients overlapping per phenotype group
-while read groupA etiA tierA descriptionA includeA excludeA colorA nA; do
-  while read groupB etiB tierB descriptionB includeB excludeB colorB nB; do
-    if [ ${groupA} == ${groupB} ]; then
-      echo ${nA}
-    else
-      if [ ${etiA} != ${etiB} ]; then
-        echo 0
-      else
-        cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list | \
-        fgrep -wf <( echo ${includeA} | sed 's/\;/\n/g' ) | \
-        fgrep -wvf <( echo ${excludeA} | sed 's/\;/\n/g' ) | \
-        fgrep -wf <( echo ${includeB} | sed 's/\;/\n/g' ) | \
-        fgrep -wvf <( echo ${excludeB} | sed 's/\;/\n/g' ) | wc -l
-      fi
-    fi
-  done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v CNCR ) | paste -s
-done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v CNCR ) > \
+while read dA; do
+  while read groupA etiA tierA descriptionA includeA excludeA colorA nA; do
+    echo ${groupA}
+    while read dB; do
+      while read groupB etiB tierB descriptionB includeB excludeB colorB nB; do
+        if [ ${groupA} == ${groupB} ]; then
+          echo ${nA}
+        else
+          if [ ${etiA} != ${etiB} ]; then
+            echo 0
+          else
+            cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list | \
+            fgrep -wf <( echo ${includeA} | sed 's/\;/\n/g' ) | \
+            fgrep -wvf <( echo ${excludeA} | sed 's/\;/\n/g' ) | \
+            fgrep -wf <( echo ${includeB} | sed 's/\;/\n/g' ) | \
+            fgrep -wvf <( echo ${excludeB} | sed 's/\;/\n/g' ) | wc -l
+          fi
+        fi
+      done < <( fgrep -w ${dB} ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list )
+    done < <( echo -e "Neurological_defect\nNeurodevelopmental_disorder\n\
+Developmental_delay\nNeuropsychiatric_disorder\nSchizophrenia\nAutism_spectrum_disorder\n\
+Seizures\nHypotonia\nBehavioral_abnormality_other\nIntellectual_disability\n\
+Nonneurological_defect\nHead_or_neck_defect\nGrowth_defect\nCardiac_defect\n\
+Skeletal_defect\nDigestive_respiratory_or_urinary_defect\nMuscular_defect\n\
+Eye_or_ear_defect\nIntegument_defect\nEndocrine_metabolic_or_immune_defect" ) 
+  done < <( fgrep -w "${dA}" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list ) | paste -s
+done < <( echo -e "Neurological_defect\nNeurodevelopmental_disorder\n\
+Developmental_delay\nNeuropsychiatric_disorder\nSchizophrenia\nAutism_spectrum_disorder\n\
+Seizures\nHypotonia\nBehavioral_abnormality_other\nIntellectual_disability\n\
+Nonneurological_defect\nHead_or_neck_defect\nGrowth_defect\nCardiac_defect\n\
+Skeletal_defect\nDigestive_respiratory_or_urinary_defect\nMuscular_defect\n\
+Eye_or_ear_defect\nIntegument_defect\nEndocrine_metabolic_or_immune_defect" ) > \
 ${WRKDIR}/data/plot_data/figure1/germline_case_overlap.matrix.txt
 
-#####Get sizes of all E2 CNVs per filter tier 2 phenotype group
+#####Get sizes of all E2 CNVs per DEL/DUP and tier 2 phenotype group
 for group in CTRL NEURO SOMA CNCR; do
-  for filt in coding haplosufficient noncoding intergenic; do
-    zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.CNV.noMaxSize.E2.GRCh37.${filt}.bed.gz | \
-    fgrep -v "#" | awk '{ print $3-$2 }' > \
-    ${WRKDIR}/data/plot_data/figure1/CNV_size.${group}.noMaxSize.E2.${filt}.txt
+  for filt in coding noncoding; do
+    for CNV in DEL DUP; do
+      zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.${CNV}.noMaxSize.E2.GRCh37.${filt}.bed.gz | \
+      fgrep -v "#" | awk '{ print $3-$2 }' > \
+      ${WRKDIR}/data/plot_data/figure1/${CNV}_size.${group}.noMaxSize.E2.${filt}.txt
+    done
   done
 done
 
