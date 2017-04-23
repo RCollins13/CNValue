@@ -12,19 +12,8 @@
 #Code to gather all data required for all plots used in figure 1
 
 #####Set parameters
-WRKDIR=/data/talkowski/Samples/rCNVmap
-cd ${WRKDIR}
-h37=/data/talkowski/tools/ref/Ensembl_hgGRCh37_71_reord_bwa07/Ensembl_hgGRCh37_71_ERCC_reord.fa
-TMPDIR=/scratch/miket/rlc47temp/tmp.files/
-module load bedtools/2.22.1
-module load samtools/1.3
-module load hdf/1.8.14
-module load anaconda/4.0.5
-module rm gcc-4.4
-module load gcc/4.9.0
-module load bcftools/1.3.1
-PICARD=/data/talkowski/tools/bin/picard-tools-1.137/picard.jar
-SFARI_ANNO=/data/talkowski/Samples/SFARI/ASC_analysis/annotations
+export WRKDIR=/data/talkowski/Samples/rCNVmap
+source ${WRKDIR}/bin/rCNVmap/misc/rCNV_code_parameters.sh
 
 #####Reinitialize directory if exists
 if [ -e ${WRKDIR}/data/plot_data/figure1 ]; then
@@ -195,27 +184,19 @@ Skeletal_defect\nDigestive_respiratory_or_urinary_defect\nMuscular_defect\n\
 Eye_or_ear_defect\nIntegument_defect\nEndocrine_metabolic_or_immune_defect" ) > \
 ${WRKDIR}/data/plot_data/figure1/germline_case_overlap.matrix.txt
 
-#####Get sizes of all E2 CNVs per DEL/DUP and tier 2 phenotype group
-for group in CTRL NEURO SOMA CNCR; do
-  for filt in coding noncoding; do
-    for CNV in DEL DUP; do
-      zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.${CNV}.noMaxSize.E2.GRCh37.${filt}.bed.gz | \
-      fgrep -v "#" | awk '{ print $3-$2 }' > \
-      ${WRKDIR}/data/plot_data/figure1/${CNV}_size.${group}.noMaxSize.E2.${filt}.txt
+#####Get sizes of all CNVs and all filters per CNV class and tier 2 phenotype group
+for group in CTRL NEURO NDD PSYCH SOMA CNCR; do
+  for filt in all coding haplosufficient noncoding intergenic; do
+    for freq in E2 E3 E4 N1; do
+      for CNV in CNV DEL DUP; do
+        zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.${CNV}.noMaxSize.${freq}.GRCh37.${filt}.bed.gz | \
+        fgrep -v "#" | awk '{ print $3-$2 }' > \
+        ${WRKDIR}/data/plot_data/figure1/${CNV}_size.${group}.noMaxSize.${freq}.${filt}.txt
+      done
     done
   done
 done
 
-#####Get sizes of all CNVs per VF filter per tier 2 phenotype group
-for group in CTRL NEURO SOMA CNCR; do
-  for freq in E2 E3 E4 N1; do
-    for CNV in DEL DUP; do
-      zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.${CNV}.${freq}.GRCh37.all.bed.gz | \
-      fgrep -v "#" | awk '{ print $3-$2 }' > \
-      ${WRKDIR}/data/plot_data/figure1/${CNV}_size.${group}.${freq}.all.txt
-    done
-  done
-done
 
 
 

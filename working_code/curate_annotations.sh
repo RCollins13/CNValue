@@ -264,14 +264,22 @@ ${WRKDIR}/data/master_annotations/genelists/RVIS_highly_intolerant.genes.list
 sed '1d' ${WRKDIR}/data/misc/RVIS_Unpublished_ExAC_May2015.txt | \
 awk '{ if ($11<1) print $5 }' | sort | uniq > \
 ${WRKDIR}/data/master_annotations/genelists/RVIS_extremely_intolerant.genes.list
-#OMIM disease-associated genes
-cd ${WRKDIR}/data/misc/
-git clone https://github.com/macarthur-lab/gene_lists.git
-mv gene_lists MacArthur_gene_lists
-sed '1d' ${WRKDIR}/data/misc/MacArthur_gene_lists/other_data/omim.full.tsv | \
-awk -v OFS="\n" '$4 !~ /NA/ { print $1, $3 }' | sed -e 's/|/\n/g' -e 's/,/\n/g' | \
-awk '{ if ($1!="NA") print $0 }' | sort | uniq | sed '/^$/d' > \
-${WRKDIR}/data/master_annotations/genelists/OMIM_all.genes.list
+# #OMIM disease-associated genes
+# cd ${WRKDIR}/data/misc/
+# git clone https://github.com/macarthur-lab/gene_lists.git
+# mv gene_lists MacArthur_gene_lists
+# sed '1d' ${WRKDIR}/data/misc/MacArthur_gene_lists/other_data/omim.full.tsv | \
+# awk -v OFS="\n" '$4 !~ /NA/ { print $1, $3 }' | sed -e 's/|/\n/g' -e 's/,/\n/g' | \
+# awk '{ if ($1!="NA") print $0 }' | sort | uniq | sed '/^$/d' > \
+# ${WRKDIR}/data/master_annotations/genelists/OMIM_all.genes.list
+#Phenix + UberPheno gene-to-phenotype linker
+paste <( fgrep -v "#" ${WRKDIR}/data/HPO_map/GenesToPhen_Phenix2015.txt | \
+awk -v FS="\t" -v OFS="\t" '{ print $2 }' ) \
+<( fgrep -v "#" ${WRKDIR}/data/HPO_map/GenesToPhen_Phenix2015.txt | \
+awk -v FS="\t" -v OFS="\t" '{ print $4 }' | sed 's/HP\://g' ) | sort -k1,1 -k2,2n | \
+uniq > ${TMPDIR}/genes_HPO.list
+
+
 
 #Get count of all genes and autosomal genes per gene list
 while read list; do
