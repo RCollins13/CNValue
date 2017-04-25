@@ -45,25 +45,17 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
 #iterate & prep directories
 while read pheno; do
   for CNV in CNV DEL DUP; do
-    #CODE:
-    # for filt in all noncoding; do
-    #   for VF in E2 N1; do
-    #     echo -e "\n\n${pheno} ${CNV} ${filt} ${VF}\n\n"
-    #     #Submit batch job
-    #     ${WRKDIR}/bin/rCNVmap/bin/annoSet_burdenTest_batch.sh -f -N 1000 \
-    #       -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
-    #       -p ${pheno}_${CNV}_${filt}_${VF} \
-    #       -o ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/ \
-    #       ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
-    #       ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
-    #       ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prelim_subset.list \
-    #       ${WRKDIR}/data/misc/GRCh37_autosomes.genome
-    #   done
-    # done
-    #PARALLELIZE:
-    bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_annoSet_burdens \
-    "${WRKDIR}/bin/rCNVmap/analysis_scripts/parallelize_batched_annoSet_burdens.preliminary_tests.sh \
-    ${pheno} ${CNV}"
+    for VF in E2 N1; do
+      for filt in all noncoding; do
+    bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_annoSet_burdens \
+    "${WRKDIR}/bin/rCNVmap/bin/annoSet_burdenTest_batch.sh -N 1000 \
+      -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
+      -p ${pheno}_${CNV}_${filt}_${VF} \
+      -o ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/ \
+      ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+      ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+      ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prelim_subset.list \
+      ${WRKDIR}/data/misc/GRCh37_autosomes.genome"
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )

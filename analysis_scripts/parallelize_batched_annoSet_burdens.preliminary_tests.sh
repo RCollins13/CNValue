@@ -18,6 +18,8 @@ source ${WRKDIR}/bin/rCNVmap/misc/rCNV_code_parameters.sh
 #####Read arguments
 pheno=$1
 CNV=$2
+VF=$3
+filt=$4
 
 #####Run
 for filt in all noncoding; do
