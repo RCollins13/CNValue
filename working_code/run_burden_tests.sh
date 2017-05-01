@@ -84,7 +84,7 @@ for CNV in CNV DEL DUP; do
           echo ${nfold}
         done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL ) | paste -s
-      done < ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prelim_subset.list | paste - -
+      done < ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prelim_subset.sorted.list | paste - -
     done
   done
 done
