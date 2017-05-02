@@ -65,13 +65,15 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
 #Prepare directory
 mkdir ${WRKDIR}/analysis/annoSet_burden/merged_results
 #Grouped by CNV type, VF, and CNV filter. MxN matrix; M: phenos, N: annotation sets
-#One matrix of p-values and one matrix of effect sizes per set of filters
-#Fold-changes
+#One matrix of p-values, one matrix of effect sizes, and two matrices of 
+# confidence interval bounds per set of filters
 for CNV in CNV DEL DUP; do
   for VF in E2 N1; do
     for filt in all noncoding; do
       for collection in effectSize pValue lowerCI upperCI; do
-        
+        bsub -q short -sla miket_sc -u nobody -J ${CNV}_${VF}_${filt}_${collection} \
+        "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_annoSet_burdens.preliminary_tests.sh \
+        ${CNV} ${VF} ${filt} ${collection}"
       # while read anno annopath; do
       #   echo "${anno}"
       #   for pheno in GERM UNK NEURO NDD DD PSYCH SCZ ASD SEIZ HYPO BEHAV ID \
@@ -91,6 +93,7 @@ for CNV in CNV DEL DUP; do
       #   done | paste -s
       # done < ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prelim_subset.sorted.list | \
       # paste - - > ${WRKDIR}/analysis/annoSet_burden/merged_results/${CNV}_${VF}_${filt}.effectSizes.txt
+      done
     done
   done
 done

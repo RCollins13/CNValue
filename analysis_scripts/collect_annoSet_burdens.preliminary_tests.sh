@@ -95,7 +95,7 @@ elif [ ${collection} == "upperCI" ]; then
       else
         CI=NA
       fi
-      if [ -z ${p} ]; then
+      if [ -z ${CI} ]; then
         CI=NA
       fi
       echo ${CI}
