@@ -62,6 +62,8 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
           cut -f1 | fgrep -v CTRL )
 
 #####Collect _preliminary annotation set burden test results
+#Prepare directory
+mkdir ${WRKDIR}/analysis/annoSet_burden/merged_results
 #Grouped by CNV type, VF, and CNV filter. MxN matrix; M: phenos, N: annotation sets
 #One matrix of p-values and one matrix of effect sizes per set of filters
 #Fold-changes
@@ -70,7 +72,9 @@ for CNV in CNV DEL DUP; do
     for filt in all noncoding; do
       while read anno annopath; do
         echo "${anno}"
-        while read pheno; do
+        for pheno in GERM UNK NEURO NDD DD PSYCH SCZ ASD SEIZ HYPO BEHAV ID \
+        SOMA HEAD GRO HEART SKEL DRU MUSC EE SKIN EMI CNCR CGEN CSKN CGST \
+        CRNL CBRN CLNG CBST CEND CHNK CLIV CMSK CBLD; do
           if [ -e ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt ]; then
             nfold=$( fgrep -v "#" \
               ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt | \
@@ -82,9 +86,35 @@ for CNV in CNV DEL DUP; do
             nfold=NA
           fi
           echo ${nfold}
-        done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-          cut -f1 | fgrep -v CTRL ) | paste -s
-      done < ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prelim_subset.sorted.list | paste - -
+        done | paste -s
+      done < ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prelim_subset.sorted.list | \
+      paste - - > ${WRKDIR}/analysis/annoSet_burden/merged_results/${CNV}_${VF}_${filt}.effectSizes.txt
+    done
+  done
+done
+#p-values
+for CNV in CNV DEL DUP; do
+  for VF in E2 N1; do
+    for filt in all noncoding; do
+      while read anno annopath; do
+        echo "${anno}"
+        for pheno in GERM UNK NEURO NDD DD PSYCH SCZ ASD SEIZ HYPO BEHAV ID \
+        SOMA HEAD GRO HEART SKEL DRU MUSC EE SKIN EMI CNCR CGEN CSKN CGST \
+        CRNL CBRN CLNG CBST CEND CHNK CLIV CMSK CBLD; do
+          if [ -e ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt ]; then
+            p=$( fgrep -v "#" \
+              ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt | \
+              awk -v OFS="\t" '{ print $NF }' )
+          else
+            p=NA
+          fi
+          if [ -z ${p} ]; then
+            p=NA
+          fi
+          echo ${p}
+        done | paste -s
+      done < ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prelim_subset.sorted.list | \
+      paste - - > ${WRKDIR}/analysis/annoSet_burden/merged_results/${CNV}_${VF}_${filt}.pvals.txt
     done
   done
 done
