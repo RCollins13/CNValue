@@ -69,16 +69,16 @@ elif [ ${collection} == "lowerCI" ]; then
     SOMA HEAD GRO HEART SKEL DRU MUSC EE SKIN EMI CNCR CGEN CSKN CGST \
     CRNL CBRN CLNG CBST CEND CHNK CLIV CMSK CBLD; do
       if [ -e ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt ]; then
-        p=$( fgrep -v "#" \
+        CI=$( fgrep -v "#" \
           ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt | \
           awk -v OFS="\t" '{ print $12 }' )
       else
-        p=NA
+        CI=NA
       fi
-      if [ -z ${p} ]; then
-        p=NA
+      if [ -z ${CI} ]; then
+        CI=NA
       fi
-      echo ${p}
+      echo ${CI}
     done | paste -s
   done < ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prelim_subset.sorted.list | \
   paste - - > ${WRKDIR}/analysis/annoSet_burden/merged_results/${CNV}_${VF}_${filt}.lowerCI.txt
@@ -89,16 +89,16 @@ elif [ ${collection} == "upperCI" ]; then
     SOMA HEAD GRO HEART SKEL DRU MUSC EE SKIN EMI CNCR CGEN CSKN CGST \
     CRNL CBRN CLNG CBST CEND CHNK CLIV CMSK CBLD; do
       if [ -e ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt ]; then
-        p=$( fgrep -v "#" \
+        CI=$( fgrep -v "#" \
           ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt | \
           awk -v OFS="\t" '{ print $13 }' )
       else
-        p=NA
+        CI=NA
       fi
       if [ -z ${p} ]; then
-        p=NA
+        CI=NA
       fi
-      echo ${p}
+      echo ${CI}
     done | paste -s
   done < ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prelim_subset.sorted.list | \
   paste - - > ${WRKDIR}/analysis/annoSet_burden/merged_results/${CNV}_${VF}_${filt}.upperCI.txt

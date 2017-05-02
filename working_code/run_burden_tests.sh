@@ -70,51 +70,27 @@ mkdir ${WRKDIR}/analysis/annoSet_burden/merged_results
 for CNV in CNV DEL DUP; do
   for VF in E2 N1; do
     for filt in all noncoding; do
-      while read anno annopath; do
-        echo "${anno}"
-        for pheno in GERM UNK NEURO NDD DD PSYCH SCZ ASD SEIZ HYPO BEHAV ID \
-        SOMA HEAD GRO HEART SKEL DRU MUSC EE SKIN EMI CNCR CGEN CSKN CGST \
-        CRNL CBRN CLNG CBST CEND CHNK CLIV CMSK CBLD; do
-          if [ -e ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt ]; then
-            nfold=$( fgrep -v "#" \
-              ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt | \
-              awk -v OFS="\t" '{ print $11 }' )
-          else
-            nfold=NA
-          fi
-          if [ -z ${nfold} ]; then
-            nfold=NA
-          fi
-          echo ${nfold}
-        done | paste -s
-      done < ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prelim_subset.sorted.list | \
-      paste - - > ${WRKDIR}/analysis/annoSet_burden/merged_results/${CNV}_${VF}_${filt}.effectSizes.txt
-    done
-  done
-done
-#p-values
-for CNV in CNV DEL DUP; do
-  for VF in E2 N1; do
-    for filt in all noncoding; do
-      while read anno annopath; do
-        echo "${anno}"
-        for pheno in GERM UNK NEURO NDD DD PSYCH SCZ ASD SEIZ HYPO BEHAV ID \
-        SOMA HEAD GRO HEART SKEL DRU MUSC EE SKIN EMI CNCR CGEN CSKN CGST \
-        CRNL CBRN CLNG CBST CEND CHNK CLIV CMSK CBLD; do
-          if [ -e ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt ]; then
-            p=$( fgrep -v "#" \
-              ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt | \
-              awk -v OFS="\t" '{ print $NF }' )
-          else
-            p=NA
-          fi
-          if [ -z ${p} ]; then
-            p=NA
-          fi
-          echo ${p}
-        done | paste -s
-      done < ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prelim_subset.sorted.list | \
-      paste - - > ${WRKDIR}/analysis/annoSet_burden/merged_results/${CNV}_${VF}_${filt}.pvals.txt
+      for collection in effectSize pValue lowerCI upperCI; do
+        
+      # while read anno annopath; do
+      #   echo "${anno}"
+      #   for pheno in GERM UNK NEURO NDD DD PSYCH SCZ ASD SEIZ HYPO BEHAV ID \
+      #   SOMA HEAD GRO HEART SKEL DRU MUSC EE SKIN EMI CNCR CGEN CSKN CGST \
+      #   CRNL CBRN CLNG CBST CEND CHNK CLIV CMSK CBLD; do
+      #     if [ -e ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt ]; then
+      #       nfold=$( fgrep -v "#" \
+      #         ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt | \
+      #         awk -v OFS="\t" '{ print $11 }' )
+      #     else
+      #       nfold=NA
+      #     fi
+      #     if [ -z ${nfold} ]; then
+      #       nfold=NA
+      #     fi
+      #     echo ${nfold}
+      #   done | paste -s
+      # done < ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prelim_subset.sorted.list | \
+      # paste - - > ${WRKDIR}/analysis/annoSet_burden/merged_results/${CNV}_${VF}_${filt}.effectSizes.txt
     done
   done
 done
