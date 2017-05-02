@@ -70,7 +70,7 @@ mkdir ${WRKDIR}/analysis/annoSet_burden/merged_results
 for CNV in CNV DEL DUP; do
   for VF in E2 N1; do
     for filt in all noncoding; do
-      for collection in effectSize pValue lowerCI upperCI; do
+      for collection in effectSize pValue lowerCI upperCI zScore; do
         bsub -q short -sla miket_sc -u nobody -J ${CNV}_${VF}_${filt}_${collection} \
         "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_annoSet_burdens.preliminary_tests.sh \
         ${CNV} ${VF} ${filt} ${collection}"

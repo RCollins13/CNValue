@@ -7,7 +7,7 @@
 #Copyright (c) 2017 Ryan Collins
 #Distributed under terms of the MIT License
 
-#Code to generate heatmaps and dotplots of results from annoSet burden testing
+#Code to generate heatmaps, dotplots, and volcano plots of results from annoSet burden testing
 
 #####Set parameters
 WRKDIR <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/"

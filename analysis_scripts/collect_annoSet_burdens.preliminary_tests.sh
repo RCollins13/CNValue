@@ -102,4 +102,24 @@ elif [ ${collection} == "upperCI" ]; then
     done | paste -s
   done < ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prelim_subset.sorted.list | \
   paste - - > ${WRKDIR}/analysis/annoSet_burden/merged_results/${CNV}_${VF}_${filt}.upperCI.txt
+elif [ ${collection} == "zScore" ]; then
+  while read anno annopath; do
+    echo "${anno}"
+    for pheno in GERM UNK NEURO NDD DD PSYCH SCZ ASD SEIZ HYPO BEHAV ID \
+    SOMA HEAD GRO CARD SKEL DRU MSC EE INT EMI CNCR CGEN CSKN CGST \
+    CRNL CBRN CLNG CBST CEND CHNK CLIV CMSK CBLD; do
+      if [ -e ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt ]; then
+        Z=$( fgrep -v "#" \
+          ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt | \
+          awk -v OFS="\t" '{ print $(NF-1) }' )
+      else
+        Z=NA
+      fi
+      if [ -z ${Z} ]; then
+        Z=NA
+      fi
+      echo ${Z}
+    done | paste -s
+  done < ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prelim_subset.sorted.list | \
+  paste - - > ${WRKDIR}/analysis/annoSet_burden/merged_results/${CNV}_${VF}_${filt}.zScore.txt
 fi
