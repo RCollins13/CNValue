@@ -79,6 +79,9 @@ for CNV in CNV DEL DUP; do
   done
 done
 #Copy to plot data directory
+if [ -e ${WRKDIR}/data/plot_data/annoSet_burden_results ]; then
+  rm -rf ${WRKDIR}/data/plot_data/annoSet_burden_results
+fi
 cp -r ${WRKDIR}/analysis/annoSet_burden/merged_results \
 ${WRKDIR}/data/plot_data/annoSet_burden_results
 
