@@ -26,7 +26,7 @@ if [ ${collection} == "effectSize" ]; then
   while read anno annopath; do
     echo "${anno}"
     for pheno in GERM UNK NEURO NDD DD PSYCH SCZ ASD SEIZ HYPO BEHAV ID \
-    SOMA HEAD GRO HEART SKEL DRU MUSC EE SKIN EMI CNCR CGEN CSKN CGST \
+    SOMA HEAD GRO CARD SKEL DRU MSC EE INT EMI CNCR CGEN CSKN CGST \
     CRNL CBRN CLNG CBST CEND CHNK CLIV CMSK CBLD; do
       if [ -e ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt ]; then
         nfold=$( fgrep -v "#" \
@@ -46,7 +46,7 @@ elif [ ${collection} == "pValue" ]; then
   while read anno annopath; do
     echo "${anno}"
     for pheno in GERM UNK NEURO NDD DD PSYCH SCZ ASD SEIZ HYPO BEHAV ID \
-    SOMA HEAD GRO HEART SKEL DRU MUSC EE SKIN EMI CNCR CGEN CSKN CGST \
+    SOMA HEAD GRO CARD SKEL DRU MSC EE INT EMI CNCR CGEN CSKN CGST \
     CRNL CBRN CLNG CBST CEND CHNK CLIV CMSK CBLD; do
       if [ -e ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt ]; then
         p=$( fgrep -v "#" \
@@ -66,7 +66,7 @@ elif [ ${collection} == "lowerCI" ]; then
   while read anno annopath; do
     echo "${anno}"
     for pheno in GERM UNK NEURO NDD DD PSYCH SCZ ASD SEIZ HYPO BEHAV ID \
-    SOMA HEAD GRO HEART SKEL DRU MUSC EE SKIN EMI CNCR CGEN CSKN CGST \
+    SOMA HEAD GRO CARD SKEL DRU MSC EE INT EMI CNCR CGEN CSKN CGST \
     CRNL CBRN CLNG CBST CEND CHNK CLIV CMSK CBLD; do
       if [ -e ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt ]; then
         CI=$( fgrep -v "#" \
@@ -86,7 +86,7 @@ elif [ ${collection} == "upperCI" ]; then
   while read anno annopath; do
     echo "${anno}"
     for pheno in GERM UNK NEURO NDD DD PSYCH SCZ ASD SEIZ HYPO BEHAV ID \
-    SOMA HEAD GRO HEART SKEL DRU MUSC EE SKIN EMI CNCR CGEN CSKN CGST \
+    SOMA HEAD GRO CARD SKEL DRU MSC EE INT EMI CNCR CGEN CSKN CGST \
     CRNL CBRN CLNG CBST CEND CHNK CLIV CMSK CBLD; do
       if [ -e ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt ]; then
         CI=$( fgrep -v "#" \

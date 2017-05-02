@@ -74,29 +74,13 @@ for CNV in CNV DEL DUP; do
         bsub -q short -sla miket_sc -u nobody -J ${CNV}_${VF}_${filt}_${collection} \
         "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_annoSet_burdens.preliminary_tests.sh \
         ${CNV} ${VF} ${filt} ${collection}"
-      # while read anno annopath; do
-      #   echo "${anno}"
-      #   for pheno in GERM UNK NEURO NDD DD PSYCH SCZ ASD SEIZ HYPO BEHAV ID \
-      #   SOMA HEAD GRO HEART SKEL DRU MUSC EE SKIN EMI CNCR CGEN CSKN CGST \
-      #   CRNL CBRN CLNG CBST CEND CHNK CLIV CMSK CBLD; do
-      #     if [ -e ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt ]; then
-      #       nfold=$( fgrep -v "#" \
-      #         ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/${pheno}_${CNV}_${filt}_${VF}.${anno}.CNV_burden_results.txt | \
-      #         awk -v OFS="\t" '{ print $11 }' )
-      #     else
-      #       nfold=NA
-      #     fi
-      #     if [ -z ${nfold} ]; then
-      #       nfold=NA
-      #     fi
-      #     echo ${nfold}
-      #   done | paste -s
-      # done < ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prelim_subset.sorted.list | \
-      # paste - - > ${WRKDIR}/analysis/annoSet_burden/merged_results/${CNV}_${VF}_${filt}.effectSizes.txt
       done
     done
   done
 done
+#Copy to plot data directory
+cp -r ${WRKDIR}/analysis/annoSet_burden/merged_results \
+${WRKDIR}/data/plot_data/annoSet_burden_results
 
 #####Run _secondary_ annotation set burden testing
 while read pheno; do
