@@ -272,13 +272,32 @@ ${WRKDIR}/data/master_annotations/genelists/RVIS_extremely_intolerant.genes.list
 # awk -v OFS="\n" '$4 !~ /NA/ { print $1, $3 }' | sed -e 's/|/\n/g' -e 's/,/\n/g' | \
 # awk '{ if ($1!="NA") print $0 }' | sort | uniq | sed '/^$/d' > \
 # ${WRKDIR}/data/master_annotations/genelists/OMIM_all.genes.list
-#Phenix + UberPheno gene-to-phenotype linker
-paste <( fgrep -v "#" ${WRKDIR}/data/HPO_map/GenesToPhen_Phenix2015.txt | \
-awk -v FS="\t" -v OFS="\t" '{ print $2 }' ) \
-<( fgrep -v "#" ${WRKDIR}/data/HPO_map/GenesToPhen_Phenix2015.txt | \
-awk -v FS="\t" -v OFS="\t" '{ print $4 }' | sed 's/HP\://g' ) | sort -k1,1 -k2,2n | \
-uniq > ${TMPDIR}/genes_HPO.list
-
+# #Phenix + UberPheno gene-to-phenotype linker
+# paste <( fgrep -v "#" ${WRKDIR}/data/HPO_map/GenesToPhen_Phenix2015.txt | \
+# awk -v FS="\t" -v OFS="\t" '{ print $2 }' ) \
+# <( fgrep -v "#" ${WRKDIR}/data/HPO_map/GenesToPhen_Phenix2015.txt | \
+# awk -v FS="\t" -v OFS="\t" '{ print $4 }' | sed 's/HP\://g' ) | sort -k1,1 -k2,2n | \
+# uniq > ${TMPDIR}/genes_HPO.list
+#FDA drug targets
+cat ${WRKDIR}/data/misc/MacArthur_gene_lists/lists/fda_approved_drug_targets.tsv | \
+sort | uniq > \
+${WRKDIR}/data/master_annotations/genelists/FDA_drug_targets.genes.list
+#Autosomal dominant disease genes
+cat ${WRKDIR}/data/misc/MacArthur_gene_lists/lists/berg_ad.tsv \
+${WRKDIR}/data/misc/MacArthur_gene_lists/lists/blekhman_ad.tsv | sort | uniq > \
+${WRKDIR}/data/master_annotations/genelists/Autosomal_dominant_disease_genes.genes.list
+#Autosomal recessive disease genes
+cat ${WRKDIR}/data/misc/MacArthur_gene_lists/lists/berg_ar.tsv \
+${WRKDIR}/data/misc/MacArthur_gene_lists/lists/blekhman_ar.tsv | sort | uniq > \
+${WRKDIR}/data/master_annotations/genelists/Autosomal_recessive_disease_genes.genes.list
+#Culture-essential genes
+cat ${WRKDIR}/data/misc/MacArthur_gene_lists/lists/core_essentials_hart.tsv | \
+sort | uniq > \
+${WRKDIR}/data/master_annotations/genelists/Culture_essential.genes.list
+#DNA repair genes
+cat ${WRKDIR}/data/misc/MacArthur_gene_lists/lists/DRG_KangJ.tsv \
+${WRKDIR}/data/misc/MacArthur_gene_lists/lists/DRG_WoodRD.tsv | sort | uniq > \
+${WRKDIR}/data/master_annotations/genelists/DNA_repair_genes.genes.list
 
 
 #Get count of all genes and autosomal genes per gene list
@@ -291,7 +310,7 @@ while read list; do
   <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed ) | \
   grep -e '^[0-9]' | cut -f4 | sort | uniq | wc -l
 done < <( l ${WRKDIR}/data/master_annotations/genelists/*genes.list | \
-  awk '{ print $9 }' ) | paste - - -
+  awk '{ print $9 }' | fgrep repair ) | paste - - -
 
 
 

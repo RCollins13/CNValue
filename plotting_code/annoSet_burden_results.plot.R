@@ -152,12 +152,12 @@ single.heatmap <- function(CNV,VF,filt,basedir,pfilter=F,reorder=NULL){
            ytop=0:-(nrow(estimates)-1),
            ybottom=-1:-nrow(estimates),
            border=NA,col=cols.germ[estimates[,col]])
-    }else if(col >= 4 && col < 13){
+    }else if(col >= 4 && col < 14){
       rect(xleft=col-2,xright=col-1,
            ytop=0:-(nrow(estimates)-1),
            ybottom=-1:-nrow(estimates),
            border=NA,col=cols.neuro[estimates[,col]])
-    }else if (col >= 13 && col < 24){
+    }else if (col >= 14 && col < 24){
       rect(xleft=col-2,xright=col-1,
            ytop=0:-(nrow(estimates)-1),
            ybottom=-1:-nrow(estimates),
