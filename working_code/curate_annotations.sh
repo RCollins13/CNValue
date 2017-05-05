@@ -373,6 +373,7 @@ done < <( cut -f3 ${WRKDIR}/bin/rCNVmap/misc/GO_term_gene_sets.list | \
 sort | uniq | fgrep -v Other )
 
 
+
 #Get count of all genes and autosomal genes per gene list
 while read list; do
   echo -e "${list}"
