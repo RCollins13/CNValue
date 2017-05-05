@@ -350,9 +350,12 @@ ${WRKDIR}/data/misc/GO/all_GO_terms_splits/GO_term_split.
 mkdir ${WRKDIR}/data/misc/GO/all_GO_gene_lists
 for i in $( seq -w 0000 0465 ); do
   bsub -q short -sla miket_sc -J GO_curation_${i} -u nobody \
-  "${WRKDIR}/bin/rCNVmap/analysis_scripts \
+  "${WRKDIR}/bin/rCNVmap/analysis_scripts/curate_GO_genes.sh \
    ${WRKDIR}/data/misc/GO/all_GO_terms_splits/GO_term_split.${i}"
 done
+wc -l ${WRKDIR}/data/misc/GO/all_GO_gene_lists/*list | awk -v OFS="\t" \
+'{ if ($1>=50 && $1<=5000) print $1, $2 }' | sort -nrk1,1 > \
+${WRKDIR}/data/misc/GO/eligible_GO_term_gene_lists.txt
 
 
 #Get count of all genes and autosomal genes per gene list
