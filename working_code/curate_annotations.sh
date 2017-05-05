@@ -264,32 +264,21 @@ ${WRKDIR}/data/master_annotations/genelists/RVIS_highly_intolerant.genes.list
 sed '1d' ${WRKDIR}/data/misc/RVIS_Unpublished_ExAC_May2015.txt | \
 awk '{ if ($11<1) print $5 }' | sort | uniq > \
 ${WRKDIR}/data/master_annotations/genelists/RVIS_extremely_intolerant.genes.list
-# #OMIM disease-associated genes
-# cd ${WRKDIR}/data/misc/
-# git clone https://github.com/macarthur-lab/gene_lists.git
-# mv gene_lists MacArthur_gene_lists
-# sed '1d' ${WRKDIR}/data/misc/MacArthur_gene_lists/other_data/omim.full.tsv | \
-# awk -v OFS="\n" '$4 !~ /NA/ { print $1, $3 }' | sed -e 's/|/\n/g' -e 's/,/\n/g' | \
-# awk '{ if ($1!="NA") print $0 }' | sort | uniq | sed '/^$/d' > \
-# ${WRKDIR}/data/master_annotations/genelists/OMIM_all.genes.list
-# #Phenix + UberPheno gene-to-phenotype linker
-# paste <( fgrep -v "#" ${WRKDIR}/data/HPO_map/GenesToPhen_Phenix2015.txt | \
-# awk -v FS="\t" -v OFS="\t" '{ print $2 }' ) \
-# <( fgrep -v "#" ${WRKDIR}/data/HPO_map/GenesToPhen_Phenix2015.txt | \
-# awk -v FS="\t" -v OFS="\t" '{ print $4 }' | sed 's/HP\://g' ) | sort -k1,1 -k2,2n | \
-# uniq > ${TMPDIR}/genes_HPO.list
 #FDA drug targets
+cd ${WRKDIR}/data/misc/
+git clone https://github.com/macarthur-lab/gene_lists.git
+mv gene_lists MacArthur_gene_lists
 cat ${WRKDIR}/data/misc/MacArthur_gene_lists/lists/fda_approved_drug_targets.tsv | \
 sort | uniq > \
 ${WRKDIR}/data/master_annotations/genelists/FDA_drug_targets.genes.list
 #Autosomal dominant disease genes
 cat ${WRKDIR}/data/misc/MacArthur_gene_lists/lists/berg_ad.tsv \
 ${WRKDIR}/data/misc/MacArthur_gene_lists/lists/blekhman_ad.tsv | sort | uniq > \
-${WRKDIR}/data/master_annotations/genelists/Autosomal_dominant_disease_genes.genes.list
+${WRKDIR}/data/master_annotations/genelists/Autosomal_dominant_disease.genes.list
 #Autosomal recessive disease genes
 cat ${WRKDIR}/data/misc/MacArthur_gene_lists/lists/berg_ar.tsv \
 ${WRKDIR}/data/misc/MacArthur_gene_lists/lists/blekhman_ar.tsv | sort | uniq > \
-${WRKDIR}/data/master_annotations/genelists/Autosomal_recessive_disease_genes.genes.list
+${WRKDIR}/data/master_annotations/genelists/Autosomal_recessive_disease.genes.list
 #Culture-essential genes
 cat ${WRKDIR}/data/misc/MacArthur_gene_lists/lists/core_essentials_hart.tsv | \
 sort | uniq > \
@@ -297,7 +286,73 @@ ${WRKDIR}/data/master_annotations/genelists/Culture_essential.genes.list
 #DNA repair genes
 cat ${WRKDIR}/data/misc/MacArthur_gene_lists/lists/DRG_KangJ.tsv \
 ${WRKDIR}/data/misc/MacArthur_gene_lists/lists/DRG_WoodRD.tsv | sort | uniq > \
-${WRKDIR}/data/master_annotations/genelists/DNA_repair_genes.genes.list
+${WRKDIR}/data/master_annotations/genelists/DNA_repair.genes.list
+#Phenix + UberPheno gene-to-phenotype linker
+#Note: requires Claire's curation & merging of UberPheno & Phenix
+#Note: also requires Kiana's parsing of Claire's file into per-phenotype lists
+while read upper; do
+  lower=$( echo ${upper} | tr "A-Z" "a-z" )
+  cut -f2 ${WRKDIR}/data/HPO_map/Genes-HPO-DiseaseStates/HPO_Genes/${lower} | \
+  sort | uniq > ${WRKDIR}/data/master_annotations/genelists/${upper}_HPO_associated.genes.list
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+  fgrep -v CTRL | fgrep -v UNK | cut -f4 )
+#GWAS nearest genes
+cat ${WRKDIR}/data/misc/MacArthur_gene_lists/lists/gwascatalog.tsv | \
+sort | uniq > ${WRKDIR}/data/master_annotations/genelists/GWAS_nearest.genes.list
+#ClinGen haploinsufficient genes
+cd ${WRKDIR}/data/misc
+wget ftp://ftp.ncbi.nlm.nih.gov/pub/dbVar/clingen/ClinGen_gene_curation_list.tsv
+fgrep -v "#" ${WRKDIR}/data/misc/ClinGen_gene_curation_list.tsv | \
+awk -v FS="\t" '{ if ($5==3) print $1 }' | sort | uniq > \
+${WRKDIR}/data/master_annotations/genelists/ClinGen_haploinsufficient_high_confidence.genes.list
+fgrep -v "#" ${WRKDIR}/data/misc/ClinGen_gene_curation_list.tsv | \
+awk -v FS="\t" '{ if ($5==3 || $5==2) print $1 }' | sort | uniq > \
+${WRKDIR}/data/master_annotations/genelists/ClinGen_haploinsufficient_medium_confidence.genes.list
+fgrep -v "#" ${WRKDIR}/data/misc/ClinGen_gene_curation_list.tsv | \
+awk -v FS="\t" '{ if ($5==3 || $5==2 || $5==1) print $1 }' | sort | uniq > \
+${WRKDIR}/data/master_annotations/genelists/ClinGen_haploinsufficient_low_confidence.genes.list
+# fgrep -v "#" ${WRKDIR}/data/misc/ClinGen_gene_curation_list.tsv | \
+# awk -v FS="\t" '{ if ($10==3) print $1 }' | sort | uniq > \
+# ${WRKDIR}/data/master_annotations/genelists/ClinGen_triploinsufficient_high_confidence.genes.list
+# fgrep -v "#" ${WRKDIR}/data/misc/ClinGen_gene_curation_list.tsv | \
+# awk -v FS="\t" '{ if ($10==3 || $10==2) print $1 }' | sort | uniq > \
+# ${WRKDIR}/data/master_annotations/genelists/ClinGen_triploinsufficient_medium_confidence.genes.list
+# fgrep -v "#" ${WRKDIR}/data/misc/ClinGen_gene_curation_list.tsv | \
+# awk -v FS="\t" '{ if ($10==3 || $10==2 || $10==1) print $1 }' | sort | uniq > \
+# ${WRKDIR}/data/master_annotations/genelists/ClinGen_triploinsufficient_low_confidence.genes.list
+#Olfactory receptors
+cat ${WRKDIR}/data/misc/MacArthur_gene_lists/lists/olfactory_receptors.tsv | \
+sort | uniq > ${WRKDIR}/data/master_annotations/genelists/Olfactory_receptors.genes.list
+#ClinVar disease-associated genes
+cat ${WRKDIR}/data/misc/MacArthur_gene_lists/lists/clinvar_path_likelypath.tsv | \
+sort | uniq > ${WRKDIR}/data/master_annotations/genelists/ClinVar_disease_associated.genes.list
+#Kinases
+cat ${WRKDIR}/data/misc/MacArthur_gene_lists/lists/kinases.tsv | \
+sort | uniq > ${WRKDIR}/data/master_annotations/genelists/Kinases.genes.list
+#G-protein coupled receptors
+cat ${WRKDIR}/data/misc/MacArthur_gene_lists/lists/gpcr.tsv | \
+sort | uniq > ${WRKDIR}/data/master_annotations/genelists/GPCRs.genes.list
+#UW cancer & immunodeficiency panels -- manually curated, see:
+# http://depts.washington.edu/labweb/Divisions/MolDiag/MolDiagGen/index.htm
+#Gene lists split by GO annotation
+mkdir ${WRKDIR}/data/misc/GO
+cd ${WRKDIR}/data/misc/GO
+wget http://geneontology.org/gene-associations/goa_human.gaf.gz
+gunzip ${WRKDIR}/data/misc/GO/goa_human.gaf.gz
+wget http://purl.obolibrary.org/obo/go/go-basic.obo
+grep -e '^id\:\ GO\:' -e '^name\:\ ' ${WRKDIR}/data/misc/GO/go-basic.obo | \
+paste - - | grep -e '^id' | sed 's/^id\:\ //g' | sed 's/name\:\ //g' | \
+sed -e 's/\-/_/g' -e 's/\./_/g' -e 's/\ /_/g' -e 's/\,/_/g' > \
+${WRKDIR}/data/misc/GO/all_go_terms.txt
+mkdir ${WRKDIR}/data/misc/GO/all_GO_terms_splits
+split -a 4 -d -l 100 ${WRKDIR}/data/misc/GO/all_go_terms.txt \
+${WRKDIR}/data/misc/GO/all_GO_terms_splits/GO_term_split.
+mkdir ${WRKDIR}/data/misc/GO/all_GO_gene_lists
+for i in $( seq -w 0000 0465 ); do
+  bsub -q short -sla miket_sc -J GO_curation_${i} -u nobody \
+  "${WRKDIR}/bin/rCNVmap/analysis_scripts \
+   ${WRKDIR}/data/misc/GO/all_GO_terms_splits/GO_term_split.${i}"
+done
 
 
 #Get count of all genes and autosomal genes per gene list
@@ -310,7 +365,7 @@ while read list; do
   <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed ) | \
   grep -e '^[0-9]' | cut -f4 | sort | uniq | wc -l
 done < <( l ${WRKDIR}/data/master_annotations/genelists/*genes.list | \
-  awk '{ print $9 }' | fgrep repair ) | paste - - -
+  awk '{ print $9 }' | fgrep Washington ) | paste - - -
 
 
 
