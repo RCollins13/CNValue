@@ -363,15 +363,14 @@ while read GO descrip group; do
   sort | uniq > ${WRKDIR}/data/master_annotations/genelists/GO_${ldescrip}.genes.list
 done < ${WRKDIR}/bin/rCNVmap/misc/GO_term_gene_sets.list
 while read group; do
-  while read GO descrip group; do
+  while read GO descrip skip; do
     nocolon=$( echo ${GO} | sed 's/\:/_/g' )
-    ldescrip=$( echo ${descrip} | tr "A-Z" "a-z" )
-    awk -v group=${group} '{ if ($3==group) print $2 }' \
-    ${WRKDIR}/bin/rCNVmap/misc/GO_term_gene_sets.list | xargs -I {} cat {} | \
-    sort | uniq > ${WRKDIR}/data/master_annotations/genelists/GO_${group}_all.genes.list
+    cat ${WRKDIR}/data/misc/GO/all_GO_gene_lists/${nocolon}_${descrip}.genes.list
   done < <( awk -v group=${group} '{ if ($3==group) print $0 }' \
-    ${WRKDIR}/bin/rCNVmap/misc/GO_term_gene_sets.list )
-done < <( cut -f3 ${WRKDIR}/bin/rCNVmap/misc/GO_term_gene_sets.list | sort | uniq )
+    ${WRKDIR}/bin/rCNVmap/misc/GO_term_gene_sets.list ) | sort | uniq > \
+    ${WRKDIR}/data/master_annotations/genelists/GO_${group}_all.genes.list
+done < <( cut -f3 ${WRKDIR}/bin/rCNVmap/misc/GO_term_gene_sets.list | \
+sort | uniq | fgrep -v Other )
 
 
 #Get count of all genes and autosomal genes per gene list
@@ -384,7 +383,7 @@ while read list; do
   <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed ) | \
   grep -e '^[0-9]' | cut -f4 | sort | uniq | wc -l
 done < <( l ${WRKDIR}/data/master_annotations/genelists/*genes.list | \
-  awk '{ print $9 }' | fgrep Washington ) | paste - - -
+  awk '{ print $9 }' | fgrep GO_ ) | paste - - -
 
 
 
