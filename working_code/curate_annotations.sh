@@ -356,6 +356,22 @@ done
 wc -l ${WRKDIR}/data/misc/GO/all_GO_gene_lists/*list | awk -v OFS="\t" \
 '{ if ($1>=50 && $1<=5000) print $1, $2 }' | sort -nrk1,1 > \
 ${WRKDIR}/data/misc/GO/eligible_GO_term_gene_lists.txt
+while read GO descrip group; do
+  nocolon=$( echo ${GO} | sed 's/\:/_/g' )
+  ldescrip=$( echo ${descrip} | tr "A-Z" "a-z" )
+  cat ${WRKDIR}/data/misc/GO/all_GO_gene_lists/${nocolon}_${descrip}.genes.list | \
+  sort | uniq > ${WRKDIR}/data/master_annotations/genelists/GO_${ldescrip}.genes.list
+done < ${WRKDIR}/bin/rCNVmap/misc/GO_term_gene_sets.list
+while read group; do
+  while read GO descrip group; do
+    nocolon=$( echo ${GO} | sed 's/\:/_/g' )
+    ldescrip=$( echo ${descrip} | tr "A-Z" "a-z" )
+    awk -v group=${group} '{ if ($3==group) print $2 }' \
+    ${WRKDIR}/bin/rCNVmap/misc/GO_term_gene_sets.list | xargs -I {} cat {} | \
+    sort | uniq > ${WRKDIR}/data/master_annotations/genelists/GO_${group}_all.genes.list
+  done < <( awk -v group=${group} '{ if ($3==group) print $0 }' \
+    ${WRKDIR}/bin/rCNVmap/misc/GO_term_gene_sets.list )
+done < <( cut -f3 ${WRKDIR}/bin/rCNVmap/misc/GO_term_gene_sets.list | sort | uniq )
 
 
 #Get count of all genes and autosomal genes per gene list
