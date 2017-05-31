@@ -371,8 +371,34 @@ while read group; do
     ${WRKDIR}/data/master_annotations/genelists/GO_${group}_all.genes.list
 done < <( cut -f3 ${WRKDIR}/bin/rCNVmap/misc/GO_term_gene_sets.list | \
 sort | uniq | fgrep -v Other )
-
-
+#DDD genes
+cat ${SFARI_ANNO}/genelists/DDD_2016.genes.list | sort | uniq > \
+${WRKDIR}/data/master_annotations/genelists/DDD_2017.genes.list
+#CHD8 targets
+cat ${SFARI_ANNO}/genelists/Sugathan2014_CHD8.genes.list | sort | uniq > \
+${WRKDIR}/data/master_annotations/genelists/CHD8_targets.genes.list
+#TADA genes
+for cutoff in 0.1 0.3; do
+  cat ${SFARI_ANNO}/genelists/Sanders2015_TADAq_${cutoff}.genes.list | sort | uniq > \
+  ${WRKDIR}/data/master_annotations/genelists/ASD_TADA_q${cutoff}.genes.list
+done
+#DAWN genes
+cat ${SFARI_ANNO}/genelists/Liu2014_DAWN.genes.list | sort | uniq > \
+${WRKDIR}/data/master_annotations/genelists/ASD_DAWN.genes.list
+#Turner exome DNM ASD genes 
+cat ${SFARI_ANNO}/genelists/ASD_Turner57.genes.list | sort | uniq > \
+${WRKDIR}/data/master_annotations/genelists/ASD_WES_DNM.genes.list
+#Note: manually curated SFARIGene & Brain Expression Network ASD lists
+#RBFOX1 targets
+cat ${SFARI_ANNO}/genelists/Lee2016_RBFOX1.genes.list | sort | uniq > \
+${WRKDIR}/data/master_annotations/genelists/RBFOX1_targets.genes.list
+#COSMIC gene lists
+for class in oncogene all; do
+  cat ${SFARI_ANNO}/genelists/COSMIC_census_${class}.genes.list | sort | uniq > \
+  ${WRKDIR}/data/master_annotations/genelists/COSMIC_${class}.genes.list
+done
+cat ${SFARI_ANNO}/genelists/COSMIC_census_TSC.genes.list | sort | uniq > \
+${WRKDIR}/data/master_annotations/genelists/COSMIC_tumor_suppressor.genes.list
 
 #Get count of all genes and autosomal genes per gene list
 while read list; do
@@ -384,7 +410,7 @@ while read list; do
   <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed ) | \
   grep -e '^[0-9]' | cut -f4 | sort | uniq | wc -l
 done < <( l ${WRKDIR}/data/master_annotations/genelists/*genes.list | \
-  awk '{ print $9 }' | fgrep GO_ ) | paste - - -
+  awk '{ print $9 }' | fgrep Schizophrenia ) | paste - - -
 
 
 
