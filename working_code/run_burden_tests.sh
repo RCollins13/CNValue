@@ -61,7 +61,7 @@ while read pheno; do
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
 
-#####Collect _preliminary annotation set burden test results
+#####Collect _preliminary_ annotation set burden test results
 #Prepare directory
 mkdir ${WRKDIR}/analysis/annoSet_burden/merged_results
 #Grouped by CNV type, VF, and CNV filter. MxN matrix; M: phenos, N: annotation sets
@@ -91,6 +91,47 @@ while read pheno; do
     for VF in E2 N1; do
       for filt in all noncoding; do
         bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_annoSet_burdens_secondary \
+        "${WRKDIR}/bin/rCNVmap/bin/annoSet_burdenTest_batch.sh -N 1000 \
+          -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
+          -p ${pheno}_${CNV}_${filt}_${VF} \
+          -o ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/ \
+          ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+          ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+          ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.secondary_subset.list \
+          ${WRKDIR}/data/misc/GRCh37_autosomes.genome"
+      done
+    done
+  done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          cut -f1 | fgrep -v CTRL )
+
+#####Run _preliminary_ annotation set burden testing for remaining VFs and filters
+while read pheno; do
+  for CNV in CNV DEL DUP; do
+    for VF in E3 E4; do
+      for filt in coding haplosufficient intergenic; do
+        bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_annoSet_burdens \
+        "${WRKDIR}/bin/rCNVmap/bin/annoSet_burdenTest_batch.sh -N 1000 \
+          -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
+          -p ${pheno}_${CNV}_${filt}_${VF} \
+          -o ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/ \
+          ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+          ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+          ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prelim_subset.list \
+          ${WRKDIR}/data/misc/GRCh37_autosomes.genome"
+      done
+    done
+  done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          cut -f1 | fgrep -v CTRL )
+
+
+#####Run _secondary_ annotation set burden testing for remaining VFs and filters
+while read pheno; do
+  for CNV in CNV DEL DUP; do
+    for VF in E3 E4; do
+      for filt in coding haplosufficient intergenic; do
+        bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_annoSet_burdens \
         "${WRKDIR}/bin/rCNVmap/bin/annoSet_burdenTest_batch.sh -N 1000 \
           -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
           -p ${pheno}_${CNV}_${filt}_${VF} \
