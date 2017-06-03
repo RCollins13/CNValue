@@ -15,6 +15,7 @@
 export WRKDIR=/data/talkowski/Samples/rCNVmap
 cd ${WRKDIR}
 export h37=/data/talkowski/tools/ref/Ensembl_hgGRCh37_71_reord_bwa07/Ensembl_hgGRCh37_71_ERCC_reord.fa
+export GTF=${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf
 export TMPDIR=/scratch/miket/rlc47temp/tmp.files/
 module load bedtools/2.22.1
 module load samtools/1.3
