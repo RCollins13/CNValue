@@ -29,7 +29,7 @@
 usage(){
 cat <<EOF
 usage: geneSet_permutation_test.sh [-h] [-N TIMES] [-U UNIVERSE] [-W WHOLE GENE]
-                                   [-A ALLOSOMES] [-o OUTFILE] [-q QUIET] 
+                                   [-A ALLOSOMES] [-H OVERRIDE] [-o OUTFILE] [-q QUIET] 
                                    CONTROLS CASES GENESET GTF
 
 Permutation test of CNV burden at a set of genes, normalized by gene length & exonic bases
