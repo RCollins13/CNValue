@@ -44,7 +44,8 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
 #####Run _preliminary_ annotation set burden testing
 while read pheno; do
   for CNV in CNV DEL DUP; do
-    for VF in E2 N1; do
+    # for VF in E2 N1; do
+    for VF in E3 E4; do
       for filt in all noncoding; do
         bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_annoSet_burdens \
         "${WRKDIR}/bin/rCNVmap/bin/annoSet_burdenTest_batch.sh -N 1000 \
@@ -60,6 +61,8 @@ while read pheno; do
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
+
+
 
 #####Collect _preliminary_ annotation set burden test results
 #Prepare directory
