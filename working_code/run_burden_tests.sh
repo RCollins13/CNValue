@@ -69,7 +69,7 @@ mkdir ${WRKDIR}/analysis/annoSet_burden/merged_results
 #One matrix of p-values, one matrix of effect sizes, and two matrices of 
 # confidence interval bounds per set of filters
 for CNV in CNV DEL DUP; do
-  for VF in E2 N1; do
+  for VF in E2 E3 E4 N1; do
     for filt in all noncoding; do
       for collection in effectSize pValue lowerCI upperCI zScore; do
         bsub -q short -sla miket_sc -u nobody -J ${CNV}_${VF}_${filt}_${collection} \
@@ -89,7 +89,8 @@ ${WRKDIR}/data/plot_data/annoSet_burden_results
 #####Run _secondary_ annotation set burden testing
 while read pheno; do
   for CNV in CNV DEL DUP; do
-    for VF in E2 N1; do
+    # for VF in E2 N1; do
+    for VF in E3 E4; do
       for filt in all noncoding; do
         bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_annoSet_burdens_secondary \
         "${WRKDIR}/bin/rCNVmap/bin/annoSet_burdenTest_batch.sh -N 1000 \
