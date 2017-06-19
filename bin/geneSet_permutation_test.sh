@@ -12,18 +12,18 @@
 # Performs a permutation-based burden test for case vs control CNVs for a gene set
 
 #Testing dev parameters
-TIMES=100
-OUTFILE=${TMPDIR}/geneset_test.out
-UNIVERSE=${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
-WG=0
-ALLO=0
-OVER=${WRKDIR}/data/misc/exons_boundaries_dictionary/
-CONTROLS=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DEL.E3.GRCh37.all.bed.gz
-CASES=${WRKDIR}/data/CNV/CNV_MASTER/NDD/NDD.DEL.E3.GRCh37.all.bed.gz
-GENESET=${WRKDIR}/data/master_annotations/genelists/DDD_2017.genes.list
-GTF=${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf
-QUIET=0
-LABEL="DDD_2017"
+# TIMES=100
+# OUTFILE=${TMPDIR}/geneset_test.out
+# UNIVERSE=${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
+# WG=0
+# ALLO=0
+# OVER=${WRKDIR}/data/misc/exons_boundaries_dictionary/
+# CONTROLS=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DEL.E3.GRCh37.all.bed.gz
+# CASES=${WRKDIR}/data/CNV/CNV_MASTER/NDD/NDD.DEL.E3.GRCh37.all.bed.gz
+# GENESET=${WRKDIR}/data/master_annotations/genelists/DDD_2017.genes.list
+# GTF=${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf
+# QUIET=0
+# LABEL="DDD_2017"
 
 #Usage statement
 usage(){
