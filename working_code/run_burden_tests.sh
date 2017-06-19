@@ -148,19 +148,18 @@ while read pheno; do
   for CNV in CNV DEL DUP; do
     for VF in E2 E3 E4 N1; do
       for filt in all; do
-        # #Exonic
-        # bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_geneSet_burdens_exonic \
-        # "${WRKDIR}/bin/rCNVmap/bin/geneSet_burdenTest_batch.sh -N 1000 \
-        #   -H ${WRKDIR}/data/misc/exons_boundaries_dictionary/ \
-        #   -p ${pheno}_${CNV}_${filt}_${VF}_exonic \
-        #   -o ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV}/${filt}/${VF}/exonic/ \
-        #   ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
-        #   ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
-        #   ${WRKDIR}/bin/rCNVmap/misc/master_gene_sets.list \
-        #   ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf"
-        # #Whole-gene
-        # bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_geneSet_burdens_wholegene \
-        echo \
+        #Exonic
+        bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_geneSet_burdens_exonic \
+        "${WRKDIR}/bin/rCNVmap/bin/geneSet_burdenTest_batch.sh -N 1000 \
+          -H ${WRKDIR}/data/misc/exons_boundaries_dictionary/ \
+          -p ${pheno}_${CNV}_${filt}_${VF}_exonic \
+          -o ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV}/${filt}/${VF}/exonic/ \
+          ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+          ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+          ${WRKDIR}/bin/rCNVmap/misc/master_gene_sets.list \
+          ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf"
+        #Whole-gene
+        bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_geneSet_burdens_wholegene \
         "${WRKDIR}/bin/rCNVmap/bin/geneSet_burdenTest_batch.sh -N 1000 -W \
           -H ${WRKDIR}/data/misc/exons_boundaries_dictionary/ \
           -p ${pheno}_${CNV}_${filt}_${VF}_wholegene \
