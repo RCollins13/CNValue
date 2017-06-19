@@ -149,10 +149,8 @@ while read pheno; do
     for VF in E2 E3 E4 N1; do
       for filt in all; do
         #Exonic
-        # bsub -q normal -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_geneSet_burdens_exonic \
-        echo -e "\n\n"
-        echo -e "${WRKDIR}/bin/rCNVmap/bin/geneSet_burdenTest_batch.sh -N 1000 -f \
-          -U ${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list \
+        bsub -q normal -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_geneSet_burdens_exonic \
+        echo -e "${WRKDIR}/bin/rCNVmap/bin/geneSet_burdenTest_batch.sh -N 1000 \
           -H ${WRKDIR}/data/misc/exons_boundaries_dictionary/ \
           -p ${pheno}_${CNV}_${filt}_${VF}_exonic \
           -o ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV}/${filt}/${VF}/exonic/ \
@@ -161,21 +159,20 @@ while read pheno; do
           ${WRKDIR}/bin/rCNVmap/misc/master_gene_sets.list \
           ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf"
         #Whole-gene
-        # bsub -q normal -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_geneSet_burdens_wholegene \
-        # "${WRKDIR}/bin/rCNVmap/bin/geneSet_burdenTest_batch.sh -N 1000 -f -W \
-        #   -U ${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list \
-        #   -H ${WRKDIR}/data/misc/exons_boundaries_dictionary/ \
-        #   -p ${pheno}_${CNV}_${filt}_${VF}_wholegene \
-        #   -o ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV}/${filt}/${VF}/wholegene/ \
-        #   ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
-        #   ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
-        #   ${WRKDIR}/bin/rCNVmap/misc/master_gene_sets.list \
-        #   ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf"
+        bsub -q normal -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_geneSet_burdens_wholegene \
+        "${WRKDIR}/bin/rCNVmap/bin/geneSet_burdenTest_batch.sh -N 1000 -W \
+          -H ${WRKDIR}/data/misc/exons_boundaries_dictionary/ \
+          -p ${pheno}_${CNV}_${filt}_${VF}_wholegene \
+          -o ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV}/${filt}/${VF}/wholegene/ \
+          ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+          ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+          ${WRKDIR}/bin/rCNVmap/misc/master_gene_sets.list \
+          ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf"
       done
     done
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-          cut -f1 | fgrep -v CTRL | head -n1 )
+          cut -f1 | fgrep -v CTRL )
 
 # #####Run _full_ annotation set burden testing
 # #iterate & prep directories
