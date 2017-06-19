@@ -13,7 +13,7 @@
 export WRKDIR=/data/talkowski/Samples/rCNVmap
 source ${WRKDIR}/bin/rCNVmap/misc/rCNV_code_parameters.sh
 
-#####Prepare annotation directory tree
+#####Prepare annotation directory tree - anno sets
 mkdir ${WRKDIR}/analysis/annoSet_burden
 while read pheno; do
   if [ -e ${WRKDIR}/analysis/annoSet_burden/${pheno} ]; then
@@ -35,6 +35,40 @@ while read pheno; do
           rm -rf ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}
         fi
         mkdir ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}
+      done
+    done
+  done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          cut -f1 | fgrep -v CTRL )
+
+#####Prepare annotation directory tree - gene sets
+mkdir ${WRKDIR}/analysis/geneSet_burden
+while read pheno; do
+  if [ -e ${WRKDIR}/analysis/geneSet_burden/${pheno} ]; then
+    rm -rf ${WRKDIR}/analysis/geneSet_burden/${pheno}
+  fi
+  mkdir ${WRKDIR}/analysis/geneSet_burden/${pheno}
+  for CNV in CNV DEL DUP; do
+    if [ -e ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV} ]; then
+      rm -rf ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV}
+    fi
+    mkdir ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV}
+    for filt in all; do
+      if [ -e ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV}/${filt} ]; then
+        rm -rf ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV}/${filt}
+      fi
+      mkdir ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV}/${filt}
+      for VF in E2 E3 E4 N1; do
+        if [ -e ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV}/${filt}/${VF} ]; then
+          rm -rf ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV}/${filt}/${VF}
+        fi
+        mkdir ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV}/${filt}/${VF}
+        for context in exonic wholegene; do
+          if [ -e ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV}/${filt}/${VF}/${context} ]; then
+            rm -rf ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV}/${filt}/${VF}/${context}
+          fi
+          mkdir ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV}/${filt}/${VF}/${context}
+        done
       done
     done
   done
@@ -72,7 +106,7 @@ mkdir ${WRKDIR}/analysis/annoSet_burden/merged_results
 # confidence interval bounds per set of filters
 for CNV in CNV DEL DUP; do
   for VF in E2 E3 E4 N1; do
-    for filt in all noncoding; do
+    for filt in all haplosufficient noncoding; do
       for collection in effectSize pValue lowerCI upperCI zScore; do
         bsub -q short -sla miket_sc -u nobody -J ${CNV}_${VF}_${filt}_${collection} \
         "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_annoSet_burdens.preliminary_tests.sh \
@@ -109,62 +143,23 @@ while read pheno; do
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
 
-#####Run _preliminary_ annotation set burden testing for remaining VFs and filters
-while read pheno; do
-  for CNV in CNV DEL DUP; do
-    for VF in E3 E4; do
-      for filt in coding haplosufficient intergenic; do
-        bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_annoSet_burdens \
-        "${WRKDIR}/bin/rCNVmap/bin/annoSet_burdenTest_batch.sh -N 1000 \
-          -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
-          -p ${pheno}_${CNV}_${filt}_${VF} \
-          -o ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/ \
-          ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
-          ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
-          ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prelim_subset.list \
-          ${WRKDIR}/data/misc/GRCh37_autosomes.genome"
-      done
-    done
-  done
-done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-          cut -f1 | fgrep -v CTRL )
-
-
-#####Run _secondary_ annotation set burden testing for remaining VFs and filters
-while read pheno; do
-  for CNV in CNV DEL DUP; do
-    for VF in E3 E4; do
-      for filt in coding haplosufficient intergenic; do
-        bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_annoSet_burdens \
-        "${WRKDIR}/bin/rCNVmap/bin/annoSet_burdenTest_batch.sh -N 1000 \
-          -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
-          -p ${pheno}_${CNV}_${filt}_${VF} \
-          -o ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/ \
-          ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
-          ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
-          ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.secondary_subset.list \
-          ${WRKDIR}/data/misc/GRCh37_autosomes.genome"
-      done
-    done
-  done
-done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-          cut -f1 | fgrep -v CTRL )
-
 #####Run gene set burden testing
 while read pheno; do
   for CNV in CNV DEL DUP; do
-    for VF in E2 N1; do
-    # for VF in E3 E4; do
-      for filt in all noncoding; do
+    for VF in E2 E3 E4 N1; do
+      for filt in all; do
+        #Exonic
         bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_geneSet_burdens \
-        "${WRKDIR}/bin/rCNVmap/bin/annoSet_burdenTest_batch.sh -N 1000 \
-          -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
-          -p ${pheno}_${CNV}_${filt}_${VF} \
-          -o ${WRKDIR}/analysis/annoSet_burden/${pheno}/${CNV}/${filt}/${VF}/ \
+        "${WRKDIR}/bin/rCNVmap/bin/geneSet_burdenTest_batch.sh -N 1000 \
+          -U ${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list \
+          -H ${WRKDIR}/data/misc/exons_boundaries_dictionary/ \
+          -p ${pheno}_${CNV}_${filt}_${VF}_exonic \
+          -o ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV}/${filt}/${VF}/ \
           ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
           ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
           ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prelim_subset.list \
           ${WRKDIR}/data/misc/GRCh37_autosomes.genome"
+        #Whole-gene
       done
     done
   done

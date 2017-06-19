@@ -30,7 +30,7 @@
 #Usage statement
 usage(){
 cat <<EOF
-usage: geneSet_burdenTest_batch.sh [-h] [-N TIMES] [-U UNIVERSE] [-W WHOLE GENE] [-A ALLOSOMES]
+usage: geneSet_burdenTest_batch.sh [-h] [-N TIMES] [-W WHOLE GENE] [-A ALLOSOMES]
                                    [-H OVERRIDE] [-p PREFIX] [-o OUTDIR] [-f]
                                    CONTROLS CASES LIST GTF
 
@@ -41,16 +41,15 @@ Positional arguments:
              chr, CNV start, CNV end
   CASES      path to case CNV input file. Must have at least three columns: 
              chr, CNV start, CNV end
-  LIST       two-column, tab-delimmed list of gene sets to test.
-             First column: gene set name; second column: full path to gene set
+  LIST       three-column, tab-delimmed list of gene sets to test.
+             First column: gene set name; second column: full path to gene set;
+             Third column: full path to universe gene set
   GTF        path to GTF input file. Exons or gene boundaries will be extracted
              from this file. Can be overridden with -H
 
 Optional arguments:
   -h  HELP          Show this help message and exit
   -N  TIMES         Number of permutations to perform (default: 1,000)
-  -U  UNIVERSE      List of gene symbols to consider as the background 
-                    geneset (default: all genes)
   -W  WHOLE GENE    Restrict analysis to CNVs that span the entire gene
                     (default: count any exonic overlap)
   -A  ALLOSOMES     Include allosomes in analyses (default: false)
@@ -64,14 +63,13 @@ EOF
 
 #Parse arguments
 TIMES=1000
-UNIVERSE=ALL
 WG=0
 ALLO=0
 OVER=0
 PREFIX="geneSetTest"
 OUTDIR=`pwd`
 FORCE=0
-while getopts ":N:U:W:A:H:p:o:hf" opt; do
+while getopts ":N:W:A:H:p:o:hf" opt; do
   case "$opt" in
     h)
       usage
@@ -79,9 +77,6 @@ while getopts ":N:U:W:A:H:p:o:hf" opt; do
       ;;
     N)
       TIMES=${OPTARG}
-      ;;
-    U)
-      UNIVERSE=${OPTARG}
       ;;
     W)
       WG=1
@@ -131,7 +126,7 @@ if ! [ -e ${OUTDIR} ]; then
 fi
 
 #Write list of based options
-opts=$( echo -e "-q -N ${TIMES} -U ${UNIVERSE}" )
+opts=$( echo -e "-q -N ${TIMES}" )
 if [ ${WG} -gt 0 ]; then
   opts="${opts} -W"
 fi
@@ -143,19 +138,19 @@ if [ ${OVER}!="0" ]; then
 fi
 
 #Iterate over list of annotations and run burden tests
-while read NAME GENESET; do
+while read NAME GENESET UNIVERSE; do
   if [ -e ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt ]; then
     if [ ${FORCE} -eq 0 ]; then
       echo "OUTPUT FILE FOR ${NAME} FOUND; SKIPPING"
     else
       echo "STARTING ${NAME}"
-      ${BIN}/geneSet_permutation_test.sh ${opts} -L ${NAME} \
+      ${BIN}/geneSet_permutation_test.sh ${opts} -L ${NAME} -U ${UNIVERSE} \
       -o ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt \
       ${CONTROLS} ${CASES} ${GENESET} ${GTF}
     fi
   else
     echo "STARTING ${NAME}"
-    ${BIN}/geneSet_permutation_test.sh ${opts} -L ${NAME} \
+    ${BIN}/geneSet_permutation_test.sh ${opts} -L ${NAME} -U ${UNIVERSE} \
     -o ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt \
     ${CONTROLS} ${CASES} ${GENESET} ${GTF}
   fi
