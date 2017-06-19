@@ -18,6 +18,7 @@ UNIVERSE=${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.
 WG=0
 ALLO=0
 OVER=${WRKDIR}/data/misc/exons_boundaries_dictionary/
+PREFIX="geneSetTest"
 OUTDIR=${TMPDIR}/batchGeneSetTests/
 FORCE=1
 CONTROLS=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DEL.E3.GRCh37.all.bed.gz
@@ -148,13 +149,13 @@ while read NAME GENESET; do
       echo "OUTPUT FILE FOR ${NAME} FOUND; SKIPPING"
     else
       echo "STARTING ${NAME}"
-      ${BIN}/geneSet_permutation_test.sh ${OPTS} -L ${NAME} \
+      ${BIN}/geneSet_permutation_test.sh ${opts} -L ${NAME} \
       -o ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt \
       ${CONTROLS} ${CASES} ${GENESET} ${GTF}
     fi
   else
     echo "STARTING ${NAME}"
-    ${BIN}/annoSet_permutation_test.sh -q -N ${TIMES} -x ${EXCLUDE} -L ${NAME} \
+    ${BIN}/geneSet_permutation_test.sh ${opts} -L ${NAME} \
     -o ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt \
     ${CONTROLS} ${CASES} ${GENESET} ${GTF}
   fi

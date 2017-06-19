@@ -151,7 +151,9 @@ fi
 #Skip dictionary creation if hard override is optioned (saves time)
 if [ ${OVER} == "0" ]; then
   #Parse exon definitions from GTF
-  echo -e "STATUS::$(date)::BUILDING GENE UNIVERSE DICTIONARY FROM GTF..."
+  if [ ${QUIET} -eq 0 ]; then
+    echo -e "STATUS::$(date)::BUILDING GENE UNIVERSE DICTIONARY FROM GTF..."
+  fi
   EXONS=`mktemp`
   fgrep -v "#" ${GTF} | sed 's/gene_name/\t/g' | awk -v FS="\t" -v OFS="\t" \
   '{ if ($3=="exon") print $1, $4, $5, $10 }' | sed 's/\;/\t/g' | \
@@ -166,7 +168,9 @@ if [ ${OVER} == "0" ]; then
   sed 's/^chr//g' | sed 's/\-/_/g' | \
   sort -Vk1,1 -k2,2n -k3,3n -k4,4 | uniq > ${BOUNDARIES}
 else
-  echo -e "STATUS::$(date)::LOADING GENE UNIVERSE DICTIONARY FROM PATH..."
+  if [ ${QUIET} -eq 0 ]; then
+    echo -e "STATUS::$(date)::LOADING GENE UNIVERSE DICTIONARY FROM PATH..."
+  fi
   EXONS=`mktemp`
   sed 's/^chr//g' ${OVER}/exons.bed | sed 's/\-/_/g' | \
   sort -Vk1,1 -k2,2n -k3,3n -k4,4 | uniq > ${EXONS}
@@ -176,6 +180,9 @@ else
 fi
 
 #Subset exons and boundaries to autosomes unless optioned
+if [ ${QUIET} -eq 0 ]; then
+  echo -e "STATUS::$(date)::HARMONIZING INPUT DATASETS..."
+fi
 if [ ${ALLO} -eq 0 ]; then
   grep -e '^[0-9]\|^chr[0-9]' ${EXONS} > ${EXONS}2; mv ${EXONS}2 ${EXONS}
   grep -e '^[0-9]\|^chr[0-9]' ${BOUNDARIES} > ${BOUNDARIES}2; mv ${BOUNDARIES}2 ${BOUNDARIES}
