@@ -69,7 +69,7 @@ OVER=0
 PREFIX="geneSetTest"
 OUTDIR=`pwd`
 FORCE=0
-while getopts ":N:W:A:H:p:o:hf" opt; do
+while getopts ":N:WA:H:p:o:hf" opt; do
   case "$opt" in
     h)
       usage
