@@ -11,19 +11,19 @@
 
 # Performs a permutation-based burden test for case vs control CNVs for a gene set
 
-# #Testing dev parameters
-# TIMES=100
-# OUTFILE=${TMPDIR}/geneset_test.out
-# UNIVERSE=${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
-# WG=0
-# ALLO=0
-# OVER=${WRKDIR}/data/misc/exons_boundaries_dictionary/
-# CONTROLS=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DEL.E3.GRCh37.all.bed.gz
-# CASES=${WRKDIR}/data/CNV/CNV_MASTER/NDD/NDD.DEL.E3.GRCh37.all.bed.gz
-# GENESET=${WRKDIR}/data/master_annotations/genelists/DDD_2017.genes.list
-# GTF=${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf
-# QUIET=0
-# LABEL="DDD_2017"
+#Testing dev parameters
+TIMES=100
+OUTFILE=${TMPDIR}/geneset_test.out
+UNIVERSE=${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
+WG=0
+ALLO=0
+OVER=${WRKDIR}/data/misc/exons_boundaries_dictionary/
+CONTROLS=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DEL.E3.GRCh37.all.bed.gz
+CASES=${WRKDIR}/data/CNV/CNV_MASTER/NDD/NDD.DEL.E3.GRCh37.all.bed.gz
+GENESET=${WRKDIR}/data/master_annotations/genelists/DDD_2017.genes.list
+GTF=${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf
+QUIET=0
+LABEL="DDD_2017"
 
 #Usage statement
 usage(){
@@ -194,9 +194,9 @@ fi
 UNIV=`mktemp`
 if [ ${UNIVERSE} != "ALL" ]; then
   sed 's/\-/_/g' ${UNIVERSE} | fgrep -wf - <( cat ${EXONS} ${BOUNDARIES} ) | \
-  cut -f4 | sort | uniq > ${UNIV}
+  awk '{ print $4 }' | sort | uniq > ${UNIV}
 else
-  cat ${EXONS} ${BOUNDARIES} | cut -f4 | sort | uniq > ${UNIV}
+  cat ${EXONS} ${BOUNDARIES} | awk '{ print $4 }' | sort | uniq > ${UNIV}
 fi
 
 #Subset exon & boundary definitions to genes that exist in the universal set
@@ -244,32 +244,41 @@ QUERY_IN_UNIV=$( fgrep -wf ${QUERY} ${UNIV} | wc -l )
 #   done | paste -s 
 # done < ${UNIVERSE} > ${BASELINE}
 
-#Compute baseline dCNV and case/control counts for query set
-if [ ${WG} -eq 1 ]; then
-  #Boundary-based dCNV
-  base_case=$( fgrep -wf ${QUERY} ${BOUNDARIES} | \
-               bedtools intersect -f 1.0 -wa -wb -b ${CASE} -a - | \
-               awk -v OFS="\t" '{ print $4, $8 }' | \
-               sort -k1,1 -k2,2 | uniq | wc -l )
-  base_ctrl=$( fgrep -wf ${QUERY} ${BOUNDARIES} | \
-               bedtools intersect -f 1.0 -wa -wb -b ${CTRL} -a - | \
-               awk -v OFS="\t" '{ print $4, $8 }' | \
-               sort -k1,1 -k2,2 | uniq | wc -l )
-  baseline=$( echo -e "${base_case}\t${base_ctrl}" | \
-              awk -v OFS="\t" '{ print $1-$2 }' )
-else
-  #Exon-based dCNV
-  base_case=$( fgrep -wf ${QUERY} ${EXONS} | \
-               bedtools intersect -wa -wb -a ${CASE} -b - | \
-               awk -v OFS="\t" '{ print $NF, $4 }' | \
-               sort -k1,1 -k2,2 | uniq | wc -l )
-  base_ctrl=$( fgrep -wf ${QUERY} ${EXONS} | \
-               bedtools intersect -wa -wb -a ${CTRL} -b - | \
-               awk -v OFS="\t" '{ print $NF, $4 }' | \
-               sort -k1,1 -k2,2 | uniq | wc -l )
-  baseline=$( echo -e "${base_case}\t${base_ctrl}" | \
-              awk -v OFS="\t" '{ print $1-$2 }' )
+#Calculate unique case & control CNV counts for all genes in universe
+if [ ${QUIET} -eq 0 ]; then
+  echo -e "STATUS::$(date)::COMPUTING BASELINE CNV BURDENS..."
 fi
+ALL_GENES_CASE_CNV=`mktemp`
+ALL_GENES_CTRL_CNV=`mktemp`
+if [ ${WG} -eq 1 ]; then
+  #Case, whole-gene CNVs
+  bedtools intersect -f 1.0 -wa -wb -a ${BOUNDARIES} -b ${CASE} | \
+  awk -v OFS="\t" '{ print $4, $8 }' | \
+  sort -k1,1 -k2,2 | uniq | cut -f1 | uniq -c | \
+  awk -v OFS="\t" '{ print $2, $1 }' > ${ALL_GENES_CASE_CNV}
+  #Control, whole-gene CNVs
+  bedtools intersect -f 1.0 -wa -wb -a ${BOUNDARIES} -b ${CTRL} | \
+  awk -v OFS="\t" '{ print $4, $8 }' | \
+  sort -k1,1 -k2,2 | uniq | cut -f1 | uniq -c | \
+  awk -v OFS="\t" '{ print $2, $1 }' > ${ALL_GENES_CTRL_CNV}
+else
+  #Case, exonic CNVs
+  bedtools intersect -wa -wb -a ${CASE} -b ${EXONS} | \
+  awk -v OFS="\t" '{ print $NF, $4 }' | sort -k1,1 -k2,2 | uniq | \
+  cut -f1 | uniq -c | awk -v OFS="\t" '{ print $2, $1 }' > ${ALL_GENES_CASE_CNV}
+  #Control, exonic CNVs
+  bedtools intersect -wa -wb -a ${CTRL} -b ${EXONS} | \
+  awk -v OFS="\t" '{ print $NF, $4 }' | sort -k1,1 -k2,2 | uniq | \
+  cut -f1 | uniq -c | awk -v OFS="\t" '{ print $2, $1 }' > ${ALL_GENES_CTRL_CNV}
+fi
+
+#Compute baseline dCNV and case/control counts for query set
+base_case=$( fgrep -wf ${QUERY} ${ALL_GENES_CASE_CNV} | \
+             awk '{ sum+=$2 }END{ print sum }' )
+base_ctrl=$( fgrep -wf ${QUERY} ${ALL_GENES_CTRL_CNV} | \
+             awk '{ sum+=$2 }END{ print sum }' )
+baseline=$( echo -e "${base_case}\t${base_ctrl}" | \
+            awk -v OFS="\t" '{ print $1-$2 }' )
 
 #Make temporary files for iterating permutations
 GENES_SHUF=`mktemp`
@@ -286,27 +295,11 @@ for i in $( seq 1 ${TIMES} ); do
   shuf ${UNIV} | head -n${QUERY_IN_UNIV} > ${GENES_SHUF}
 
   #Count pileup of case/control at each element
-  if [ ${WG} -eq 1 ]; then
-    perm_case=$( fgrep -wf ${GENES_SHUF} ${BOUNDARIES} | \
-                 bedtools intersect -f 1.0 -wa -wb -b ${CASE} -a - | \
-                 awk -v OFS="\t" '{ print $4, $8 }' | \
-                 sort -k1,1 -k2,2 | uniq | wc -l )
-    perm_ctrl=$( fgrep -wf ${GENES_SHUF} ${BOUNDARIES} | \
-                 bedtools intersect -f 1.0 -wa -wb -b ${CTRL} -a - | \
-                 awk -v OFS="\t" '{ print $4, $8 }' | \
-                 sort -k1,1 -k2,2 | uniq | wc -l )
-    perm_dCNV=$( echo -e "${perm_case}\t${perm_ctrl}" | awk -v OFS="\t" '{ print $1-$2 }' )
-  else
-    perm_case=$( fgrep -wf ${GENES_SHUF} ${EXONS} | \
-                 bedtools intersect -f 1.0 -wa -wb -b ${CASE} -a - | \
-                 awk -v OFS="\t" '{ print $4, $8 }' | \
-                 sort -k1,1 -k2,2 | uniq | wc -l )
-    perm_ctrl=$( fgrep -wf ${GENES_SHUF} ${EXONS} | \
-                 bedtools intersect -f 1.0 -wa -wb -b ${CTRL} -a - | \
-                 awk -v OFS="\t" '{ print $4, $8 }' | \
-                 sort -k1,1 -k2,2 | uniq | wc -l )
-    perm_dCNV=$( echo -e "${perm_case}\t${perm_ctrl}" | awk -v OFS="\t" '{ print $1-$2 }' )
-  fi
+  perm_case=$( fgrep -wf ${GENES_SHUF} ${ALL_GENES_CASE_CNV} | \
+               awk '{ sum+=$2 }END{ print sum }' )
+  perm_ctrl=$( fgrep -wf ${GENES_SHUF} ${ALL_GENES_CTRL_CNV} | \
+               awk '{ sum+=$2 }END{ print sum }' )
+  perm_dCNV=$( echo -e "${perm_case}-${perm_ctrl}" | bc )
 
   #Print permutation results to file
   echo -e "${perm_case}\t${perm_ctrl}\t${perm_dCNV}" >> ${PERM_OUTPUT}

@@ -131,7 +131,7 @@ if ! [ -e ${OUTDIR} ]; then
 fi
 
 #Write list of based options
-opts=$( echo -e "-q -N ${TIMES} -U ${UNIVERSE}" )
+opts=$( echo -e "-N ${TIMES} -U ${UNIVERSE}" )
 if [ ${WG} -gt 0 ]; then
   opts="${opts} -W"
 fi
