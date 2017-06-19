@@ -138,19 +138,19 @@ if [ ${OVER}!="0" ]; then
 fi
 
 #Iterate over list of annotations and run burden tests
-while read NAME GENESET UNIVERSE; do
+while read NAME GENESET UNIV_SPEC; do
   if [ -e ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt ]; then
     if [ ${FORCE} -eq 0 ]; then
       echo "OUTPUT FILE FOR ${NAME} FOUND; SKIPPING"
     else
       echo "STARTING ${NAME}"
-      ${BIN}/geneSet_permutation_test.sh ${opts} -L ${NAME} -U ${UNIVERSE} \
+      ${BIN}/geneSet_permutation_test.sh ${opts} -L ${NAME} -U ${UNIV_SPEC} \
       -o ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt \
       ${CONTROLS} ${CASES} ${GENESET} ${GTF}
     fi
   else
     echo "STARTING ${NAME}"
-    ${BIN}/geneSet_permutation_test.sh ${opts} -L ${NAME} -U ${UNIVERSE} \
+    ${BIN}/geneSet_permutation_test.sh ${opts} -L ${NAME} -U ${UNIV_SPEC} \
     -o ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt \
     ${CONTROLS} ${CASES} ${GENESET} ${GTF}
   fi
