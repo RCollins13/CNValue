@@ -166,6 +166,7 @@ if [ ${OVER} == "0" ]; then
   sed 's/^chr//g' | sed 's/\-/_/g' | \
   sort -Vk1,1 -k2,2n -k3,3n -k4,4 | uniq > ${BOUNDARIES}
 else
+  echo -e "STATUS::$(date)::LOADING GENE UNIVERSE DICTIONARY FROM PATH..."
   EXONS=`mktemp`
   sed 's/^chr//g' ${OVER}/exons.bed | sed 's/\-/_/g' | \
   sort -Vk1,1 -k2,2n -k3,3n -k4,4 | uniq > ${EXONS}

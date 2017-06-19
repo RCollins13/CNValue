@@ -13,17 +13,18 @@
 # CNV burden from a specified set of CNVs in cases and controls
 
 # #Testing dev parameters
-# TIMES=100
-# UNIVERSE=${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
-# WG=0
-# ALLO=0
-# OVER=${WRKDIR}/data/misc/exons_boundaries_dictionary/
-# OUTDIR=${TMPDIR}
-# FORCE=1
-# CONTROLS=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DEL.E3.GRCh37.all.bed.gz
-# CASES=${WRKDIR}/data/CNV/CNV_MASTER/NDD/NDD.DEL.E3.GRCh37.all.bed.gz
-# LIST=
-# GTF=${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf
+TIMES=100
+UNIVERSE=${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
+WG=0
+ALLO=0
+OVER=${WRKDIR}/data/misc/exons_boundaries_dictionary/
+OUTDIR=${TMPDIR}/batchGeneSetTests/
+FORCE=1
+CONTROLS=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DEL.E3.GRCh37.all.bed.gz
+CASES=${WRKDIR}/data/CNV/CNV_MASTER/NDD/NDD.DEL.E3.GRCh37.all.bed.gz
+LIST=/data/talkowski/Samples/rCNVmap/bin/rCNVmap/misc/master_gene_sets.list
+GTF=${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf
+BIN=/data/talkowski/Samples/rCNVmap/bin/rCNVmap/bin/
 
 #Usage statement
 usage(){
@@ -88,7 +89,7 @@ while getopts ":N:U:W:A:H:p:o:hf" opt; do
       ALLO=1
       ;;
     H)
-      OVER=1
+      OVER=${OPTARG}
       ;;
     p)
       PREFIX=${OPTARG}
@@ -104,14 +105,14 @@ done
 shift $((${OPTIND} - 1))
 CONTROLS=$1
 CASES=$2
-GENESET=$3
+LIST=$3
 GTF=$4
 
 ###MUST ADD: #GET PATH TO RCNVMAP BIN SUBDIRECTORY
 BIN=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 #Check for required input
-if [ -z ${CONTROLS} ] || [ -z ${CASES} ] || [ -z ${GENESET} ] || [ -z ${GTF} ]; then
+if [ -z ${CONTROLS} ] || [ -z ${CASES} ] || [ -z ${LIST} ] || [ -z ${GTF} ]; then
   usage
   exit 0
 fi
@@ -128,21 +129,33 @@ if ! [ -e ${OUTDIR} ]; then
   exit 0
 fi
 
-# #Iterate over list of annotations and run burden tests
-# while read NAME ANNO; do
-#   if [ -e ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt ]; then
-#     if [ ${FORCE} -eq 0 ]; then
-#       echo "OUTPUT FILE FOR ${NAME} FOUND; SKIPPING"
-#     else
-#       echo "STARTING ${NAME}"
-#       ${BIN}/geneSet_permutation_test.sh -q -N ${TIMES} -U ${UNIVERSE} -L ${NAME} \
-#       -o ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt \
-#       ${CONTROLS} ${CASES} ${ANNO} ${GENOME}
-#     fi
-#   else
-#     echo "STARTING ${NAME}"
-#     ${BIN}/annoSet_permutation_test.sh -q -N ${TIMES} -x ${EXCLUDE} -L ${NAME} \
-#     -o ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt \
-#     ${CONTROLS} ${CASES} ${ANNO} ${GENOME}
-#   fi
-# done < ${LIST}
+#Write list of based options
+opts=$( echo -e "-q -N ${TIMES} -U ${UNIVERSE}" )
+if [ ${WG} -gt 0 ]; then
+  opts="${opts} -W"
+fi
+if [ ${ALLO} -gt 0 ]; then
+  opts="${opts} -A"
+fi
+if [ ${OVER}!="0" ]; then
+  opts="${opts} -H ${OVER}"
+fi
+
+#Iterate over list of annotations and run burden tests
+while read NAME GENESET; do
+  if [ -e ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt ]; then
+    if [ ${FORCE} -eq 0 ]; then
+      echo "OUTPUT FILE FOR ${NAME} FOUND; SKIPPING"
+    else
+      echo "STARTING ${NAME}"
+      ${BIN}/geneSet_permutation_test.sh ${OPTS} -L ${NAME} \
+      -o ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt \
+      ${CONTROLS} ${CASES} ${GENESET} ${GTF}
+    fi
+  else
+    echo "STARTING ${NAME}"
+    ${BIN}/annoSet_permutation_test.sh -q -N ${TIMES} -x ${EXCLUDE} -L ${NAME} \
+    -o ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt \
+    ${CONTROLS} ${CASES} ${GENESET} ${GTF}
+  fi
+done < ${LIST}
