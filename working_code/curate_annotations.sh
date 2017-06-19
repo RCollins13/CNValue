@@ -402,21 +402,54 @@ ${WRKDIR}/data/master_annotations/genelists/COSMIC_tumor_suppressor.genes.list
 #Collapse all tissue-specific gene sets to organ system-level sets
 while read tissue; do
   echo ${tissue}
-  #CODE:
-  while read anno; do
-    echo ${anno}
+  #Iterate over geneset definitions
+  while read geneset; do
+    echo ${geneset}
+    #Union
     while read file; do
       cat ${file}
-    done < <( awk -v tissue=${tissue} -v anno=${anno} \
-    '{ if ($1==tissue && $2==anno) print $3 }' \
-    ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list ) | \
-    sort -Vk1,1 -k2,2n -k3,3n | cut -f1-3 | bedtools merge -i - > \
-    ${WRKDIR}/data/master_annotations/noncoding/${tissue}_MASTER.${anno}.elements.bed
+    done < <( awk -v tissue=${tissue} -v geneset=${geneset} \
+    '{ if ($1==tissue && $2==geneset) print $3 }' \
+    ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_GeneSet_Linkers.list ) | \
+    sort -k1,1 | uniq > \
+    ${WRKDIR}/data/master_annotations/genelists/${tissue}_MASTER_UNION.${geneset}.genes.list
+    #Intersection
+    #Don't compute intersection for preferentially expressed genes
+    # (By definition, preferential expression requires tissue-specificity per GTEx)
+    if ! [ ${geneset} == "Preferentially_Expressed" ]; then
+      if [ -e ${TMPDIR}/geneset_intersection.tmp ]; then
+        rm ${TMPDIR}/geneset_intersection.tmp
+      fi
+      nlists=$( awk -v tissue=${tissue} -v geneset=${geneset} \
+      '{ if ($1==tissue && $2==geneset) print $3 }' \
+      ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_GeneSet_Linkers.list | wc -l )
+      if [ ${nlists} -gt 0 ]; then
+        while read file; do
+          cat ${file}
+        done < <( awk -v tissue=${tissue} -v geneset=${geneset} \
+        '{ if ($1==tissue && $2==geneset) print $3 }' \
+        ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_GeneSet_Linkers.list | head -n1 ) | \
+        sort -k1,1 | uniq > \
+        ${TMPDIR}/geneset_intersection.tmp
+      fi
+      if [ ${nlists} -gt 1 ]; then
+        while read file; do
+          fgrep -wf <( sed 's/\-/_/g' ${file} ) \
+          <( sed 's/\-/_/g' ${TMPDIR}/geneset_intersection.tmp ) | sed 's/_/\-/g' > \
+          ${TMPDIR}/geneset_intersection.tmp2
+          mv ${TMPDIR}/geneset_intersection.tmp2 ${TMPDIR}/geneset_intersection.tmp
+        done < <( awk -v tissue=${tissue} -v geneset=${geneset} \
+        '{ if ($1==tissue && $2==geneset) print $3 }' \
+        ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_GeneSet_Linkers.list | sed '1d' )
+      fi
+      mv ${TMPDIR}/geneset_intersection.tmp \
+      ${WRKDIR}/data/master_annotations/genelists/${tissue}_MASTER_INTERSECTION.${geneset}.genes.list
+    fi
   done < <( awk -v tissue=${tissue} '{ if ($1==tissue) print $2 }' \
-    ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
+    ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_GeneSet_Linkers.list | \
     sort | uniq )
-done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
-sort | uniq )
+done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_GeneSet_Linkers.list | \
+  sort | uniq )
 
 #Get count of all genes and autosomal genes per gene list
 while read list; do
@@ -428,7 +461,7 @@ while read list; do
   <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed ) | \
   grep -e '^[0-9]' | cut -f4 | sort | uniq | wc -l
 done < <( l ${WRKDIR}/data/master_annotations/genelists/*genes.list | \
-  awk '{ print $9 }' | fgrep Schizophrenia ) | paste - - -
+  awk '{ print $9 }' | fgrep _MASTER_ ) | paste - - -
 
 
 
