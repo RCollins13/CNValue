@@ -42,7 +42,7 @@ Positional arguments:
   GENESET    path to gene set input file to be tested. Must have one column 
              with gene symbols
   GTF        path to GTF input file. Exons or gene boundaries will be extracted
-             from this file
+             from this file. Can be overridden with -H
 
 Optional arguments:
   -h  HELP          Show this help message and exit

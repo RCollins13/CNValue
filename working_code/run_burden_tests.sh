@@ -45,8 +45,10 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
 while read pheno; do
   for CNV in CNV DEL DUP; do
     # for VF in E2 N1; do
-    for VF in E3 E4; do
-      for filt in all noncoding; do
+    # for VF in E3 E4; do
+    for VF in E2 E3 E4 N1; do
+      # for filt in all noncoding; do
+      for filt in haplosufficient; do
         bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_annoSet_burdens \
         "${WRKDIR}/bin/rCNVmap/bin/annoSet_burdenTest_batch.sh -N 1000 \
           -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \

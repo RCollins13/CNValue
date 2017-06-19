@@ -399,6 +399,24 @@ for class in oncogene all; do
 done
 cat ${SFARI_ANNO}/genelists/COSMIC_census_TSC.genes.list | sort | uniq > \
 ${WRKDIR}/data/master_annotations/genelists/COSMIC_tumor_suppressor.genes.list
+#Collapse all tissue-specific gene sets to organ system-level sets
+while read tissue; do
+  echo ${tissue}
+  #CODE:
+  while read anno; do
+    echo ${anno}
+    while read file; do
+      cat ${file}
+    done < <( awk -v tissue=${tissue} -v anno=${anno} \
+    '{ if ($1==tissue && $2==anno) print $3 }' \
+    ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list ) | \
+    sort -Vk1,1 -k2,2n -k3,3n | cut -f1-3 | bedtools merge -i - > \
+    ${WRKDIR}/data/master_annotations/noncoding/${tissue}_MASTER.${anno}.elements.bed
+  done < <( awk -v tissue=${tissue} '{ if ($1==tissue) print $2 }' \
+    ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
+    sort | uniq )
+done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
+sort | uniq )
 
 #Get count of all genes and autosomal genes per gene list
 while read list; do

@@ -15,7 +15,7 @@
 #Usage statement
 usage(){
 cat <<EOF
-usage: annoSet_burdenTest_batch.sh [-h] [-N TIMES] [-x EXCLUDE] [-o OUTDIR] [-f]
+usage: annoSet_burdenTest_batch.sh [-h] [-N TIMES] [-x EXCLUDE] [-p PREFIX] [-o OUTDIR] [-f]
                                    CONTROLS CASES LIST GENOME
 
 Script to test CNV burden at genome annotation sets in batch mode 
@@ -41,9 +41,9 @@ EOF
 
 #Parse arguments
 TIMES=1000
-OUTFILE=/dev/stdout
+OUTDIR=`pwd`
 EXCLUDE=0
-PREFIX=""
+PREFIX="annoSetTest"
 FORCE=0
 while getopts ":N:x:p:o:hf" opt; do
   case "$opt" in
