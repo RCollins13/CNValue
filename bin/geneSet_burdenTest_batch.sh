@@ -31,7 +31,7 @@
 usage(){
 cat <<EOF
 usage: geneSet_burdenTest_batch.sh [-h] [-N TIMES] [-W WHOLE GENE] [-A ALLOSOMES]
-                                   [-H OVERRIDE] [-p PREFIX] [-o OUTDIR] [-f]
+                                   [-H OVERRIDE] [-p PREFIX] [-o OUTDIR] [-f FORCE]
                                    CONTROLS CASES LIST GTF
 
 Script to test CNV burden at gene sets in batch mode
