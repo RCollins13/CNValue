@@ -13,19 +13,19 @@
 # CNV burden from a specified set of CNVs in cases and controls
 
 # #Testing dev parameters
-TIMES=100
-UNIVERSE=${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
-WG=0
-ALLO=0
-OVER=${WRKDIR}/data/misc/exons_boundaries_dictionary/
-PREFIX="geneSetTest"
-OUTDIR=${TMPDIR}/batchGeneSetTests/
-FORCE=1
-CONTROLS=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DEL.E3.GRCh37.all.bed.gz
-CASES=${WRKDIR}/data/CNV/CNV_MASTER/NDD/NDD.DEL.E3.GRCh37.all.bed.gz
-LIST=/data/talkowski/Samples/rCNVmap/bin/rCNVmap/misc/master_gene_sets.list
-GTF=${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf
-BIN=/data/talkowski/Samples/rCNVmap/bin/rCNVmap/bin/
+# TIMES=100
+# UNIVERSE=${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
+# WG=0
+# ALLO=0
+# OVER=${WRKDIR}/data/misc/exons_boundaries_dictionary/
+# PREFIX="geneSetTest"
+# OUTDIR=${TMPDIR}/batchGeneSetTests/
+# FORCE=1
+# CONTROLS=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DEL.E3.GRCh37.all.bed.gz
+# CASES=${WRKDIR}/data/CNV/CNV_MASTER/NDD/NDD.DEL.E3.GRCh37.all.bed.gz
+# LIST=/data/talkowski/Samples/rCNVmap/bin/rCNVmap/misc/master_gene_sets.list
+# GTF=${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf
+# BIN=/data/talkowski/Samples/rCNVmap/bin/rCNVmap/bin/
 
 #Usage statement
 usage(){
@@ -131,7 +131,7 @@ if ! [ -e ${OUTDIR} ]; then
 fi
 
 #Write list of based options
-opts=$( echo -e "-N ${TIMES} -U ${UNIVERSE}" )
+opts=$( echo -e "-q -N ${TIMES} -U ${UNIVERSE}" )
 if [ ${WG} -gt 0 ]; then
   opts="${opts} -W"
 fi
