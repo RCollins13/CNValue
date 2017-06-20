@@ -187,17 +187,57 @@ ${WRKDIR}/data/plot_data/figure1/germline_case_overlap.matrix.txt
 #####Get sizes of all CNVs and all filters per CNV class and tier 2 phenotype group
 for group in CTRL NEURO NDD PSYCH SOMA CNCR; do
   for filt in all coding haplosufficient noncoding intergenic; do
-    for freq in E2 E3 E4 N1; do
+    for VF in E2 E3 E4 N1; do
       for CNV in CNV DEL DUP; do
-        zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.${CNV}.noMaxSize.${freq}.GRCh37.${filt}.bed.gz | \
+        zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.${CNV}.noMaxSize.E2.GRCh37.${filt}.bed.gz | \
         fgrep -v "#" | awk '{ print $3-$2 }' > \
         ${WRKDIR}/data/plot_data/figure1/${CNV}_size.${group}.noMaxSize.${freq}.${filt}.txt
       done
     done
   done
 done
+#Binned by VF - PER VARIANT
+for group in CTRL NEURO NDD PSYCH SOMA; do
+  for CNV in DEL DUP; do
+    for max in E2 E3 E4; do
+      for min in E3 E4 N1; do
+        zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.${CNV}.noMaxSize.${max}.GRCh37.all.bed.gz | \
+        fgrep -v "#" | fgrep -wvf \
+        <( zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.${CNV}.noMaxSize.${min}.GRCh37.all.bed.gz | \
+        fgrep -v "#" | cut -f4 ) | cut -f4 | fgrep -wf - \
+        ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.merged.bed | \
+        awk -v OFS="\t" '{ print $3-$2, $7 }' | sort -nk1,1 -k2,2 | uniq > \
+        ${WRKDIR}/data/plot_data/figure1/${CNV}_size.${group}.noMaxSize.${max}_${min}.all.byVariant.txt
+      done
+    done
+    #N1
+    zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.${CNV}.noMaxSize.${max}.GRCh37.all.bed.gz | \
+    fgrep -v "#" | cut -f4 | fgrep -wf - \
+    ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.merged.bed | \
+    awk -v OFS="\t" '{ print $3-$2, $7 }' | sort -nk1,1 -k2,2 | uniq > \
+    ${WRKDIR}/data/plot_data/figure1/${CNV}_size.${group}.noMaxSize.N1_N1.all.byVariant.txt
+  done
+done
+#CNCR
+for CNV in CNV DEL DUP; do
+  for VF in E2_E3 E3_E4 E4_N1 N1_N1; do
+    cp ${WRKDIR}/data/plot_data/figure1/${CNV}_size.CNCR.noMaxSize.E2.all.txt \
+    ${WRKDIR}/data/plot_data/figure1/${CNV}_size.CNCR.noMaxSize.${VF}.all.byVariant.txt
+  done
+done
 
 
+#####Get sizes and VFs of all CNVs per tier 2 for scatterplots -- nixed
+#Germline CNVs
+for group in CTRL NEURO NDD PSYCH SOMA; do
+  for CNV in DEL DUP; do
+    zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.${CNV}.E2.GRCh37.all.bed.gz | \
+    fgrep -v "#" | cut -f4 | fgrep -wf - \
+    ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.merged.bed | \
+    cut -f2,3,7,9 | uniq | awk -v OFS="\t" '{ print $2-$1, $4/102257 }' > \
+    ${WRKDIR}/data/plot_data/figure1/${CNV}_size_and_VF.${group}.txt
+  done
+done
 
 
 
