@@ -237,3 +237,36 @@ plotbars(group="SOMA",n=13361)
 plotbars(group="CNCR",n=10844,xaxis=F)
 dev.off()
 
+
+
+
+#####Run spearman correlations between all rCNV sites by tier2 pheno
+#get stats
+lapply(c("CTRL","GERM"),function(group){
+  #Read data
+  DEL <- read.table(paste(WRKDIR,"plot_data/figure1/DEL_size_and_VF.",
+                          group,".txt",sep=""))
+  DUP <- read.table(paste(WRKDIR,"plot_data/figure1/DUP_size_and_VF.",
+                          group,".txt",sep=""))
+  CNV <- rbind(DEL,DUP)
+  #Spearman's correlation
+  cor.test(CNV[,1],CNV[,2],method="spearman")
+})
+options(scipen=-1000)
+#get exact p
+lapply(c("CTRL","GERM"),function(group){
+  #Read data
+  DEL <- read.table(paste(WRKDIR,"plot_data/figure1/DEL_size_and_VF.",
+                          group,".txt",sep=""))
+  DUP <- read.table(paste(WRKDIR,"plot_data/figure1/DUP_size_and_VF.",
+                          group,".txt",sep=""))
+  CNV <- rbind(DEL,DUP)
+  #Spearman's correlation
+  cor.test(CNV[,1],CNV[,2],method="spearman")$p.value
+})
+options(scipen=1000)
+
+
+
+
+

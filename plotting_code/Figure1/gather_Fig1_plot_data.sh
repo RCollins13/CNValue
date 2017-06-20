@@ -185,13 +185,13 @@ Eye_or_ear_defect\nIntegument_defect\nEndocrine_metabolic_or_immune_defect" ) > 
 ${WRKDIR}/data/plot_data/figure1/germline_case_overlap.matrix.txt
 
 #####Get sizes of all CNVs and all filters per CNV class and tier 2 phenotype group
-for group in CTRL NEURO NDD PSYCH SOMA CNCR; do
+for group in GERM CTRL NEURO NDD PSYCH SOMA CNCR; do
   for filt in all coding haplosufficient noncoding intergenic; do
     for VF in E2 E3 E4 N1; do
       for CNV in CNV DEL DUP; do
-        zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.${CNV}.noMaxSize.E2.GRCh37.${filt}.bed.gz | \
+        zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.${CNV}.${VF}.GRCh37.${filt}.bed.gz | \
         fgrep -v "#" | awk '{ print $3-$2 }' > \
-        ${WRKDIR}/data/plot_data/figure1/${CNV}_size.${group}.noMaxSize.${freq}.${filt}.txt
+        ${WRKDIR}/data/plot_data/figure1/${CNV}_size.${group}.${VF}.${filt}.txt
       done
     done
   done
