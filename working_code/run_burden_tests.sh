@@ -130,7 +130,7 @@ for CNV in CNV DEL DUP; do
     for filt in all haplosufficient noncoding; do
       for collection in effectSize pValue lowerCI upperCI zScore; do
         bsub -q short -sla miket_sc -u nobody -J ${CNV}_${VF}_${filt}_${collection} \
-        "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_annoSet_burdens.preliminary_tests.sh \
+        "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_annoSet_burdens.all_tests.sh \
         ${CNV} ${VF} ${filt} ${collection}"
       done
     done
