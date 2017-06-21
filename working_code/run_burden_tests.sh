@@ -101,9 +101,10 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
 #####Run _secondary_ annotation set burden testing
 while read pheno; do
   for CNV in CNV DEL DUP; do
-    # for VF in E2 N1; do
-    for VF in E3 E4; do
-      for filt in all noncoding; do
+    for VF in E2 N1; do
+    # for VF in E3 E4; do
+      # for filt in all noncoding; do
+      for filt in haplosufficient; do
         bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_annoSet_burdens_secondary \
         "${WRKDIR}/bin/rCNVmap/bin/annoSet_burdenTest_batch.sh -N 1000 \
           -x /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
@@ -173,6 +174,33 @@ while read pheno; do
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
+
+#####Collect gene set burden test results
+#Prepare directory
+mkdir ${WRKDIR}/analysis/geneSet_burden/merged_results
+#Grouped by CNV type, VF, and CNV filter. MxN matrix; M: phenos, N: annotation sets
+#One matrix of p-values, one matrix of effect sizes, and two matrices of 
+# confidence interval bounds per set of filters
+for CNV in CNV DEL DUP; do
+  for VF in E2 E3 E4 N1; do
+    for filt in all; do
+      for context in exonic wholegene; do
+        for collection in effectSize pValue lowerCI upperCI zScore; do
+          bsub -q short -sla miket_sc -u nobody \
+          -J ${CNV}_${VF}_${filt}_${context}_${collection} \
+          "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_geneSet_burdens.all_tests.sh \
+          ${CNV} ${VF} ${filt} ${context} ${collection}"
+        done
+      done
+    done
+  done
+done
+#Copy to plot data directory
+if [ -e ${WRKDIR}/data/plot_data/geneSet_burden_results ]; then
+  rm -rf ${WRKDIR}/data/plot_data/geneSet_burden_results
+fi
+cp -r ${WRKDIR}/analysis/geneSet_burden/merged_results \
+${WRKDIR}/data/plot_data/geneSet_burden_results
 
 # #####Run _full_ annotation set burden testing
 # #iterate & prep directories

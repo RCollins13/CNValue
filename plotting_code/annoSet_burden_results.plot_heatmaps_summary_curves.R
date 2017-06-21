@@ -7,7 +7,7 @@
 #Copyright (c) 2017 Ryan Collins
 #Distributed under terms of the MIT License
 
-#Code to generate heatmaps, dotplots, and volcano plots of results from annoSet burden testing
+#Code to generate heatmaps and dotplots of results from annoSet burden testing
 
 #####Set parameters
 WRKDIR <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/"
@@ -96,8 +96,8 @@ sapply(phenos,function(pheno){
             "_annoSet_burden_results.dotplots.pdf",sep=""),
       height=7,width=12)
   par(mfrow=c(4,3))
-  sapply(c("all","noncoding"),function(filt){
-    sapply(c("E2","N1"),function(VF){
+  sapply(c("all","haplosufficient","noncoding"),function(filt){
+    sapply(c("E2","E3","E4","N1"),function(VF){
       sapply(c("CNV","DEL","DUP"),function(CNV){
         single.dotplot(CNV,VF,filt,pheno,
                        paste(WRKDIR,"plot_data/annoSet_burden_results/",sep=""))
@@ -125,7 +125,7 @@ single.heatmap <- function(CNV,VF,filt,basedir,pfilter=F,reorder=NULL){
     new.pvals <- pvals[which(pvals[,1]==neworder.terms[1]),]
     for(i in 2:length(neworder.terms)){
       new.pvals <- rbind(new.pvals,pvals[which(pvals[,1]==neworder.terms[i]),],
-                             deparse.level=0,make.row.names=F)
+                         deparse.level=0,make.row.names=F)
     }
     pvals <- new.pvals
   }
@@ -174,10 +174,10 @@ single.heatmap <- function(CNV,VF,filt,basedir,pfilter=F,reorder=NULL){
   if(pfilter==T){
     sapply(2:ncol(estimates),function(col){
       blackout <- which(as.numeric(pvals[,col])>=0.05/nrow(pvals) | is.na(pvals[,col]))
-        rect(xleft=col-2,xright=col-1,
-             ytop=-(blackout-1),
-             ybottom=-blackout,
-             border=NA,col="white")
+      rect(xleft=col-2,xright=col-1,
+           ytop=-(blackout-1),
+           ybottom=-blackout,
+           border=NA,col="white")
     })
   }
 
@@ -187,13 +187,13 @@ single.heatmap <- function(CNV,VF,filt,basedir,pfilter=F,reorder=NULL){
 }
 
 #####Code to plot all heatmaps
-sapply(c("all","noncoding"),function(filt){
-  sapply(c("E2","N1"),function(VF){
+sapply(c("all","haplosufficient","noncoding"),function(filt){
+  sapply(c("E2","E3","E4","N1"),function(VF){
     sapply(c("CNV","DEL","DUP"),function(CNV){
       #Original sort order
       pdf(paste(WRKDIR,"plots/annoSet_burden_results/",
                 CNV,"_",VF,"_",filt,"_heatmap.byTissue.AllResults.pdf",sep=""),
-          height=20,width=4)
+          height=35,width=4)
       par(mar=c(0.5,8,2,0.5))
       single.heatmap(CNV,VF,filt,
                      paste(WRKDIR,"plot_data/annoSet_burden_results/",sep=""),
@@ -201,7 +201,7 @@ sapply(c("all","noncoding"),function(filt){
       dev.off()
       pdf(paste(WRKDIR,"plots/annoSet_burden_results/",
                 CNV,"_",VF,"_",filt,"_heatmap.byTissue.SignifResults.pdf",sep=""),
-          height=20,width=4)
+          height=35,width=4)
       par(mar=c(0.5,8,2,0.5))
       single.heatmap(CNV,VF,filt,
                      paste(WRKDIR,"plot_data/annoSet_burden_results/",sep=""),
@@ -210,21 +210,21 @@ sapply(c("all","noncoding"),function(filt){
       #New sort order
       pdf(paste(WRKDIR,"plots/annoSet_burden_results/",
                 CNV,"_",VF,"_",filt,"_heatmap.byElementClass.AllResults.pdf",sep=""),
-          height=20,width=4)
+          height=35,width=4)
       par(mar=c(0.5,8,2,0.5))
       single.heatmap(CNV,VF,filt,
                      paste(WRKDIR,"plot_data/annoSet_burden_results/",sep=""),
                      pfilter=F,
-                     reorder=paste(WRKDIR,"rCNVmap/misc/master_noncoding_annotations.prelim_subset.alternative_sort.list",sep=""))
+                     reorder=paste(WRKDIR,"rCNVmap/misc/master_noncoding_annotations.alternative_sort.list",sep=""))
       dev.off()
       pdf(paste(WRKDIR,"plots/annoSet_burden_results/",
                 CNV,"_",VF,"_",filt,"_heatmap.byElementClass.SignifResults.pdf",sep=""),
-          height=20,width=4)
+          height=35,width=4)
       par(mar=c(0.5,8,2,0.5))
       single.heatmap(CNV,VF,filt,
                      paste(WRKDIR,"plot_data/annoSet_burden_results/",sep=""),
                      pfilter=T,
-                     reorder=paste(WRKDIR,"rCNVmap/misc/master_noncoding_annotations.prelim_subset.alternative_sort.list",sep=""))
+                     reorder=paste(WRKDIR,"rCNVmap/misc/master_noncoding_annotations.alternative_sort.list",sep=""))
       dev.off()
     })
   })
