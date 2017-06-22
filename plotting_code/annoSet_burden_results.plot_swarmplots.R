@@ -130,7 +130,7 @@ tripleStrip <- function(OR,highlights,cex,labels,
   is.na(OR[,-1]) <- sapply(OR[,-1],is.infinite)
 
   #Average across all NEURO, SOMA, and CNCR
-  OR$NEURO.mean <- apply(OR[,4:13],1,mean,na.rm=T)
+  OR$NEURO.mean <- apply(OR[,2:13],1,mean,na.rm=T)
   OR$SOMA.mean <- apply(OR[,14:23],1,mean,na.rm=T)
   OR$CNCR.mean <- apply(OR[,24:36],1,mean,na.rm=T)
 

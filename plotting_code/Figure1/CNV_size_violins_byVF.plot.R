@@ -150,7 +150,7 @@ plotsizes.tranched <- function(group,cols,xaxis=T,yaxis=T,line=T,
     if(length(sizes.vect)>5000){
       sizes.vect <- sample(sizes.vect,5000)
     }
-    beeswarm(unlist(sizes.vect),add=T,at=i,method="center",corral="random",
+    beeswarm(unlist(sizes.vect),add=T,at=i,method="swarm",corral="random",
              pch=19,col=cols[1],cex=0.1)
   })
 

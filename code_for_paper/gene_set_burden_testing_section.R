@@ -135,6 +135,7 @@ options(scipen=1000)
 ##############################
 #####DEL vs DUP OR correlation
 ##############################
+#Exonic
 DEL <- read.table(paste(WRKDIR,"plot_data/geneSet_burden_results/",
                          "DEL_E2_all_exonic.effectSizes.txt",sep=""),header=F)
 DEL.means <- apply(DEL[,-1],1,mean,na.rm=T)
@@ -159,4 +160,33 @@ cor.test(DEL.means,
          DUP.means,
          method="spearman")$p.value
 options(scipen=1000)
+#Exonic
+DEL <- read.table(paste(WRKDIR,"plot_data/geneSet_burden_results/",
+                        "DEL_E2_all_wholegene.effectSizes.txt",sep=""),header=F)
+DEL.means <- apply(DEL[,-1],1,mean,na.rm=T)
+DEL.means <- log2(DEL.means)
+DUP <- read.table(paste(WRKDIR,"plot_data/geneSet_burden_results/",
+                        "DUP_E2_all_wholegene.effectSizes.txt",sep=""),header=F)
+DUP.means <- apply(DUP[,-1],1,mean,na.rm=T)
+mean(DUP.means,na.rm=T)
+DUP.means <- log2(DUP.means)
+plot(DEL.means,
+     DUP.means,
+     xlim=log2(c(1/5,5)),ylim=log2(c(1/5,5)),
+     pch=19,col=adjustcolor("black",alpha=0.3))
+abline(h=0,v=0)
+abline(lm(DUP.means ~ DEL.means),lty=2)
+cor(DEL.means,
+    DUP.means,
+    use="complete.obs",
+    method="spearman")
+options(scipen=-1000)
+cor.test(DEL.means,
+         DUP.means,
+         method="spearman")$p.value
+options(scipen=1000)
+
+
+
+
 
