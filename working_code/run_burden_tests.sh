@@ -202,6 +202,37 @@ fi
 cp -r ${WRKDIR}/analysis/geneSet_burden/merged_results \
 ${WRKDIR}/data/plot_data/geneSet_burden_results
 
+#####Concatenate noncoding and coding burden test results into master matrixes
+#Prepare directory
+mkdir ${WRKDIR}/analysis/allSet_burden/merged_results
+#Grouped by CNV type, VF, and CNV filter. MxN matrix; M: phenos, N: annotation sets
+#One matrix of p-values, one matrix of effect sizes, and two matrices of 
+# confidence interval bounds per set of filters
+for CNV in CNV DEL DUP; do
+  for VF in E2 E3 E4 N1; do
+    for collection in effectSizes pvals lowerCI upperCI zScore; do
+      for filt in all haplosufficient noncoding; do
+        for dummy in 1; do
+          #geneSet - filt=all for all noncoding filters
+          #report wholegene for both deletions & duplications
+          cat ${WRKDIR}/analysis/geneSet_burden/merged_results/${CNV}_${VF}_all_wholegene.${collection}.txt | \
+          awk '{ print "GENESET."$0 }'
+          #annoSet
+          cat ${WRKDIR}/analysis/annoSet_burden/merged_results/${CNV}_${VF}_${filt}.${collection}.txt | \
+          awk '{ print "ANNOSET."$0 }'
+        done > ${WRKDIR}/analysis/allSet_burden/merged_results/${CNV}_${VF}_${filt}.${collection}.txt
+      done
+    done
+  done
+done
+#Copy to plot data directory
+if [ -e ${WRKDIR}/data/plot_data/allSet_burden_results ]; then
+  rm -rf ${WRKDIR}/data/plot_data/allSet_burden_results
+fi
+cp -r ${WRKDIR}/analysis/allSet_burden/merged_results \
+${WRKDIR}/data/plot_data/allSet_burden_results
+
+
 # #####Run _full_ annotation set burden testing
 # #iterate & prep directories
 # while read pheno; do

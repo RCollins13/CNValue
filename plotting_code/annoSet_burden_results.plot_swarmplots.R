@@ -27,25 +27,25 @@ cols.CNCR <- c("#FFCB00","#FFCB00","#FFE066","#FFF5CC")
 #####Load libraries
 require(beeswarm)
 
-#####Load test data
-OR <- read.table(paste(WRKDIR,"plot_data/annoSet_burden_results/DEL_E3_haplosufficient.effectSizes.txt",sep=""),header=F)
-colnames(OR) <- c("anno",phenos)
-OR[,-1] <- log2(OR[,-1])
-is.na(OR[,-1]) <- sapply(OR[,-1],is.infinite)
+# #####Load test data
+# OR <- read.table(paste(WRKDIR,"plot_data/annoSet_burden_results/DEL_E3_haplosufficient.effectSizes.txt",sep=""),header=F)
+# colnames(OR) <- c("anno",phenos)
+# OR[,-1] <- log2(OR[,-1])
+# is.na(OR[,-1]) <- sapply(OR[,-1],is.infinite)
 
-#####Set dev params
-universe <- OR$NDD
-highlights <- list(c(grep("conserved",OR[,1]),grep("Conserved",OR[,1])),
-                   grep("Highly_conserved",OR[,1]),
-                   grep("BRAIN",OR[,1]),
-                   grep("FIRE",OR[,1]),
-                   grep("TBR",OR[,1]),
-                   grep("Strong",OR[,1]),
-                   grep("Super",OR[,1]))
-highlight.col <- cols.NEURO[1]
-ylim <- c(log2(1/3),log2(3))
-cex <- 0.3
-yaxis <- T
+# #####Set dev params
+# universe <- OR$NDD
+# highlights <- list(c(grep("conserved",OR[,1]),grep("Conserved",OR[,1])),
+#                    grep("Highly_conserved",OR[,1]),
+#                    grep("BRAIN",OR[,1]),
+#                    grep("FIRE",OR[,1]),
+#                    grep("TBR",OR[,1]),
+#                    grep("Strong",OR[,1]),
+#                    grep("Super",OR[,1]))
+# highlight.col <- cols.NEURO[1]
+# ylim <- c(log2(1/3),log2(3))
+# cex <- 0.3
+# yaxis <- T
 
 #####Function to plot a strip of swarms
 swarmStrip <- function(universe,
@@ -107,27 +107,23 @@ swarmStrip <- function(universe,
   })
 }
 
-#####Set dev parameters
-CNV <- "DUP"
-VF <- "E2"
-filt <- "haplosufficient"
-highlights <- list(c(grep("conserved",OR[,1]),grep("Conserved",OR[,1])),
-                   grep("Highly_conserved",OR[,1]),
-                   grep("BRAIN",OR[,1]),
-                   grep("FIRE",OR[,1]),
-                   grep("TBR",OR[,1]),
-                   grep("Strong",OR[,1]),
-                   grep("Super",OR[,1]))
-cex <- 0.25
-labels=c("Cons","HCons","Brain","FIRE","TBR","StrongFunc","SuperEnh")
+# #####Set dev parameters
+# CNV <- "DUP"
+# VF <- "E2"
+# filt <- "haplosufficient"
+# highlights <- list(c(grep("conserved",OR[,1]),grep("Conserved",OR[,1])),
+#                    grep("Highly_conserved",OR[,1]),
+#                    grep("BRAIN",OR[,1]),
+#                    grep("FIRE",OR[,1]),
+#                    grep("TBR",OR[,1]),
+#                    grep("Strong",OR[,1]),
+#                    grep("Super",OR[,1]))
+# cex <- 0.25
+# labels=c("Cons","HCons","Brain","FIRE","TBR","StrongFunc","SuperEnh")
 
 #####Function to generate plots for average of all NEURO, SOMA, and CNCR
-tripleStrip <- function(CNV,VF,filt,highlights,cex,labels,
+tripleStrip <- function(OR,highlights,cex,labels,
                         ylim=c(log2(1/3),log2(3))){
-  #Read data
-  OR <- read.table(paste(WRKDIR,"plot_data/annoSet_burden_results/",CNV,
-                         "_",VF,"_",filt,".effectSizes.txt",sep=""),header=F)
-
   #Clean data
   colnames(OR) <- c("anno",phenos)
   OR[,-1] <- log2(OR[,-1])
@@ -153,8 +149,9 @@ tripleStrip <- function(CNV,VF,filt,highlights,cex,labels,
   axis(1,at=0:length(highlights),tick=F,line=-0.7,labels=c("AllClasses",labels))
 }
 
-#####Plot a few different triple strips
-#Define new highlights
+#####Plot noncoding triple strips
+OR <- read.table(paste(WRKDIR,"plot_data/annoSet_burden_results/",
+                       "DEL_E2_noncoding.effectSizes.txt",sep=""),header=F)
 highlights <- list(c(128:133),                    #Sequence conservation
                    c(1:28),                       #Tissue conservation
                    c(29:56),                      #Strong tissue conservation
@@ -174,11 +171,35 @@ labels <- c("SeqCons","TissCons","TissHCons","Brain","FIRE","TBR",
             "StrongBiochem","TFBS","SuperEnh","eQTLs","GWAS",
             "H3K27ac","DNAse","ActiveEnh")
 #Plot
-tripleStrip("CNV","E3","haplosufficient",highlights,cex=0.22,labels)
-tripleStrip("DEL","E2","noncoding",highlights,cex=0.22,labels)
-tripleStrip("DUP","E2","noncoding",highlights,cex=0.22,labels)
-tripleStrip("DEL","E4","haplosufficient",highlights,cex=0.22,labels)
-tripleStrip("DUP","E4","haplosufficient",highlights,cex=0.22,labels)
+tripleStrip(OR,highlights,cex=0.22,labels)
+
+#####Plot coding triple strips
+OR <- read.table(paste(WRKDIR,"plot_data/geneSet_burden_results/",
+                       "DUP_E2_all_exonic.effectSizes.txt",sep=""),header=F)
+highlights <- list(grep("highly_expressed",OR[,1]),        #Highly expressed genes
+                   grep("specifically_expressed",OR[,1]),  #Tissue-specific expressors
+                   grep("associated",OR[,1]),              #Prior disease associations
+                   c(grep("haploinsufficient",OR[,1]),     #Constrained genes
+                     grep("constrained",OR[,1]),
+                     grep("intolerant",OR[,1]),
+                     grep("essential",OR[,1])),
+                   grep("BRAIN",OR[,1]),                    #Brain-expressed
+                   grep("ENDOCRINE",OR[,1]),                #Endocrine-expressed
+                   grep("GO_",OR[,1])                       #Biological function
+)
+labels <- c("HiExp","TissSpec","PriorAssoc","Const","Brain","Endocrine","GO")
+#Plot
+tripleStrip(OR,highlights,cex=0.7,labels,ylim=c(log2(1/10),log2(10)))
+
+
+#####Plot coding triple strips
+OR <- read.table(paste(WRKDIR,"plot_data/allSet_burden_results/",
+                       "DUP_E2_noncoding.effectSizes.txt",sep=""),header=F)
+highlights <- list(grep("GENESET.",OR[,1]),
+                   grep("ANNOSET.",OR[,1]))
+labels <- c("Genes","Noncoding")
+#Plot
+tripleStrip(OR,highlights,cex=0.4,labels,ylim=log2(c(1/10,10)))
 
 
 
