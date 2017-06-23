@@ -59,7 +59,11 @@ pvals$CNCR[which(OR$anno=="GENESET.All_protein_coding_genes")]
 OR <- read.table(paste(WRKDIR,"plot_data/geneSet_burden_results/",
                        "CNV_E2_all_exonic.effectSizes.txt",sep=""),header=F)
 names(OR) <- c("anno",phenos)
-mean(apply(OR[,-1],1,mean,na.rm=T),na.rm=T)
+OR.means <- apply(OR[,-1],1,mean,na.rm=T)
+mean(OR.means,na.rm=T)
+options(scipen=-100)
+wilcox.test(OR.means,alternative="greater")$p.value
+options(scipen=100)
 #All gene sets, all phenotypes (whole-gene)
 OR <- read.table(paste(WRKDIR,"plot_data/geneSet_burden_results/",
                        "CNV_E2_all_wholegene.effectSizes.txt",sep=""),header=F)
@@ -187,6 +191,64 @@ cor.test(DEL.means,
 options(scipen=1000)
 
 
+
+#######################################
+#####SIGNIFICANT SET BREAKDOWN BY PHENO
+#######################################
+#Read p-values
+pvals <- lapply(c("CNV","DEL","DUP"),function(CNV){
+  dat <- read.table(paste(WRKDIR,"plot_data/geneSet_burden_results/",CNV,
+                          "_E2_all_exonic.pvals.txt",sep=""),header=F)
+  dat[,-1] <- apply(dat[,-1],2,as.numeric)
+  colnames(dat) <- c("geneSet",phenos)
+  return(dat)
+})
+#Iterate over CNV types and count # signif phenotypes
+signif <- lapply(pvals,function(dat){
+  apply(dat[,-1],1,function(vals){
+    return(length(which(vals<=0.05/263 & !is.na(vals))))
+  })
+})
+#Count significant sets by 0, 1, 2-34, 35
+signif.counts <- lapply(signif,function(vals){
+  none <- length(which(vals==0))
+  notNone <- length(which(vals>0))
+  one <- length(which(vals==1))
+  some <- length(which(vals>1 & vals<35))
+  all <- length(which(vals==35))
+  total <- sum(c(none,one,some,all))
+  return(data.frame(c(none,notNone,one,some,all,total),
+                    c(none,notNone,one,some,all,total)/length(vals)))
+})
+#Count number of significant sets per pheno group
+pheno.signif <- lapply(pvals,function(dat){
+  apply(dat[,-1],2,function(vals){
+    return(length(which(vals<=0.05/263 & !is.na(vals))))
+  })
+})
+#Median per cancer group and per germline group
+median(pheno.signif[[1]][1:22])
+median(pheno.signif[[1]][-c(1:22)])
+options(scipen=-100)
+wilcox.test(pheno.signif[[1]][-c(1:22)],
+            pheno.signif[[1]][1:22],
+            alternative="greater")$p.value
+#Del vs dup for germline
+wilcox.test(pheno.signif[[2]][1:22],
+            pheno.signif[[3]][1:22])
+#CNCR vs all other cancer types
+wilcox.test(pheno.signif[[1]][-c(1:23)],
+            mu=pheno.signif[[1]][23])
+#GERM vs all other germline groups
+wilcox.test(pheno.signif[[1]][2:22],
+            mu=pheno.signif[[1]][1])
+options(scipen=1000)
+
+#Test plot
+plot(c(1,35),c(0,100),type="n")
+points(pheno.signif[[1]],pch=19,col="gray20")
+points(pheno.signif[[2]],pch=19,col="red")
+points(pheno.signif[[3]],pch=19,col="blue")
 
 
 

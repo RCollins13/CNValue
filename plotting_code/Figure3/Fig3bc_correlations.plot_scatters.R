@@ -30,6 +30,7 @@ require(MASS)
 
 
 
+
 #################
 #####CNCR vs GERM
 #################
@@ -48,13 +49,13 @@ CNCR.means <- log2(CNCR.means)
 png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure3/GERM_vs_CNCR.scatter.png",sep=""),
     width=4,height=4,units="in",res=1000)
 par(mar=c(2,2,0.5,0.5))
-plot(x=log2(c(1/4,6)),y=log2(c(1/4,6)),type="n",
+plot(x=log2(c(1/5,9)),y=log2(c(1/5,9)),type="n",
      xaxt="n",yaxt="n",xlab="",ylab="")
 
 #####Plot gridlines
-abline(h=log2(c(1/6,1/4,1/2,1,2,4,6)),col=cols.CTRL[4],
-       v=log2(c(1/6,1/4,1/2,1,2,4,6)))
-abline(h=0,v=0,lwd=1.5,col="gray40")
+abline(h=log2(c(1/8,1/6,1/4,1/2,1,2,4,6,8)),col=cols.CTRL[3],
+       v=log2(c(1/8,1/6,1/4,1/2,1,2,4,6,8)))
+abline(h=0,v=0,lwd=1.5,col=cols.CTRL[1])
 
 #####Plot x-axis
 axis(1,at=log2(c(1/c(8:1),1:8)),col=cols.CTRL[1],
@@ -70,18 +71,19 @@ axis(2,at=log2(c(1/8,1/6,1/4,1/2,1,2,4,6,8)),labels=NA)
 axis(2,at=log2(c(1/8,1/6,1/4,1/2,1,2,4,6,8)),tick=F,las=2,
      labels=c("1/8","1/6","1/4","1/2",1,2,4,6,8),line=-0.4)
 
+#####Plot points
+points(GERM.means,CNCR.means,
+       pch=19,col=adjustcolor("black",alpha=0.5))
+
 #####Plot density contours
 means.df <- data.frame(GERM.means,CNCR.means)
 means.df <- means.df[complete.cases(means.df),]
-contours <- kde2d(means.df[,1],means.df[,2],n=50)
-contour(contours,drawlabels=FALSE,nlevels=10,col="#FF6A09",add=TRUE)
-
-#####Plot points
-points(GERM.means,CNCR.means,
-     pch=19,col=adjustcolor("black",alpha=0.3))
+contours <- kde2d(means.df[,1],means.df[,2],n=200)
+contour(contours,drawlabels=FALSE,nlevels=30,add=TRUE,
+        col=adjustcolor(rev(rainbow(50)[1:40]),alpha=0.5))
 
 #####Plot trendline
-abline(lm(CNCR.means ~ GERM.means),lty=2,col="#FF6A09")
+abline(lm(CNCR.means ~ GERM.means),lty=2)
 
 #####Compute stats (add manually in illustrator)
 cor(GERM.means,
@@ -125,9 +127,9 @@ plot(x=log2(c(1/5,9)),y=log2(c(1/5,9)),type="n",
      xaxt="n",yaxt="n",xlab="",ylab="")
 
 #####Plot gridlines
-abline(h=log2(c(1/8,1/6,1/4,1/2,1,2,4,6,8)),col=cols.CTRL[4],
+abline(h=log2(c(1/8,1/6,1/4,1/2,1,2,4,6,8)),col=cols.CTRL[3],
        v=log2(c(1/8,1/6,1/4,1/2,1,2,4,6,8)))
-abline(h=0,v=0,lwd=1.5,col="gray40")
+abline(h=0,v=0,lwd=1.5,col=cols.CTRL[1])
 
 #####Plot x-axis
 axis(1,at=log2(c(1/c(8:1),1:8)),col=cols.CTRL[1],
@@ -143,18 +145,19 @@ axis(2,at=log2(c(1/8,1/6,1/4,1/2,1,2,4,6,8)),labels=NA)
 axis(2,at=log2(c(1/8,1/6,1/4,1/2,1,2,4,6,8)),tick=F,las=2,
      labels=c("1/8","1/6","1/4","1/2",1,2,4,6,8),line=-0.4)
 
+#####Plot points
+points(DEL.means,DUP.means,
+       pch=19,col=adjustcolor("black",alpha=0.5))
+
 #####Plot density contours
 means.df <- data.frame(DEL.means,DUP.means)
 means.df <- means.df[complete.cases(means.df),]
-contours <- kde2d(means.df[,1],means.df[,2],n=50)
-contour(contours,drawlabels=FALSE,nlevels=5,col="#FF6A09",add=TRUE)
-
-#####Plot points
-points(DEL.means,DUP.means,
-       pch=19,col=adjustcolor("black",alpha=0.3))
+contours <- kde2d(means.df[,1],means.df[,2],n=200)
+contour(contours,drawlabels=FALSE,nlevels=25,add=TRUE,
+        col=adjustcolor(rev(rainbow(45)[1:32]),alpha=0.5))
 
 #####Plot trendline
-abline(lm(DUP.means ~ DEL.means),lty=2,col="#FF6A09")
+abline(lm(DUP.means ~ DEL.means),lty=2)
 
 #####Compute stats (add manually in illustrator)
 cor(DEL.means,

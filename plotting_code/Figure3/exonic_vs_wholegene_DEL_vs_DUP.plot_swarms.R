@@ -7,7 +7,7 @@
 #Copyright (c) 2017 Ryan Collins
 #Distributed under terms of the MIT License
 
-#Code to generate swarm plot of genic burden ORs by phenotype for Fig3a
+#Code to generate swarm plot of exonic vs whole-gene DEL vs DUP
 
 #####Set parameters
 WRKDIR <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/"
@@ -28,31 +28,31 @@ cols.CNCR <- c("#FFCB00","#FFCB00","#FFE066","#FFF5CC")
 require(beeswarm)
 require(plotrix)
 
-#####Read data
-OR <- read.table(paste(WRKDIR,"plot_data/geneSet_burden_results/",
-                       "CNV_E2_all_exonic.effectSizes.txt",sep=""),header=F)
-#Average across all NEURO, SOMA, and CNCR
-GERM.mean <- log2(apply(OR[,2:23],1,mean,na.rm=T))
-NEURO.mean <- log2(apply(OR[,2:13],1,mean,na.rm=T))
-SOMA.mean <- log2(apply(OR[,14:23],1,mean,na.rm=T))
-CNCR.mean <- log2(apply(OR[,24:36],1,mean,na.rm=T))
-ALL.mean <- log2(apply(OR[,-1],1,mean,na.rm=T))
+#####Read deletion data
+DEL.ex <- read.table(paste(WRKDIR,"plot_data/geneSet_burden_results/",
+                        "DEL_E2_all_exonic.effectSizes.txt",sep=""),header=F)
+DEL.ex.means <- apply(DEL.ex[,-1],1,mean,na.rm=T)
+DEL.ex.means.log <- log2(DEL.ex.means)
+DEL.wg <- read.table(paste(WRKDIR,"plot_data/geneSet_burden_results/",
+                        "DEL_E2_all_wholegene.effectSizes.txt",sep=""),header=F)
+DEL.wg.means <- apply(DEL.wg[,-1],1,mean,na.rm=T)
+DEL.wg.means.log <- log2(DEL.wg.means)
 
-#####Get p-values from Mann-Whitney test for all means
-options(scipen=-1000)
-lapply(list(GERM.mean,NEURO.mean,SOMA.mean,CNCR.mean),function(set){
-  wilcox.test(set,alternative="greater")$p.value
-})
-options(scipen=1000)
-
-#####Simulate expected gene set if normally distributed around OR=1
-EXP.mean <- rnorm(mean=0,sd=sd(ALL.mean,na.rm=T),n=length(ALL.mean))
+#####Read duplication data
+DUP.ex <- read.table(paste(WRKDIR,"plot_data/geneSet_burden_results/",
+                        "DUP_E2_all_exonic.effectSizes.txt",sep=""),header=F)
+DUP.ex.means <- apply(DUP.ex[,-1],1,mean,na.rm=T)
+DUP.ex.means.log <- log2(DUP.ex.means)
+DUP.wg <- read.table(paste(WRKDIR,"plot_data/geneSet_burden_results/",
+                        "DUP_E2_all_wholegene.effectSizes.txt",sep=""),header=F)
+DUP.wg.means <- apply(DUP.wg[,-1],1,mean,na.rm=T)
+DUP.wg.means.log <- log2(DUP.wg.means)
 
 #####Prepare plotting area
-png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure3/genic_ORs_byPheno.swarms.png",sep=""),
-    width=4,height=3,units="in",res=1000)
+png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure3/ex_vs_wg_DEL_vs_DUP.swarms.png",sep=""),
+    width=4*0.8,height=3,units="in",res=1000)
 par(bty="n",mar=c(0.5,2.5,0.5,0.5))
-plot(x=c(0.5,5.5),y=log2(c(1/3,6)),type="n",
+plot(x=c(0.5,4.5),y=log2(c(1/3,7)),type="n",
      xaxt="n",yaxt="n",xlab="",ylab="",yaxs="i")
 
 #####Draw gridlines
@@ -67,9 +67,10 @@ axis(2,at=log2(c(1/6,1/4,1/2,1,2,4,6)),tick=F,
      labels=c("1/6","1/4","1/2",1,2,4,6),las=2)
 
 #####Iterate over groups & plot swarms
-means <- list(EXP.mean,GERM.mean,NEURO.mean,SOMA.mean,CNCR.mean)
-mean.cols <- c(cols.CTRL[1],cols.GERM[1],cols.NEURO[1],cols.SOMA[1],cols.CNCR[1])
-sapply(1:5,function(i){
+means <- list(DEL.ex.means.log,DUP.ex.means.log,
+              DEL.wg.means.log,DUP.wg.means.log)
+mean.cols <- rep(c("red","blue"),2)
+sapply(1:4,function(i){
   #Swarm
   beeswarm(means[[i]],add=T,at=i,method="swarm",corral="random",
            pch=19,col=mean.cols[i],cex=0.4)
@@ -88,10 +89,25 @@ sapply(1:5,function(i){
 
 #####Draw closing lines
 abline(h=par("usr")[3])
+# axis(1,at=1:2,tck=F,labels=NA)
+# axis(1,at=3:4,tck=F,labels=NA)
 
 #####Close device
 dev.off()
 
+#####Mann-Whitney tests
+options(scipen=-1000)
+wilcox.test(DEL.ex.means.log,
+            DUP.ex.means.log)$p.value
+wilcox.test(DEL.ex.means.log,
+            DEL.wg.means.log)$p.value
+wilcox.test(DUP.wg.means.log,
+            DEL.wg.means.log,
+            alternative="greater")$p.value
+wilcox.test(DUP.wg.means.log,
+            DUP.ex.means.log,
+            alternative="greater")$p.value
+options(scipen=1000)
 
 
 
