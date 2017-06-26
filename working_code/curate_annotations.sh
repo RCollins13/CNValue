@@ -261,6 +261,14 @@ for i in $( seq 0 8 ); do
   mv ${TMPDIR}/constraint_deciles${i} \
   ${WRKDIR}/data/master_annotations/genelists/ExAC_constraint_decile_$( echo ${i}+1 | bc ).genes.list
 done
+#Constraint quintiles (based on obs:exp tranches; n=15,916 genes in constraint file after excluding those with obs:exp=0)
+sed '1d' ${WRKDIR}/data/misc/fordist_cleaned_nonpsych_z_pli_rec_null_data.txt | \
+awk -v OFS="\t" '{ if ($13>0) print $2, $13/$16 }' | sort -nk2,2 | cut -f1 | \
+split -l 3183 -d -a 1 /dev/stdin ${TMPDIR}/constraint_quintiles
+for i in $( seq 0 4 ); do
+  mv ${TMPDIR}/constraint_quintiles${i} \
+  ${WRKDIR}/data/master_annotations/genelists/ExAC_constraint_quintile_$( echo ${i}+1 | bc ).genes.list
+done
 #Intolerant genes (RVIS top 10% for MAF < 0.1% in any ExAC population)
 cd ${WRKDIR}/data/misc/
 wget http://genic-intolerance.org/data/RVIS_Unpublished_ExAC_May2015.txt

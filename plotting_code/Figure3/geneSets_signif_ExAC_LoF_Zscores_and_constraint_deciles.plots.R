@@ -23,6 +23,7 @@ cols.GERM <- c("#7B2AB3","#B07FD1","#CAAAE1","#E5D4F0")
 cols.NEURO <- c("#00BFF4","#66D9F8","#99E5FB","#CCF2FD")
 cols.SOMA <- c("#EC008D","#F466BB","#F799D1","#FBCCE8")
 cols.CNCR <- c("#FFCB00","#FFCB00","#FFE066","#FFF5CC")
+cols.CNV <- c("gray20","red","blue")
 
 #####Load libraries
 require(beeswarm)
@@ -61,6 +62,59 @@ dev.off()
 options(scipen=-100)
 t.test(dat[[1]],dat[[3]],alternative="less")$p.value
 options(scipen=1000)
+
+
+
+
+###############################################
+#####Dotplots of rCNV ORs at constraint deciles
+###############################################
+
+#####Read data
+ORs <- lapply(c("CNV","DEL","DUP"),function(CNV){
+  OR <- read.table(paste(WRKDIR,"plot_data/figure3/constraint_deciles/",
+                         CNV,"_E2_all_exonic.effectSizes.txt",sep=""),header=F)
+  names(OR) <- c("anno",phenos)
+  return(OR)
+})
+
+#####Split by germline & cancer
+GERM <-
+
+#####Get mean & 95% CI for each decile
+stats <- lapply(ORs,function(df){
+  dat <- apply(df[,-1],1,function(row){
+    m <- mean(log2(row),na.rm=T)
+    ci <- 1.96*std.error(log2(row),na.rm=T)
+    return(c(m,m-ci,m+ci))
+  })
+  return(as.data.frame(t(dat)))
+})
+
+#####Prepare plotting area
+par(mar=c(0.5,2,1.5,0.5))
+plot(x=c(-1,-9),y=log2(c(0.75,3)),type="n",
+     yaxs="i",xaxt="n",yaxt="n",xlab="",ylab="")
+
+#####Draw gridlines
+abline(h=0)
+
+#####Iterate over stats and plot CNV/DEL/DUP
+pad <- c(-0.05,0,0.05)
+sapply(1:3,function(i){
+  #Trendlines
+  #95% Confidence Intervals
+  segments(y0=stats[[i]][,2],y1=stats[[i]][,3],
+           x0=(-1:-9)-pad[i],x1=(-1:-9)-pad[i],
+           col=cols.CNV[i])
+  #Point estimates
+  points(y=stats[[i]][,1],x=(-1:-9)-pad[i],
+         pch=21,bg=cols.CNV[i])
+})
+
+
+
+
 
 
 

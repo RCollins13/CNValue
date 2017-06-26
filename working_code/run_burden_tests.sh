@@ -252,6 +252,26 @@ while read pheno; do
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
 
+#####Run exonic CNV burden testing for gene sets of constraint obs:exp quintiles
+while read pheno; do
+  for CNV in CNV DEL DUP; do
+    for VF in E2 E3 E4 N1; do
+      for filt in all; do
+        bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_geneSet_burdens_exonic_constraint_quintiles \
+        "${WRKDIR}/bin/rCNVmap/bin/geneSet_burdenTest_batch.sh -f -N 1000 \
+          -H ${WRKDIR}/data/misc/exons_boundaries_dictionary/ \
+          -p ${pheno}_${CNV}_${filt}_${VF}_exonic \
+          -o ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV}/${filt}/${VF}/exonic/ \
+          ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+          ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+          ${WRKDIR}/bin/rCNVmap/misc/LoF_constraint_quintile_gene_sets.list \
+          ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf"
+      done
+    done
+  done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          cut -f1 | fgrep -v CTRL )
+
 
 
 
