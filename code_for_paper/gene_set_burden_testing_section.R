@@ -283,10 +283,16 @@ data.frame(which(signif[[3]]==1),
            }))
 #Nervous system dev genes in seizures - DUP
 plot(-log10(as.numeric(pvals[[3]][228,-1])))
-
-
-#Universal to all phenotypes
-DEL[which(signif[[1]]==35),1]
+#Write list of gene sets significant to all, one, and no phenos
+write.table(DEL[which(signif[[1]]==35),1],
+            paste(WRKDIR,"/rCNVmap/misc/geneSets_signif_allPhenos.list",sep=""),
+            col.names=F,row.names=F,quote=F)
+write.table(DEL[which(signif[[1]]==1),1],
+            paste(WRKDIR,"/rCNVmap/misc/geneSets_signif_onePheno.list",sep=""),
+            col.names=F,row.names=F,quote=F)
+write.table(DEL[which(signif[[1]]==0),1],
+            paste(WRKDIR,"/rCNVmap/misc/geneSets_signif_noPhenos.list",sep=""),
+            col.names=F,row.names=F,quote=F)
 
 
 

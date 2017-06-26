@@ -250,6 +250,7 @@ ${WRKDIR}/data/master_annotations/genelists/ExAC_highly_constrained.genes.list
 sed '1d' ${WRKDIR}/data/misc/fordist_cleaned_nonpsych_z_pli_rec_null_data.txt | \
 awk -v OFS="\t" '{ if ($20>0.9 && $20!="NA" && $16>0 && $13==0) print $2 }' | sort | uniq > \
 ${WRKDIR}/data/master_annotations/genelists/ExAC_extremely_constrained.genes.list
+#Constraint deciles (based on LoF z-scores)
 #Intolerant genes (RVIS top 10% for MAF < 0.1% in any ExAC population)
 cd ${WRKDIR}/data/misc/
 wget http://genic-intolerance.org/data/RVIS_Unpublished_ExAC_May2015.txt
