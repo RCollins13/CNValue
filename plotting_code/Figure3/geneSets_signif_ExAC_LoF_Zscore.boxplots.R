@@ -38,7 +38,7 @@ dat <- lapply(list("allGenes","noPhenos","anyPhenos"),function(category){
 
 #####Prepare plotting area
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure3/geneSet_ExAC_z_scores.boxplots.pdf",sep=""),
-    width=1.5,height=5)
+    width=1.5,height=3.5)
 par(bty="n",mar=c(1,2.5,0.5,0.5))
 plot(x=c(0.5,3.5),y=c(-3,7),type="n",
      xaxt="n",yaxt="n",xlab="",ylab="",yaxs="i")
@@ -51,10 +51,18 @@ boxplot(dat,add=T,notch=T,outline=F,lty=1,staplewex=0,
 axis(1,at=1:3,labels=NA)
 axis(2,at=-6:8,labels=NA,tck=-0.013,col=cols.CTRL[1])
 axis(2,at=seq(-6,8,2),labels=NA)
-axis(2,at=seq(-6,8,2),tick=F,las=2,line=-0.3)
-mtext(2,text="LoF Constraint Z-Score",line=1.3)
+axis(2,at=seq(-6,8,2),tick=F,las=2,line=-0.3,cex.axis=1.25)
+# mtext(2,text="LoF Constraint Z-Score",line=1.3)
 
 #Close device
 dev.off()
+
+#####Run t-tests between groups
+options(scipen=-100)
+t.test(dat[[1]],dat[[3]],alternative="less")$p.value
+options(scipen=1000)
+
+
+
 
 
