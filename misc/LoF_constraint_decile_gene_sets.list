@@ -1,10 +1,10 @@
-ExAC_LoF_Constraint_Decile_0_10	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_0.genes.list
-ExAC_LoF_Constraint_Decile_10_20	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_1.genes.list
-ExAC_LoF_Constraint_Decile_20_30	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_2.genes.list
-ExAC_LoF_Constraint_Decile_30_40	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_3.genes.list
-ExAC_LoF_Constraint_Decile_40_50	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_4.genes.list
-ExAC_LoF_Constraint_Decile_50_60	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_5.genes.list
-ExAC_LoF_Constraint_Decile_60_70	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_6.genes.list
-ExAC_LoF_Constraint_Decile_70_80	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_7.genes.list
-ExAC_LoF_Constraint_Decile_80_90	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_8.genes.list
-ExAC_LoF_Constraint_Decile_90_100	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_9.genes.list
+ExAC_LoF_Constraint_Decile_0_10	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_0.genes.list	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
+ExAC_LoF_Constraint_Decile_10_20	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_1.genes.list	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
+ExAC_LoF_Constraint_Decile_20_30	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_2.genes.list	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
+ExAC_LoF_Constraint_Decile_30_40	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_3.genes.list	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
+ExAC_LoF_Constraint_Decile_40_50	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_4.genes.list	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
+ExAC_LoF_Constraint_Decile_50_60	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_5.genes.list	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
+ExAC_LoF_Constraint_Decile_60_70	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_6.genes.list	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
+ExAC_LoF_Constraint_Decile_70_80	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_7.genes.list	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
+ExAC_LoF_Constraint_Decile_80_90	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_8.genes.list	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
+ExAC_LoF_Constraint_Decile_90_100	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_decile_9.genes.list	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
