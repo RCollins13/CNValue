@@ -25,7 +25,7 @@ collection=$5
 
 #####Run
 if [ ${collection} == "effectSize" ]; then
-  while read anno annopath; do
+  while read anno annopath trash; do
     echo "${anno}"
     for pheno in GERM UNK NEURO NDD DD PSYCH SCZ ASD SEIZ HYPO BEHAV ID \
     SOMA HEAD GRO CARD SKEL DRU MSC EE INT EMI CNCR CGEN CSKN CGST \
@@ -42,10 +42,10 @@ if [ ${collection} == "effectSize" ]; then
       fi
       echo ${nfold}
     done | paste -s
-  done < ${WRKDIR}/bin/rCNVmap/misc/master_gene_sets.sorted.list | \
+  done < ${WRKDIR}/bin/rCNVmap/misc/LoF_constraint_decile_gene_sets.list | \
   paste - - > ${WRKDIR}/data/plot_data/figure3/constraint_deciles/${CNV}_${VF}_${filt}_${context}.effectSizes.txt
 elif [ ${collection} == "pValue" ]; then
-  while read anno annopath; do
+  while read anno annopath trash; do
     echo "${anno}"
     for pheno in GERM UNK NEURO NDD DD PSYCH SCZ ASD SEIZ HYPO BEHAV ID \
     SOMA HEAD GRO CARD SKEL DRU MSC EE INT EMI CNCR CGEN CSKN CGST \
@@ -62,10 +62,10 @@ elif [ ${collection} == "pValue" ]; then
       fi
       echo ${p}
     done | paste -s
-  done < ${WRKDIR}/bin/rCNVmap/misc/master_gene_sets.sorted.list | \
+  done < ${WRKDIR}/bin/rCNVmap/misc/LoF_constraint_decile_gene_sets.list | \
   paste - - > ${WRKDIR}/data/plot_data/figure3/constraint_deciles/${CNV}_${VF}_${filt}_${context}.pvals.txt
 elif [ ${collection} == "lowerCI" ]; then
-  while read anno annopath; do
+  while read anno annopath trash; do
     echo "${anno}"
     for pheno in GERM UNK NEURO NDD DD PSYCH SCZ ASD SEIZ HYPO BEHAV ID \
     SOMA HEAD GRO CARD SKEL DRU MSC EE INT EMI CNCR CGEN CSKN CGST \
@@ -82,10 +82,10 @@ elif [ ${collection} == "lowerCI" ]; then
       fi
       echo ${CI}
     done | paste -s
-  done < ${WRKDIR}/bin/rCNVmap/misc/master_gene_sets.sorted.list | \
+  done < ${WRKDIR}/bin/rCNVmap/misc/LoF_constraint_decile_gene_sets.list | \
   paste - - > ${WRKDIR}/data/plot_data/figure3/constraint_deciles/${CNV}_${VF}_${filt}_${context}.lowerCI.txt
 elif [ ${collection} == "upperCI" ]; then
-  while read anno annopath; do
+  while read anno annopath trash; do
     echo "${anno}"
     for pheno in GERM UNK NEURO NDD DD PSYCH SCZ ASD SEIZ HYPO BEHAV ID \
     SOMA HEAD GRO CARD SKEL DRU MSC EE INT EMI CNCR CGEN CSKN CGST \
@@ -102,10 +102,10 @@ elif [ ${collection} == "upperCI" ]; then
       fi
       echo ${CI}
     done | paste -s
-  done < ${WRKDIR}/bin/rCNVmap/misc/master_gene_sets.sorted.list | \
+  done < ${WRKDIR}/bin/rCNVmap/misc/LoF_constraint_decile_gene_sets.list | \
   paste - - > ${WRKDIR}/data/plot_data/figure3/constraint_deciles/${CNV}_${VF}_${filt}_${context}.upperCI.txt
 elif [ ${collection} == "zScore" ]; then
-  while read anno annopath; do
+  while read anno annopath trash; do
     echo "${anno}"
     for pheno in GERM UNK NEURO NDD DD PSYCH SCZ ASD SEIZ HYPO BEHAV ID \
     SOMA HEAD GRO CARD SKEL DRU MSC EE INT EMI CNCR CGEN CSKN CGST \
@@ -122,6 +122,6 @@ elif [ ${collection} == "zScore" ]; then
       fi
       echo ${Z}
     done | paste -s
-  done < ${WRKDIR}/bin/rCNVmap/misc/master_gene_sets.sorted.list | \
+  done < ${WRKDIR}/bin/rCNVmap/misc/LoF_constraint_decile_gene_sets.list | \
   paste - - > ${WRKDIR}/data/plot_data/figure3/constraint_deciles/${CNV}_${VF}_${filt}_${context}.zScore.txt
 fi
