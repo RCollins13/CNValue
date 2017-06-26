@@ -45,7 +45,7 @@ plotPvals <- function(frame,row){
   #Prepare plotting area
   par(mar=c(1,4,1,0),bty="n")
   plot(x=1:35,y=vals,xlim=c(1,35),ylim=c(0,max(vals,na.rm=T)),
-       pch=21,bg=cols.ordered,
+       pch=21,bg=cols.ordered,lwd=0.5,cex=1.35,
        xaxt="n",yaxt="n",xlab="",ylab="",
        panel.first=c(abline(h=unique(c(0,round(axTicks(2),0))),col=cols.CTRL[3]),
                      abline(h=-log10(0.05/nrow(pvals[[1]])),lty=2)))
