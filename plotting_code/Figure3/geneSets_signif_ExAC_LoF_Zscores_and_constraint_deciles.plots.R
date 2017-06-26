@@ -66,13 +66,13 @@ options(scipen=1000)
 
 
 
-###############################################
-#####Dotplots of rCNV ORs at constraint deciles
-###############################################
+#################################################
+#####Dotplots of rCNV ORs at constraint quintiles
+#################################################
 
 #####Read data
 ORs <- lapply(c("CNV","DEL","DUP"),function(CNV){
-  OR <- read.table(paste(WRKDIR,"plot_data/figure3/constraint_deciles/",
+  OR <- read.table(paste(WRKDIR,"plot_data/figure3/constraint_quintiles/",
                          CNV,"_E2_all_exonic.effectSizes.txt",sep=""),header=F)
   names(OR) <- c("anno",phenos)
   return(OR)
@@ -122,7 +122,7 @@ plotOR <- function(ORs){
              col=cols.CNV[i])
     #Point estimates
     points(y=stats[[i]][,1],x=(1:9)+pad[i],
-           pch=22,bg=cols.CNV[i])
+           pch=21,bg=cols.CNV[i])
   })
 
   #####Add Y axis

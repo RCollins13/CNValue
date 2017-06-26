@@ -77,6 +77,27 @@ for CNV in CNV DEL DUP; do
   done
 done
 
+#####Collect constraint quintile burden test results
+#Prepare directory
+mkdir ${WRKDIR}/data/plot_data/figure3/constraint_quintiles
+#Grouped by CNV type, VF, and CNV filter. MxN matrix; M: phenos, N: annotation sets
+#One matrix of p-values, one matrix of effect sizes, and two matrices of 
+# confidence interval bounds per set of filters
+for CNV in CNV DEL DUP; do
+  for VF in E2 E3 E4 N1; do
+    for filt in all; do
+      for context in exonic; do
+        for collection in effectSize pValue lowerCI upperCI zScore; do
+          bsub -q short -sla miket_sc -u nobody \
+          -J ${CNV}_${VF}_${filt}_${context}_${collection} \
+          "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_geneSet_burdens.constraint_quintiles.sh \
+          ${CNV} ${VF} ${filt} ${context} ${collection}"
+        done
+      done
+    done
+  done
+done
+
 
 
 

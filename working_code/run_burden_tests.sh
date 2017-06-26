@@ -271,6 +271,29 @@ while read pheno; do
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
+#Run single burden tests on fifth quintile (troubleshooting)
+while read pheno; do
+  for CNV in CNV DEL DUP; do
+    for VF in E2 E3 E4 N1; do
+      for filt in all; do
+        bsub -q short -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_fifth_constraint_quintile \
+        "${WRKDIR}/bin/rCNVmap/bin/geneSet_permutation_test.sh \
+        -H ${WRKDIR}/data/misc/exons_boundaries_dictionary/ \
+        -N 1000 \
+        -L ExAC_LoF_Constraint_Quintile_80_100 \
+        -U /data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list \
+        -o ${WRKDIR}/analysis/geneSet_burden/${pheno}/${CNV}/${filt}/${VF}/exonic/${pheno}_${CNV}_${filt}_${VF}_exonic.ExAC_LoF_Constraint_Quintile_80_100.CNV_burden_results.txt \
+        ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+        ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+        /data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_constraint_quintile_5.genes.list \
+        ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf"
+      done
+    done
+  done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          cut -f1 | fgrep -v CTRL )
+
+
 
 
 
