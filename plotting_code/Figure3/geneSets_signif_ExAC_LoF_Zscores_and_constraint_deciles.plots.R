@@ -79,41 +79,64 @@ ORs <- lapply(c("CNV","DEL","DUP"),function(CNV){
 })
 
 #####Split by germline & cancer
-GERM <-
+GERM <- lapply(ORs,function(df){
+  return(df[,c(1:23)])
+})
+CNCR <- lapply(ORs,function(df){
+  return(df[,-c(1:23)])
+})
 
-#####Get mean & 95% CI for each decile
-stats <- lapply(ORs,function(df){
-  dat <- apply(df[,-1],1,function(row){
-    m <- mean(log2(row),na.rm=T)
-    ci <- 1.96*std.error(log2(row),na.rm=T)
-    return(c(m,m-ci,m+ci))
+
+
+#####MASTER FUNCTION TO CREATE DOTPLOT
+plotOR <- function(ORs){
+  #####Get mean & 95% CI for each decile
+  stats <- lapply(ORs,function(df){
+    dat <- apply(df[,-1],1,function(row){
+      m <- mean(log2(row),na.rm=T)
+      ci <- 1.96*std.error(log2(row),na.rm=T)
+      return(c(m,m-ci,m+ci))
+    })
+    return(as.data.frame(t(dat)))
   })
-  return(as.data.frame(t(dat)))
-})
 
-#####Prepare plotting area
-par(mar=c(0.5,2,1.5,0.5))
-plot(x=c(-1,-9),y=log2(c(0.75,3)),type="n",
-     yaxs="i",xaxt="n",yaxt="n",xlab="",ylab="")
+  #####Prepare plotting area
+  par(mar=c(2.5,2.5,0.5,0.5))
+  plot(x=c(1,9),y=log2(c(0.75,3)),type="n",
+       yaxs="i",xaxt="n",yaxt="n",xlab="",ylab="")
 
-#####Draw gridlines
-abline(h=0)
+  #####Draw gridlines
+  abline(h=log2(c(1/3,1/2,3/4,1,1.5,2,2.5,3)),col=cols.CTRL[2])
+  abline(h=0,lwd=2)
 
-#####Iterate over stats and plot CNV/DEL/DUP
-pad <- c(-0.05,0,0.05)
-sapply(1:3,function(i){
-  #Trendlines
-  #95% Confidence Intervals
-  segments(y0=stats[[i]][,2],y1=stats[[i]][,3],
-           x0=(-1:-9)-pad[i],x1=(-1:-9)-pad[i],
-           col=cols.CNV[i])
-  #Point estimates
-  points(y=stats[[i]][,1],x=(-1:-9)-pad[i],
-         pch=21,bg=cols.CNV[i])
-})
+  #####Iterate over stats and plot CNV/DEL/DUP
+  pad <- c(-0.05,0,0.05)
+  sapply(1:3,function(i){
+    #Trendlines
+    segments(x0=(1:8)+pad[i],x1=(2:9)+pad[i],
+             y0=stats[[i]][1:8,1],y1=stats[[i]][2:9,1],
+             col=cols.CNV[i])
+    #95% Confidence Intervals
+    segments(y0=stats[[i]][,2],y1=stats[[i]][,3],
+             x0=(1:9)+pad[i],x1=(1:9)+pad[i],
+             col=cols.CNV[i])
+    #Point estimates
+    points(y=stats[[i]][,1],x=(1:9)+pad[i],
+           pch=22,bg=cols.CNV[i])
+  })
+
+  #####Add Y axis
+  axis(2,at=log2(c(1/c(6:1),1:6)),col=cols.CTRL[1],
+       labels=NA,tck=-0.01)
+  axis(2,at=log2(c(1/6,1/4,1/2,1,1.5,2,2.5,3,4,6)),labels=NA)
+  axis(2,at=log2(c(1/6,1/4,1/2,1,1.5,2,2.5,3,4,6)),tick=F,
+       labels=c("1/6","1/4","1/2",1,1.5,2,2.5,3,4,6),las=2)
+}
 
 
-
+#####Plot ORs
+plotOR(GERM)
+plotOR(CNCR)
 
 
 
