@@ -231,8 +231,7 @@ median(pheno.signif[[1]][1:22])
 median(pheno.signif[[1]][-c(1:22)])
 options(scipen=-100)
 wilcox.test(pheno.signif[[1]][-c(1:22)],
-            pheno.signif[[1]][1:22],
-            alternative="greater")$p.value
+            pheno.signif[[1]][1:22])$p.value
 #Del vs dup for germline
 wilcox.test(pheno.signif[[2]][1:22],
             pheno.signif[[3]][1:22])
@@ -249,6 +248,53 @@ plot(c(1,35),c(0,100),type="n")
 points(pheno.signif[[1]],pch=19,col="gray20")
 points(pheno.signif[[2]],pch=19,col="red")
 points(pheno.signif[[3]],pch=19,col="blue")
+
+
+############################################################
+#####Analysis of private and universal significant gene sets
+############################################################
+#Match gene sets private to single phenotypes with their phenos - CNV
+data.frame(which(signif[[1]]==1),
+           DEL[which(signif[[1]]==1),1],
+           sapply(which(signif[[1]]==1),function(i){
+             phenos[which(pvals[[1]][i,-1]<=0.05/nrow(pvals[[1]]))]
+           }))
+#LCL genes in blood cancer - CNV
+plot(-log10(as.numeric(pvals[[1]][78,-1])))
+#cartilage development in integument defects - CNV
+plot(-log10(as.numeric(pvals[[1]][240,-1])))
+#head/neck in ID - CNV
+plot(-log10(as.numeric(pvals[[1]][108,-1])))
+#Match gene sets private to single phenotypes with their phenos - DEL
+data.frame(which(signif[[2]]==1),
+           DEL[which(signif[[2]]==1),1],
+           sapply(which(signif[[2]]==1),function(i){
+             phenos[which(pvals[[2]][i,-1]<=0.05/nrow(pvals[[2]]))]
+           }))
+#ASD genes in ASD - DEL
+plot(-log10(as.numeric(pvals[[2]][21,-1])))
+#Hematopoietic cell diff genes in liver cancer - DEL
+plot(-log10(as.numeric(pvals[[2]][239,-1])))
+#Match gene sets private to single phenotypes with their phenos - DUP
+data.frame(which(signif[[3]]==1),
+           DEL[which(signif[[3]]==1),1],
+           sapply(which(signif[[3]]==1),function(i){
+             phenos[which(pvals[[3]][i,-1]<=0.05/nrow(pvals[[3]]))]
+           }))
+#Nervous system dev genes in seizures - DUP
+plot(-log10(as.numeric(pvals[[3]][228,-1])))
+
+
+#Universal to all phenotypes
+DEL[which(signif[[1]]==35),1]
+
+
+
+
+
+
+
+
 
 
 
