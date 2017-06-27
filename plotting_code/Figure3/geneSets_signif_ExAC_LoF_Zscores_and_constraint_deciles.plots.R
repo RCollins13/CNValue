@@ -33,7 +33,7 @@ require(vioplot)
 #####Read data
 dat <- lapply(list("allGenes","noPhenos","anyPhenos"),function(category){
   dat <- read.table(paste(WRKDIR,"plot_data/figure3/ExAC_LoF_z.",category,".txt",sep=""),
-                         header=F)[,1]
+                    header=F)[,1]
   return(dat)
 })
 
@@ -86,9 +86,7 @@ CNCR <- lapply(ORs,function(df){
   return(df[,-c(1:23)])
 })
 
-
-
-#####MASTER FUNCTION TO CREATE DOTPLOT
+#####Master function to create dotplot
 plotOR <- function(ORs){
   #####Get mean & 95% CI for each decile
   stats <- lapply(ORs,function(df){
@@ -101,8 +99,8 @@ plotOR <- function(ORs){
   })
 
   #####Prepare plotting area
-  par(mar=c(2.5,2.5,0.5,0.5))
-  plot(x=c(1,9),y=log2(c(0.75,3)),type="n",
+  par(mar=c(2.5,2.5,0.5,1))
+  plot(x=c(1,5),y=log2(c(2/3,2.5)),type="n",
        yaxs="i",xaxt="n",yaxt="n",xlab="",ylab="")
 
   #####Draw gridlines
@@ -113,30 +111,128 @@ plotOR <- function(ORs){
   pad <- c(-0.05,0,0.05)
   sapply(1:3,function(i){
     #Trendlines
-    segments(x0=(1:8)+pad[i],x1=(2:9)+pad[i],
-             y0=stats[[i]][1:8,1],y1=stats[[i]][2:9,1],
+    segments(x0=(1:4)+pad[i],x1=(2:5)+pad[i],
+             y0=stats[[i]][1:4,1],y1=stats[[i]][2:5,1],
              col=cols.CNV[i])
     #95% Confidence Intervals
     segments(y0=stats[[i]][,2],y1=stats[[i]][,3],
-             x0=(1:9)+pad[i],x1=(1:9)+pad[i],
+             x0=(1:5)+pad[i],x1=(1:5)+pad[i],
              col=cols.CNV[i])
     #Point estimates
-    points(y=stats[[i]][,1],x=(1:9)+pad[i],
+    points(y=stats[[i]][,1],x=(1:5)+pad[i],
            pch=21,bg=cols.CNV[i])
   })
 
   #####Add Y axis
   axis(2,at=log2(c(1/c(6:1),1:6)),col=cols.CTRL[1],
        labels=NA,tck=-0.01)
-  axis(2,at=log2(c(1/6,1/4,1/2,1,1.5,2,2.5,3,4,6)),labels=NA)
-  axis(2,at=log2(c(1/6,1/4,1/2,1,1.5,2,2.5,3,4,6)),tick=F,
-       labels=c("1/6","1/4","1/2",1,1.5,2,2.5,3,4,6),las=2)
+  axis(2,at=log2(c(1/6,1/4,1/2,3/4,1,1.5,2,2.5,3,4,6)),labels=NA)
+  axis(2,at=log2(c(1/6,1/4,1/2,3/4,1,1.5,2,2.5,3,4,6)),tick=F,line=-0.3,
+       labels=c("1/6","1/4","1/2","3/4",1,1.5,2,2.5,3,4,6),las=2)
+
+  #####Add X-Axis
+  # axis(1,at=1:5,labels=NA)
+  axis(1,at=1:5,tick=F,line=-1,labels=c("0-20","20-40","40-60","60-80","80-100"),cex.axis=0.75)
 }
 
 
 #####Plot ORs
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure3/ExAC_constraint_quintiles.GERM.pdf",sep=""),
+    width=3,height=2.3)
 plotOR(GERM)
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure3/ExAC_constraint_quintiles.CNCR.pdf",sep=""),
+    width=3,height=2.3)
 plotOR(CNCR)
+dev.off()
+
+
+
+###############################################
+#####Dotplots of rCNV ORs at constraint deciles
+###############################################
+
+#####Read data
+ORs <- lapply(c("CNV","DEL","DUP"),function(CNV){
+  OR <- read.table(paste(WRKDIR,"plot_data/figure3/constraint_deciles/",
+                         CNV,"_E2_all_exonic.effectSizes.txt",sep=""),header=F)
+  names(OR) <- c("anno",phenos)
+  return(OR)
+})
+
+#####Split by germline & cancer
+GERM <- lapply(ORs,function(df){
+  return(df[,c(1:23)])
+})
+CNCR <- lapply(ORs,function(df){
+  return(df[,-c(1:23)])
+})
+
+#####Master function to create dotplot
+plotOR.deciles <- function(ORs){
+  #####Get mean & 95% CI for each decile
+  stats <- lapply(ORs,function(df){
+    dat <- apply(df[,-1],1,function(row){
+      m <- mean(log2(row),na.rm=T)
+      ci <- 1.96*std.error(log2(row),na.rm=T)
+      return(c(m,m-ci,m+ci))
+    })
+    return(as.data.frame(t(dat)))
+  })
+
+  #####Prepare plotting area
+  par(mar=c(2.5,2.5,0.5,1))
+  plot(x=c(-1,-10),y=log2(c(0.5,3)),type="n",
+       yaxs="i",xaxt="n",yaxt="n",xlab="",ylab="")
+
+  #####Draw gridlines
+  abline(h=log2(c(1/3,1/2,3/4,1,1.5,2,2.5,3)),col=cols.CTRL[2])
+  abline(h=0)
+
+  #####Iterate over stats and plot CNV/DEL/DUP
+  pad <- c(-0.05,0,0.05)
+  sapply(2:3,function(i){
+    #Trendlines
+    linfit.dat <- data.frame(-1:-10,stats[[i]][,1])
+    names(linfit.dat) <- c("decile","estimate")
+    abline(lm(estimate ~ decile, data=linfit.dat),
+           col=cols.CNV[i],lwd=1.8)
+    #Connecting lines
+    points(y=stats[[i]][,1],x=(-1:-10)-pad[i],
+           type="l",lty=5,col=cols.CNV[i],lwd=0.85)
+  })
+  sapply(2:3,function(i){
+    #95% Confidence Intervals
+    segments(y0=stats[[i]][,2],y1=stats[[i]][,3],
+             x0=(-1:-10)-pad[i],x1=(-1:-10)-pad[i])
+    #Point estimates
+    points(y=stats[[i]][,1],x=(-1:-10)-pad[i],
+           pch=21,bg=cols.CNV[i],lwd=0.5)
+  })
+
+  #####Add Y axis
+  axis(2,at=log2(c(1/c(6:1),1:6)),col=cols.CTRL[1],
+       labels=NA,tck=-0.01)
+  axis(2,at=log2(c(1/6,1/4,1/2,3/4,1,1.5,2,2.5,3,4,6)),labels=NA)
+  axis(2,at=log2(c(1/6,1/4,1/2,3/4,1,1.5,2,2.5,3,4,6)),tick=F,line=-0.3,
+       labels=c("1/6","1/4","1/2","3/4",1,1.5,2,2.5,3,4,6),las=2)
+
+  #####Add X-Axis
+  # axis(1,at=1:5,labels=NA)
+  # axis(1,at=-1:-10,tick=F,line=-0.9,cex.axis=0.75,las=2,
+  #      labels=rev(c("1st","2nd","3rd",paste(4:10,"th",sep=""))))
+}
+
+
+#####Plot ORs
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure3/ExAC_constraint_deciles.GERM.pdf",sep=""),
+    width=3,height=2.3)
+plotOR.deciles(GERM)
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure3/ExAC_constraint_deciles.CNCR.pdf",sep=""),
+    width=3,height=2.3)
+plotOR.deciles(CNCR)
+dev.off()
 
 
 

@@ -97,3 +97,16 @@ plotPvals(1,108)
 plotPvals(1,78)
 dev.off()
 
+
+#3x1 plot
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure3/pheno_specific_geneSets.dotplots.3_by_1.pdf",sep=""),
+    width=3,height=3.8)
+par(mfrow=c(3,1))
+#cartilage development in integument defects - CNV
+plotPvals(1,240)
+#ASD genes in ASD - DEL
+plotPvals(2,21)
+#LCL genes in blood cancer - CNV
+plotPvals(1,78)
+dev.off()
+
