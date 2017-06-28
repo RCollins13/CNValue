@@ -28,9 +28,9 @@
 #Usage statement
 usage(){
 cat <<EOF
-usage: geneSet_permutation_test.sh [-h] [-U UNIVERSE] [-W WHOLE GENE] [-A ALLOSOMES]
-                                   [-H OVERRIDE] [-o OUTFILE] [-q QUIET] 
-                                   CONTROLS CASES GTF REF
+usage: gather_geneScore_data.sh [-h] [-U UNIVERSE] [-W WHOLE GENE] [-A ALLOSOMES]
+                                [-H OVERRIDE] [-o OUTFILE] [-q QUIET] 
+                                CONTROLS CASES GTF REF
 
 Collects data required for modeling per-gene rCNV burden scores
 
@@ -52,7 +52,6 @@ Optional arguments:
   -A  ALLOSOMES     Include allosomes in analyses (default: false)
   -H  OVERRIDE      Path to correctly formatted exons & boundaries directory
                     Note: do not use this option unless you know what you're doing
-  -L  LABEL         Label of annotation set, printed to output file (default: "Results")
   -o  OUTFILE       Output file (default: /dev/stdout)
   -q  QUIET         Suppresses (some) standard output
 EOF
@@ -256,7 +255,7 @@ while read gene; do
     fi
     echo "${ctrlCNV}"
   done | paste -s 
-done < ${UNIVERSE} > ${OUTFILE}
+done < ${UNIVERSE} >> ${OUTFILE}
 
 #Clean up
 rm -rf ${TMPDIR}
