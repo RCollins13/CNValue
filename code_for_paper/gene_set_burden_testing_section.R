@@ -294,8 +294,8 @@ write.table(DEL[which(signif[[1]]==0),1],
             paste(WRKDIR,"/rCNVmap/misc/geneSets_signif_noPhenos.list",sep=""),
             col.names=F,row.names=F,quote=F)
 #Match gene sets unique to N phenotypes with their phenos - CNV
-N=7 #number of phenotypes
-i=1 #CNV type
+N=5 #number of phenotypes
+i=3 #CNV type
 data.frame(which(signif[[i]]==N),
            DEL[which(signif[[i]]==N),1],
            sapply(which(signif[[i]]==N),function(j){

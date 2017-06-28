@@ -13,8 +13,8 @@ Medium_confidence_haploinsufficient_genes	/data/talkowski/Samples/rCNVmap/data/m
 High_confidence_haploinsufficient_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ClinGen_haploinsufficient_high_confidence.genes.list
 Culture_essential_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Culture_essential.genes.list
 FDA_approved_drug_targets	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/FDA_drug_targets.genes.list
-Autosomal_dominant_disease_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/autosomal_dominant_disease.genes.list
-Autosomal_recessive_disease_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/autosomal_recessive_disease.genes.list
+Autosomal_dominant_disease_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Autosomal_dominant_disease.genes.list
+Autosomal_recessive_disease_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Autosomal_recessive_disease.genes.list
 Developmental_disorder_associated_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/DDD_2017.genes.list
 Genes_nearest_GWAS_loci	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GWAS_nearest.genes.list
 Immunodeficiency_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/UWashington_immunodeficiency_panel.genes.list

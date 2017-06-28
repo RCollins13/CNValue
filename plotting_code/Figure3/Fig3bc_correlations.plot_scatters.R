@@ -42,7 +42,6 @@ GERM.means <- log2(GERM.means)
 CNCR <- read.table(paste(WRKDIR,"plot_data/geneSet_burden_results/",
                          "CNV_E2_all_exonic.effectSizes.txt",sep=""),header=F)
 CNCR.means <- apply(CNCR[,-c(1:23)],1,mean,na.rm=T)
-mean(CNCR.means,na.rm=T)
 CNCR.means <- log2(CNCR.means)
 
 #####Prepare plotting area

@@ -40,7 +40,8 @@ pvals <- lapply(c("CNV","DEL","DUP"),function(CNV){
 #####Function to generate p-value scatter
 plotPvals <- function(frame,row,CNV){
   #Get p-values
-  vals <- -log10(pvals[[frame]][row,-1])
+  vals <- unlist(-log10(pvals[[frame]][row,-1]))
+  vals[which(is.infinite(vals))] <- 30
 
   #Prepare plotting area
   par(mar=c(1,4,1,0),bty="n")
@@ -90,18 +91,18 @@ plotPvals(1,108)
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure3/pheno_specific_geneSets.dotplots.pdf",sep=""),
     width=4,height=3.8)
 par(mfrow=c(3,2))
-#cartilage development in integument defects - CNV
-plotPvals(1,240,"CNV")
-#LCL genes in blood cancer - CNV
-plotPvals(1,78,"CNV")
 #Axon guidance genes in ASD/Seizures - DEL
 plotPvals(2,212,"DEL")
-#Ras Signalling in CSKN, CRNL, CBRN, CLNG, CHNK - DEL
-plotPvals(2,257,"DEL")
-#Nervous system dev genes in seizures - DUP
-plotPvals(3,228,"DUP")
+#Histone binding genes in ID, CRNL, CBST, and CLIV - CNV
+plotPvals(1,178,"CNV")
+#cartilage development in integument defects - CNV
+plotPvals(1,240,"CNV")
+#Transcriptional regulators in PSYCH/SCZ/BEHAV, CGEN, and CEND
+plotPvals(3,172,"DUP")
 #Highly expressed Endocrine genes in EMI, CNCR, CGEN, CEND, CLIV - DUP
 plotPvals(3,93,"DUP")
+#snoRNAs in NEURO, NDD, DD, SEIZ, HYPO, MSC, CBLD - CNV
+plotPvals(1,161,"CNV")
 dev.off()
 
 
@@ -125,18 +126,31 @@ plotPvals(2,21,"DEL")
 #Brain cancer associated genes - DUP
 plotPvals(3,51,"DUP")
 
-#Histone binding genes in ID, CRNL, CBST, and CLIV - CNV
-plotPvals(1,178,"CNV")
 
-#Transcriptional regulators in PSYCH/SCZ/BEHAV, CGEN, and CEND
-plotPvals(3,172,"DUP")
+
+
+
+
 
 #Stem cell maintenance in 7 cancers
 plotPvals(1,225,"CNV")
 
 #Test
-plotPvals(1,212,"CNV")
+plotPvals(2,205,"DEL")
 
+#Protein Phosphorylation in SEIZ HEAD GRO SKEL - DEL
+plotPvals(2,205,"DEL")
 
-
+#cartilage development in integument defects - CNV
+plotPvals(1,240,"CNV")
+#LCL genes in blood cancer - CNV
+plotPvals(1,78,"CNV")
+#Axon guidance genes in ASD/Seizures - DEL
+plotPvals(2,212,"DEL")
+#Ras Signalling in CSKN, CRNL, CBRN, CLNG, CHNK - DEL
+plotPvals(2,257,"DEL")
+#Nervous system dev genes in seizures - DUP
+plotPvals(3,228,"DUP")
+#Highly expressed Endocrine genes in EMI, CNCR, CGEN, CEND, CLIV - DUP
+plotPvals(3,93,"DUP")
 

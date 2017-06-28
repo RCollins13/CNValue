@@ -466,6 +466,41 @@ while read tissue; do
     sort | uniq )
 done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_GeneSet_Linkers.list | \
   sort | uniq )
+#Constrained AND highly expressed (at least one tissue)
+cat ${WRKDIR}/data/master_annotations/genelists/*_MASTER_UNION.Highly_Expressed.genes.list | \
+sort | uniq | sed 's/\-/_/g' | fgrep -wf \
+<( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list ) | \
+sort | uniq | sed 's/\_/\-/g' > \
+${WRKDIR}/data/master_annotations/genelists/Constrained_AND_Highly_Expressed.genes.list
+#Constrained OR highly expressed (at least one tissue)
+cat ${WRKDIR}/data/master_annotations/genelists/*_MASTER_UNION.Highly_Expressed.genes.list | \
+sort | uniq | sed 's/\-/_/g' | fgrep -wvf \
+<( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list ) | \
+sort | uniq | sed 's/\_/\-/g' > \
+${WRKDIR}/data/master_annotations/genelists/Constrained_OR_Highly_Expressed.genes.list
+sort ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list | \
+uniq | sed 's/\-/_/g' | fgrep -wvf \
+<( cat ${WRKDIR}/data/master_annotations/genelists/*_MASTER_UNION.Highly_Expressed.genes.list | \
+   sed 's/\-/_/g' | sort | uniq ) | \
+sort | uniq | sed 's/\_/\-/g' >> \
+${WRKDIR}/data/master_annotations/genelists/Constrained_OR_Highly_Expressed.genes.list
+sort ${WRKDIR}/data/master_annotations/genelists/Constrained_OR_Highly_Expressed.genes.list | \
+uniq > ${WRKDIR}/data/master_annotations/genelists/Constrained_OR_Highly_Expressed.genes.list2
+mv ${WRKDIR}/data/master_annotations/genelists/Constrained_OR_Highly_Expressed.genes.list2 \
+${WRKDIR}/data/master_annotations/genelists/Constrained_OR_Highly_Expressed.genes.list
+#Constrained NOT highly expressed (at least one tissue)
+cat ${WRKDIR}/data/master_annotations/genelists/*_MASTER_UNION.Highly_Expressed.genes.list | \
+sort | uniq | sed 's/\-/_/g' | fgrep -wvf \
+<( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list ) | \
+sort | uniq | sed 's/\_/\-/g' > \
+${WRKDIR}/data/master_annotations/genelists/Highly_Expressed_NOT_Constrained.genes.list
+#Constrained NOT highly expressed (at least one tissue)
+sort ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list | \
+uniq | sed 's/\-/_/g' | fgrep -wvf \
+<( cat ${WRKDIR}/data/master_annotations/genelists/*_MASTER_UNION.Highly_Expressed.genes.list | \
+   sed 's/\-/_/g' | sort | uniq ) | \
+sort | uniq | sed 's/\_/\-/g' > \
+${WRKDIR}/data/master_annotations/genelists/Constrained_NOT_Highly_Expressed.genes.list
 
 #Get count of all genes and autosomal genes per gene list
 while read list; do
