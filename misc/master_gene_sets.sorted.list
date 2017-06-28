@@ -1,4 +1,4 @@
-All_Gencode_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_all.genes.list
+All_Gencode_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_merged_all.genes.list
 All_protein_coding_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
 Haplosufficient_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_haplosufficient.genes.list
 Not_clearly_haplosufficient_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_notHaplosufficient.genes.list
@@ -61,7 +61,7 @@ Lung_cancer_associated_genes	/data/talkowski/Samples/rCNVmap/data/master_annotat
 Endocrine_cancer_associated_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Endocrine_cancer_HPO_associated.genes.list
 ClinVar_disease_associated_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ClinVar_disease_associated.genes.list
 COSMIC_oncogenes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/COSMIC_oncogene.genes.list
-COSMIC_cancer_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/COSMIC_all.genes.list
+COSMIC_cancer_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/COSMIC_merged_all.genes.list
 COSMIC_tumor_suppressor_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/COSMIC_tumor_suppressor.genes.list
 Hereditary_cancer_risk_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/UWashington_cancer_panel.genes.list
 BRAIN_highly_expressed_genes_union	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/BRAIN_MASTER_UNION.Highly_Expressed.genes.list
@@ -166,7 +166,6 @@ DNA_repair_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelis
 Olfactory_receptor_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Olfactory_receptors.genes.list
 CHD8_target_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/CHD8_targets.genes.list
 RBFOX1_target_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/RBFOX1_targets.genes.list
-GO_synapse_organization_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_synapse_organization.genes.list
 GO_dna_binding_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_dna_binding.genes.list
 GO_rna_binding_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_rna_binding.genes.list
 GO_regulation_of_transcription_dna_templated_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_regulation_of_transcription__dna_templated.genes.list
@@ -255,10 +254,10 @@ GO_bmp_signaling_pathway_genes	/data/talkowski/Samples/rCNVmap/data/master_annot
 GO_canonical_wnt_signaling_pathway_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_canonical_wnt_signaling_pathway.genes.list
 GO_interferon_gamma_mediated_signaling_pathway_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_interferon_gamma_mediated_signaling_pathway.genes.list
 GO_ras_protein_signal_transduction_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_ras_protein_signal_transduction.genes.list
-GO_Cell_cycle_and_growth_all_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_Cell_cycle_and_growth_all.genes.list
-GO_Core_cellular_process_all_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_Core_cellular_process_all.genes.list
-GO_Neurological_or_neuronal_function_all_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_Neurological_or_neuronal_function_all.genes.list
-GO_Physiology_or_development_all_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_Physiology_or_development_all.genes.list
-GO_Protein_modification_all_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_Protein_modification_all.genes.list
-GO_Signalling_all_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_Signalling_all.genes.list
-GO_Transcriptional_regulation_and_chromatin_all_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_Transcriptional_regulation_and_chromatin_all.genes.list
+GO_Cell_cycle_and_growth_all_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_Cell_cycle_and_growth_merged_all.genes.list
+GO_Core_cellular_process_all_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_Core_cellular_process_merged_all.genes.list
+GO_Neurological_or_neuronal_function_all_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_Neurological_or_neuronal_function_merged_all.genes.list
+GO_Physiology_or_development_all_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_Physiology_or_development_merged_all.genes.list
+GO_Protein_modification_all_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_Protein_modification_merged_all.genes.list
+GO_Signalling_all_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_Signalling_merged_all.genes.list
+GO_Transcriptional_regulation_and_chromatin_all_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/GO_Transcriptional_regulation_and_chromatin_merged_all.genes.list

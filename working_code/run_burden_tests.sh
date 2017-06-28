@@ -298,7 +298,7 @@ while read pheno; do
   for CNV in CNV DEL DUP; do
     for VF in E2 E3 E4 N1; do
       for filt in all; do
-        bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_geneSet_burdens_exonic_combination_constraint_expression \
+        bsub -q short -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_geneSet_burdens_exonic_combination_constraint_expression \
         "${WRKDIR}/bin/rCNVmap/bin/geneSet_burdenTest_batch.sh -f -N 1000 \
           -H ${WRKDIR}/data/misc/exons_boundaries_dictionary/ \
           -p ${pheno}_${CNV}_${filt}_${VF}_exonic \
