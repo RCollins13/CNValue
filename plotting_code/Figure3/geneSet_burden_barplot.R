@@ -134,8 +134,14 @@ sapply(1:3,function(CNV){
   plot(x=c(25,85),y=c(-2.3,-0.7),type="n",
        xaxt="n",yaxt="n",xlab="",ylab="",xaxs="i")
 
+  #Add background
+  rect(xleft=par("usr")[1],xright=par("usr")[2],
+       ybottom=c(-1.5,par("usr")[3]),
+       ytop=c(par("usr")[4],-1.5),
+       border=NA,col=adjustcolor(c(cols.GERM[4],cols.CNCR[4]),alpha=0.4))
+
   #Draw gridlines
-  abline(v=seq(0,100,10),col=cols.CTRL[3],lwd=0.5)
+  abline(v=seq(0,100,10),col=cols.CTRL[2],lwd=0.5)
   abline(h=-1.5,col="black",lty=2,lwd=0.7)
 
   #Gather germline values

@@ -38,7 +38,7 @@ pvals <- lapply(c("CNV","DEL","DUP"),function(CNV){
 })
 
 #####Function to generate p-value scatter
-plotPvals <- function(frame,row){
+plotPvals <- function(frame,row,CNV){
   #Get p-values
   vals <- -log10(pvals[[frame]][row,-1])
 
@@ -72,7 +72,8 @@ plotPvals <- function(frame,row){
          line=-0.4,las=2)
   }
 
-  mtext(2,text=expression(~-log[10](italic(p))),line=1.5,cex=0.7)
+  mtext(2,line=1.5,cex=0.7,
+        text=bquote(paste(.(CNV),~~-log[10](italic(p)))))
 
 
   #Closing line
@@ -90,17 +91,17 @@ pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure3/pheno_specific_geneSets.dotplot
     width=4,height=3.8)
 par(mfrow=c(3,2))
 #cartilage development in integument defects - CNV
-plotPvals(1,240)
+plotPvals(1,240,"CNV")
 #LCL genes in blood cancer - CNV
-plotPvals(1,78)
+plotPvals(1,78,"CNV")
 #Axon guidance genes in ASD/Seizures - DEL
-plotPvals(2,212)
+plotPvals(2,212,"DEL")
 #Ras Signalling in CSKN, CRNL, CBRN, CLNG, CHNK - DEL
-plotPvals(2,257)
+plotPvals(2,257,"DEL")
 #Nervous system dev genes in seizures - DUP
-plotPvals(3,228)
+plotPvals(3,228,"DUP")
 #Highly expressed Endocrine genes in EMI, CNCR, CGEN, CEND, CLIV - DUP
-plotPvals(3,93)
+plotPvals(3,93,"DUP")
 dev.off()
 
 
@@ -109,32 +110,32 @@ pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure3/pheno_specific_geneSets.dotplot
     width=3,height=3.8)
 par(mfrow=c(3,1))
 #cartilage development in integument defects - CNV
-plotPvals(1,240)
+plotPvals(1,240,"CNV")
 #ASD genes in ASD - DEL
-plotPvals(2,21)
+plotPvals(2,21,"DEL")
 #LCL genes in blood cancer - CNV
-plotPvals(1,78)
+plotPvals(1,78,"CNV")
 dev.off()
 
 
 #Hematopoietic cell diff genes in liver cancer - DEL
-plotPvals(2,239)
+plotPvals(2,239,"DEL")
 #ASD genes in ASD - DEL
-plotPvals(2,21)
+plotPvals(2,21,"DEL")
 #Brain cancer associated genes - DUP
-plotPvals(3,51)
+plotPvals(3,51,"DUP")
 
 #Histone binding genes in ID, CRNL, CBST, and CLIV - CNV
-plotPvals(1,178)
+plotPvals(1,178,"CNV")
 
 #Transcriptional regulators in PSYCH/SCZ/BEHAV, CGEN, and CEND
-plotPvals(3,172)
+plotPvals(3,172,"DUP")
 
 #Stem cell maintenance in 7 cancers
-plotPvals(1,225)
+plotPvals(1,225,"CNV")
 
 #Test
-plotPvals(1,212)
+plotPvals(1,212,"CNV")
 
 
 
