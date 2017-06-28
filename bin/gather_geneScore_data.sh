@@ -230,31 +230,34 @@ echo -e "#gene\tgene_length\texonic_bases\tGC\tcase_CNV\tcontrol_CNV" > ${OUTFIL
 
 #Compute boundary size, exonic bases, and GC per gene
 while read gene; do
-  for dummy in 1; do
-    echo ${gene}
-    #Boundary size
-    awk -v gene=${gene} '{ if ($4==gene) print $0 }' ${BOUNDARIES} | \
-    sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | \
-    awk '{ sum+=$3-$2 }END{ print sum }'
-    #Exonic bases
-    awk -v gene=${gene} '{ if ($4==gene) print $0 }' ${EXONS} | \
-    sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | \
-    awk '{ sum+=$3-$2 }END{ print sum }'
-    #GC content
-    awk -v gene=${gene} '{ if ($1==gene) print $2 }' ${GC_PROFILES}
-    #Case CNVs
-    caseCNV=$( awk -v gene=${gene} '{ if ($1==gene) print $2 }' ${ALL_GENES_CASE_CNV} )
-    if [ -z ${caseCNV} ]; then
-      caseCNV=0
-    fi
-    echo "${caseCNV}"
-    #Control CNVs
-    ctrlCNV=$( awk -v gene=${gene} '{ if ($1==gene) print $2 }' ${ALL_GENES_CTRL_CNV} )
-    if [ -z ${ctrlCNV} ]; then
-      ctrlCNV=0
-    fi
-    echo "${ctrlCNV}"
-  done | paste -s 
+  #Only compute if gene is included in boundaries file
+  if [ $( awk -v gene=${gene} '{ if ($4==gene) print $0 }' ${BOUNDARIES} | wc -l ) -gt 0 ]; then 
+    for dummy in 1; do
+      echo ${gene}
+      #Boundary size
+      awk -v gene=${gene} '{ if ($4==gene) print $0 }' ${BOUNDARIES} | \
+      sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | \
+      awk '{ sum+=$3-$2 }END{ print sum }'
+      #Exonic bases
+      awk -v gene=${gene} '{ if ($4==gene) print $0 }' ${EXONS} | \
+      sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | \
+      awk '{ sum+=$3-$2 }END{ print sum }'
+      #GC content
+      awk -v gene=${gene} '{ if ($1==gene) print $2 }' ${GC_PROFILES}
+      #Case CNVs
+      caseCNV=$( awk -v gene=${gene} '{ if ($1==gene) print $2 }' ${ALL_GENES_CASE_CNV} )
+      if [ -z ${caseCNV} ]; then
+        caseCNV=0
+      fi
+      echo "${caseCNV}"
+      #Control CNVs
+      ctrlCNV=$( awk -v gene=${gene} '{ if ($1==gene) print $2 }' ${ALL_GENES_CTRL_CNV} )
+      if [ -z ${ctrlCNV} ]; then
+        ctrlCNV=0
+      fi
+      echo "${ctrlCNV}"
+    done | paste -s
+  fi 
 done < ${UNIVERSE} >> ${OUTFILE}
 
 #Clean up

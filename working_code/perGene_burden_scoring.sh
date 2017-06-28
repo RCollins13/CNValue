@@ -40,8 +40,8 @@ for pheno in GERM NEURO SOMA; do
       -H ${WRKDIR}/data/misc/exons_boundaries_dictionary/ \
       -U /data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list \
       -o ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_exonic.geneScore_data.txt \
-      ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
-      ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+      ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.all.bed.gz \
+      ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.all.bed.gz \
       ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf \
       ${h37}"
       #Wholegene
@@ -50,11 +50,39 @@ for pheno in GERM NEURO SOMA; do
       -H ${WRKDIR}/data/misc/exons_boundaries_dictionary/ \
       -U /data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list \
       -o ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_wholegene.geneScore_data.txt \
-      ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
-      ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+      ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.all.bed.gz \
+      ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.all.bed.gz \
       ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf \
       ${h37}"
     done
   done
 done
+#Cancer
+for pheno in CNCR; do
+  for CNV in CNV DEL DUP; do
+    for VF in E2; do
+      #Exonic
+      bsub -q short -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_perGene_burden_dataCollection_exonic \
+      "${WRKDIR}/bin/rCNVmap/bin/gather_geneScore_data.sh \
+      -H ${WRKDIR}/data/misc/exons_boundaries_dictionary/ \
+      -U /data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list \
+      -o ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_exonic.geneScore_data.txt \
+      ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.all.bed.gz \
+      ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.all.bed.gz \
+      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf \
+      ${h37}"
+      #Wholegene
+      bsub -q short -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_perGene_burden_dataCollection_wholegene \
+      "${WRKDIR}/bin/rCNVmap/bin/gather_geneScore_data.sh -W \
+      -H ${WRKDIR}/data/misc/exons_boundaries_dictionary/ \
+      -U /data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list \
+      -o ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_wholegene.geneScore_data.txt \
+      ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.all.bed.gz \
+      ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.all.bed.gz \
+      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf \
+      ${h37}"
+    done
+  done
+done
+
 
