@@ -196,7 +196,7 @@ plotOR.deciles <- function(ORs){
     linfit.dat <- data.frame(-1:-10,stats[[i]][,1])
     names(linfit.dat) <- c("decile","estimate")
     abline(lm(estimate ~ decile, data=linfit.dat),
-           col=cols.CNV[i],lwd=1.8)
+           col=cols.CNV[i],lwd=2.2)
     #Connecting lines
     points(y=stats[[i]][,1],x=(-1:-10)-pad[i],
            type="l",lty=5,col=cols.CNV[i],lwd=0.85)
@@ -207,7 +207,7 @@ plotOR.deciles <- function(ORs){
              x0=(-1:-10)-pad[i],x1=(-1:-10)-pad[i])
     #Point estimates
     points(y=stats[[i]][,1],x=(-1:-10)-pad[i],
-           pch=21,bg=cols.CNV[i],lwd=0.5)
+           pch=21,bg=cols.CNV[i],lwd=0.5,cex=1.25)
   })
 
   #####Add Y axis
@@ -226,11 +226,11 @@ plotOR.deciles <- function(ORs){
 
 #####Plot ORs
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure3/ExAC_constraint_deciles.GERM.pdf",sep=""),
-    width=3,height=2.3)
+    width=3,height=2.8)
 plotOR.deciles(GERM)
 dev.off()
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure3/ExAC_constraint_deciles.CNCR.pdf",sep=""),
-    width=3,height=2.3)
+    width=3,height=2.8)
 plotOR.deciles(CNCR)
 dev.off()
 

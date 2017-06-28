@@ -47,7 +47,14 @@ plotPvals <- function(frame,row){
   plot(x=1:35,y=vals,xlim=c(1,35),ylim=c(0,max(vals,na.rm=T)),
        pch=21,bg=cols.ordered,lwd=0.5,cex=1.35,
        xaxt="n",yaxt="n",xlab="",ylab="",
-       panel.first=c(abline(h=unique(c(0,round(axTicks(2),0))),col=cols.CTRL[3]),
+       panel.first=c(rect(xleft=c(par("usr")[1],2.5,12.5,22.5),
+                          xright=c(2.5,12.5,22.5,par("usr")[2]),
+                          ybottom=par("usr")[3],ytop=par("usr")[4],
+                          border=NA,col=adjustcolor(c(cols.GERM[4],cols.NEURO[4],
+                                                      cols.SOMA[4],cols.CNCR[4]),
+                                                    alpha=0.4)),
+                     abline(v=c(2.5,12.5,22.5),col=cols.CTRL[4]),
+                     abline(h=unique(c(0,round(axTicks(2),0))),col=cols.CTRL[3]),
                      abline(h=-log10(0.05/nrow(pvals[[1]])),lty=2)))
 
   #Y-axis
@@ -74,27 +81,26 @@ plotPvals <- function(frame,row){
 }
 
 
-#Nervous system dev genes in seizures - DUP
-plotPvals(3,228)
 
+#Head/Neck in ID - CNV
+plotPvals(1,108)
 
-
-#3x2 plot
+#3x2 plot - first column = specific, second column = shared
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure3/pheno_specific_geneSets.dotplots.pdf",sep=""),
     width=4,height=3.8)
 par(mfrow=c(3,2))
 #cartilage development in integument defects - CNV
 plotPvals(1,240)
-#Hematopoietic cell diff genes in liver cancer - DEL
-plotPvals(2,239)
-#ASD genes in ASD - DEL
-plotPvals(2,21)
-#Brain cancer associated genes - DUP
-plotPvals(3,51)
-#Head/Neck in ID - CNV
-plotPvals(1,108)
 #LCL genes in blood cancer - CNV
 plotPvals(1,78)
+#Axon guidance genes in ASD/Seizures - DEL
+plotPvals(2,212)
+#Ras Signalling in CSKN, CRNL, CBRN, CLNG, CHNK - DEL
+plotPvals(2,257)
+#Nervous system dev genes in seizures - DUP
+plotPvals(3,228)
+#Highly expressed Endocrine genes in EMI, CNCR, CGEN, CEND, CLIV - DUP
+plotPvals(3,93)
 dev.off()
 
 
@@ -109,4 +115,27 @@ plotPvals(2,21)
 #LCL genes in blood cancer - CNV
 plotPvals(1,78)
 dev.off()
+
+
+#Hematopoietic cell diff genes in liver cancer - DEL
+plotPvals(2,239)
+#ASD genes in ASD - DEL
+plotPvals(2,21)
+#Brain cancer associated genes - DUP
+plotPvals(3,51)
+
+#Histone binding genes in ID, CRNL, CBST, and CLIV - CNV
+plotPvals(1,178)
+
+#Transcriptional regulators in PSYCH/SCZ/BEHAV, CGEN, and CEND
+plotPvals(3,172)
+
+#Stem cell maintenance in 7 cancers
+plotPvals(1,225)
+
+#Test
+plotPvals(1,212)
+
+
+
 
