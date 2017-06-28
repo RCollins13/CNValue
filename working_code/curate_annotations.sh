@@ -250,14 +250,11 @@ ${WRKDIR}/data/master_annotations/genelists/ExAC_highly_constrained.genes.list
 sed '1d' ${WRKDIR}/data/misc/fordist_cleaned_nonpsych_z_pli_rec_null_data.txt | \
 awk -v OFS="\t" '{ if ($20>0.9 && $20!="NA" && $16>0 && $13==0) print $2 }' | sort | uniq > \
 ${WRKDIR}/data/master_annotations/genelists/ExAC_extremely_constrained.genes.list
-#Constraint deciles (based on obs:exp tranches; n=18,241 genes in constraint file)
-sed '1d' ${WRKDIR}/data/misc/fordist_cleaned_nonpsych_z_pli_rec_null_data.txt | \
-awk -v OFS="\t" '{ if ($13==0) print $2 }' | sort | uniq > \
-${WRKDIR}/data/master_annotations/genelists/ExAC_constraint_decile_0.genes.list
+#Constraint deciles (based on obs:exp tranches; n=15,916 genes in constraint file after excluding those with obs:exp=0)
 sed '1d' ${WRKDIR}/data/misc/fordist_cleaned_nonpsych_z_pli_rec_null_data.txt | \
 awk -v OFS="\t" '{ if ($13>0) print $2, $13/$16 }' | sort -nk2,2 | cut -f1 | \
-split -l 1769 -d -a 1 /dev/stdin ${TMPDIR}/constraint_deciles
-for i in $( seq 0 8 ); do
+split -l 1592 -d -a 1 /dev/stdin ${TMPDIR}/constraint_deciles
+for i in $( seq 0 9 ); do
   mv ${TMPDIR}/constraint_deciles${i} \
   ${WRKDIR}/data/master_annotations/genelists/ExAC_constraint_decile_$( echo ${i}+1 | bc ).genes.list
 done
