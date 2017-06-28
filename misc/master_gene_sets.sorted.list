@@ -1,4 +1,4 @@
-All_Gencode_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_merged_all.genes.list
+All_Gencode_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_all.genes.list
 All_protein_coding_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
 Haplosufficient_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_haplosufficient.genes.list
 Not_clearly_haplosufficient_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ExAC_notHaplosufficient.genes.list
@@ -61,7 +61,7 @@ Lung_cancer_associated_genes	/data/talkowski/Samples/rCNVmap/data/master_annotat
 Endocrine_cancer_associated_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Endocrine_cancer_HPO_associated.genes.list
 ClinVar_disease_associated_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/ClinVar_disease_associated.genes.list
 COSMIC_oncogenes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/COSMIC_oncogene.genes.list
-COSMIC_cancer_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/COSMIC_merged_all.genes.list
+COSMIC_cancer_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/COSMIC_all.genes.list
 COSMIC_tumor_suppressor_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/COSMIC_tumor_suppressor.genes.list
 Hereditary_cancer_risk_genes	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/UWashington_cancer_panel.genes.list
 BRAIN_highly_expressed_genes_union	/data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/BRAIN_MASTER_UNION.Highly_Expressed.genes.list
