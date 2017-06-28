@@ -12,51 +12,51 @@
 # Collects data required for modeling per-gene rCNV burden scores
 
 #Testing dev parameters
-export WRKDIR=/data/talkowski/Samples/rCNVmap
-source ${WRKDIR}/bin/rCNVmap/misc/rCNV_code_parameters.sh
-OUTFILE=${TMPDIR}/geneset_test.out
-UNIVERSE=${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
-WG=0
-ALLO=0
-QUIET=0
-OVER=${WRKDIR}/data/misc/exons_boundaries_dictionary/
-CONTROLS=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DEL.E3.GRCh37.all.bed.gz
-CASES=${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.DEL.E3.GRCh37.all.bed.gz
-GTF=${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf
-REF=${h37}
+# export WRKDIR=/data/talkowski/Samples/rCNVmap
+# source ${WRKDIR}/bin/rCNVmap/misc/rCNV_code_parameters.sh
+# OUTFILE=${TMPDIR}/geneset_test.out
+# UNIVERSE=${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list
+# WG=0
+# ALLO=0
+# QUIET=0
+# OVER=${WRKDIR}/data/misc/exons_boundaries_dictionary/
+# CONTROLS=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DEL.E3.GRCh37.all.bed.gz
+# CASES=${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.DEL.E3.GRCh37.all.bed.gz
+# GTF=${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf
+# REF=${h37}
 
-# #Usage statement
-# usage(){
-# cat <<EOF
-# usage: geneSet_permutation_test.sh [-h] [-U UNIVERSE] [-W WHOLE GENE] [-A ALLOSOMES]
-#                                    [-H OVERRIDE] [-o OUTFILE] [-q QUIET] 
-#                                    CONTROLS CASES GTF REF
+#Usage statement
+usage(){
+cat <<EOF
+usage: geneSet_permutation_test.sh [-h] [-U UNIVERSE] [-W WHOLE GENE] [-A ALLOSOMES]
+                                   [-H OVERRIDE] [-o OUTFILE] [-q QUIET] 
+                                   CONTROLS CASES GTF REF
 
-# Permutation test of CNV burden at a set of genes, normalized by gene length & exonic bases
+Collects data required for modeling per-gene rCNV burden scores
 
-# Positional arguments:
-#   CONTROLS   path to control CNV input file. Must have at least three columns: 
-#              chr, CNV start, CNV end
-#   CASES      path to case CNV input file. Must have at least three columns: 
-#              chr, CNV start, CNV end
-#   GTF        path to GTF input file. Exons and gene boundaries will be extracted
-#              from this file. Can be overridden with -H
-#   REF        path to reference .fa 
+Positional arguments:
+  CONTROLS   path to control CNV input file. Must have at least three columns: 
+             chr, CNV start, CNV end
+  CASES      path to case CNV input file. Must have at least three columns: 
+             chr, CNV start, CNV end
+  GTF        path to GTF input file. Exons and gene boundaries will be extracted
+             from this file. Can be overridden with -H
+  REF        path to reference .fa 
 
-# Optional arguments:
-#   -h  HELP          Show this help message and exit
-#   -U  UNIVERSE      List of gene symbols to consider as the background 
-#                     geneset (default: all genes)
-#   -W  WHOLE GENE    Restrict analysis to CNVs that span the entire gene
-#                     (default: count any exonic overlap)
-#   -A  ALLOSOMES     Include allosomes in analyses (default: false)
-#   -H  OVERRIDE      Path to correctly formatted exons & boundaries directory
-#                     Note: do not use this option unless you know what you're doing
-#   -L  LABEL         Label of annotation set, printed to output file (default: "Results")
-#   -o  OUTFILE       Output file (default: /dev/stdout)
-#   -q  QUIET         Suppresses (some) standard output
-# EOF
-# }
+Optional arguments:
+  -h  HELP          Show this help message and exit
+  -U  UNIVERSE      List of gene symbols to consider as the background 
+                    geneset (default: all genes)
+  -W  WHOLE GENE    Restrict analysis to CNVs that span the entire gene
+                    (default: count any exonic overlap)
+  -A  ALLOSOMES     Include allosomes in analyses (default: false)
+  -H  OVERRIDE      Path to correctly formatted exons & boundaries directory
+                    Note: do not use this option unless you know what you're doing
+  -L  LABEL         Label of annotation set, printed to output file (default: "Results")
+  -o  OUTFILE       Output file (default: /dev/stdout)
+  -q  QUIET         Suppresses (some) standard output
+EOF
+}
 
 #Parse arguments
 OUTFILE=/dev/stdout
