@@ -19,9 +19,16 @@ pctvect.all <- log10(as.vector(sapply(-1:2,function(x){return((1:9)*10^x)})))
 pctvect.mids <- log10(as.vector(sapply(-1:1,function(x){return(c(5,10)*10^x)})))
 pctvect.mains <- log10(as.vector(sapply(-1:2,function(x){return(10^x)})))
 cols.groups <- c("#A5A6A7","#00BFF4","#EC008D","#FFCB00")
+phenos <- c("NEURO","NDD","DD","PSYCH","SCZ","ASD","SEIZ",
+            "HYPO","BEHAV","ID","SOMA","HEAD","GRO","CARD","SKEL","DRU",
+            "MSC","EE","INT","EMI","CNCR","CGEN","CSKN","CGST","CRNL",
+            "CBRN","CLNG","CBST","CEND","CHNK","CLIV","CMSK","CBLD")
+cols.phenos <- c(rep(cols.groups[2],10),
+                 rep(cols.groups[3],10),
+                 rep(cols.groups[4],13))
 
 #####Master function
-plotsizes <- function(filt,CNV,cols,xaxis=T,yaxis=T,
+plotsizes <- function(filt,CNV,cols,xaxis=T,yaxis=T,subgroups=T,
                       mar=c(3.5,3.5,0.5,0.5)){
   #Read data & convert to log-scaled CDF
   sizes <- lapply(list("CTRL","NEURO","SOMA","CNCR"),function(group){
@@ -46,6 +53,22 @@ plotsizes <- function(filt,CNV,cols,xaxis=T,yaxis=T,
   })
   medians <- unlist(lapply(distribs,function(v){return(v[2])}))
   IQRs <- t(as.data.frame(lapply(distribs,function(v){return(v[c(1,3)])})))
+
+  #Read subgroup data if optioned
+  if(subgroups==T){
+    #Load data & compute CDFs
+    sizes.sub <- lapply(phenos,function(group){
+      dat <- read.table(paste(WRKDIR,"plot_data/figure1/",CNV,"_size.",group,
+                              ".noMaxSize.E2.",filt,".txt",sep=""))[,1]
+      dat <- log10(dat)
+      cdf <- sapply(logvect.all,function(min){
+        length(which(dat>=min))/length(dat)
+      })
+      cdf <- log10(100*cdf)
+      cdf[which(!is.finite(cdf))] <- -100
+      return(cdf)
+    })
+  }
 
   #Set parameters
   par(mar=mar,bty="n")
@@ -80,8 +103,16 @@ plotsizes <- function(filt,CNV,cols,xaxis=T,yaxis=T,
          labels=paste(c(0.1,0.5,1,5,10,50,100),"%",sep=""))
   }
 
+  #Plot CDFs for subgroups, if optioned
+  if(subgroups==T){
+    sapply(1:length(sizes.sub),function(i){
+      points(logvect.all,sizes.sub[[i]],type="l",col=cols.phenos[i])
+    })
+  }
+
   #Plot CDFs
   sapply(1:length(sizes),function(i){
+    points(logvect.all,sizes[[i]],type="l",lwd=4)
     points(logvect.all,sizes[[i]],type="l",col=cols[i],lwd=3)
   })
 
@@ -126,10 +157,10 @@ plotsizes <- function(filt,CNV,cols,xaxis=T,yaxis=T,
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure1/CNVsize_by_filter_by_group.reverse_CDF.pdf",sep=""),
     width=7,height=1.8)
 par(mfrow=c(1,4))
-plotsizes(filt="coding",CNV="DEL",cols=cols.groups)
-plotsizes(filt="coding",CNV="DUP",cols=cols.groups)
-plotsizes(filt="noncoding",CNV="DEL",cols=cols.groups)
-plotsizes(filt="noncoding",CNV="DUP",cols=cols.groups)
+plotsizes(filt="coding",CNV="DEL",cols=cols.groups,subgroups=T)
+plotsizes(filt="coding",CNV="DUP",cols=cols.groups,subgroups=T)
+plotsizes(filt="noncoding",CNV="DEL",cols=cols.groups,subgroups=T)
+plotsizes(filt="noncoding",CNV="DUP",cols=cols.groups,subgroups=T)
 dev.off()
 
 

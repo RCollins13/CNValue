@@ -185,17 +185,18 @@ Eye_or_ear_defect\nIntegument_defect\nEndocrine_metabolic_or_immune_defect" ) > 
 ${WRKDIR}/data/plot_data/figure1/germline_case_overlap.matrix.txt
 
 #####Get sizes of all CNVs and all filters per CNV class and tier 2 phenotype group
-for group in GERM CTRL NEURO NDD PSYCH SOMA CNCR; do
+while read group; do
   for filt in all coding haplosufficient noncoding intergenic; do
     for VF in E2 E3 E4 N1; do
       for CNV in CNV DEL DUP; do
-        zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.${CNV}.${VF}.GRCh37.${filt}.bed.gz | \
+        zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.${CNV}.noMaxSize.${VF}.GRCh37.${filt}.bed.gz | \
         fgrep -v "#" | awk '{ print $3-$2 }' > \
-        ${WRKDIR}/data/plot_data/figure1/${CNV}_size.${group}.${VF}.${filt}.txt
+        ${WRKDIR}/data/plot_data/figure1/${CNV}_size.${group}.noMaxSize.${VF}.${filt}.txt
       done
     done
   done
-done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          cut -f1 )
 #Binned by VF - PER VARIANT
 for group in CTRL NEURO NDD PSYCH SOMA; do
   for CNV in DEL DUP; do
@@ -225,7 +226,6 @@ for CNV in CNV DEL DUP; do
     ${WRKDIR}/data/plot_data/figure1/${CNV}_size.CNCR.noMaxSize.${VF}.all.byVariant.txt
   done
 done
-
 
 #####Get sizes and VFs of all CNVs per tier 2 for scatterplots -- nixed
 #Germline CNVs

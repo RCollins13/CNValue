@@ -103,12 +103,13 @@ done
 paste <( echo "SET" ) \
       <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/master_gene_sets.sorted.list | paste -s ) > \
 ${WRKDIR}/data/plot_data/figure3/gene_set_overlaps.matrix.txt
+#Iterate over all gene sets
 while read nameA setA; do
   for dummy in 1; do
     echo ${nameA}
     n_setA=$( cat ${setA} | wc -l )
     while read nameB setB; do
-      if [ -e ${setB} ]; then
+      if [ -z ${setB} ]; then
         sed 's/\-/_/g' ${setB} | fgrep -wf - \
         <( sed 's/\-/_/g' ${setA} ) | wc -l | \
         awk -v OFS="\t" -v n_setA=${n_setA} '{ print $1/n_setA }'
@@ -119,7 +120,6 @@ while read nameA setA; do
   done | paste -s
 done < ${WRKDIR}/bin/rCNVmap/misc/master_gene_sets.sorted.list >> \
 ${WRKDIR}/data/plot_data/figure3/gene_set_overlaps.matrix.txt
-    
 
 
 
