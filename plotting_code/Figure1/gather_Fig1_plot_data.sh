@@ -197,6 +197,22 @@ while read group; do
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 )
+#Get data just for coding & noncoding E2 DEL/DUP
+while read group; do
+  echo ${group}
+  for filt in coding noncoding; do
+    echo ${filt}
+    for VF in E2; do
+      for CNV in DEL DUP; do
+        echo ${CNV}
+        zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.${CNV}.noMaxSize.${VF}.GRCh37.${filt}.bed.gz | \
+        fgrep -v "#" | awk '{ print $3-$2 }' > \
+        ${WRKDIR}/data/plot_data/figure1/${CNV}_size.${group}.noMaxSize.${VF}.${filt}.txt
+      done
+    done
+  done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          cut -f1 )
 #Binned by VF - PER VARIANT
 for group in CTRL NEURO NDD PSYCH SOMA; do
   for CNV in DEL DUP; do
