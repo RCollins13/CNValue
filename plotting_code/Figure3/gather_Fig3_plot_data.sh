@@ -98,6 +98,27 @@ for CNV in CNV DEL DUP; do
   done
 done
 
+#####Collect constraint-expression combination burden test results
+#Prepare directory
+mkdir ${WRKDIR}/data/plot_data/figure3/constraint_expression_combinations
+#Grouped by CNV type, VF, and CNV filter. MxN matrix; M: phenos, N: annotation sets
+#One matrix of p-values, one matrix of effect sizes, and two matrices of 
+# confidence interval bounds per set of filters
+for CNV in CNV DEL DUP; do
+  for VF in E2 E3 E4 N1; do
+    for filt in all; do
+      for context in all; do
+        for collection in effectSize pValue lowerCI upperCI zScore; do
+          bsub -q short -sla miket_sc -u nobody \
+          -J ${CNV}_${VF}_${filt}_${context}_${collection} \
+          "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_geneSet_burdens.constraint_expression_combinations.sh \
+          ${CNV} ${VF} ${filt} ${context} ${collection}"
+        done
+      done
+    done
+  done
+done
+
 #####Compute similarity between gene sets
 #Write header
 cat <( echo "SET" ) <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/master_gene_sets.sorted.list ) | \
