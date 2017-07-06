@@ -10,7 +10,7 @@
 #Code to generate barplot of patient counts per phenotype
 
 #####Set parameters
-WRKDIR <- "/Users/collins/Desktop/RCollins/Talkowski_Local/CNV_DB/rCNV_map/"
+WRKDIR <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/"
 options(scipen=1000,stringsAsFactors=F)
 logvect.all <- c(0,log10(as.vector(sapply(1:4,function(x){return((1:9)*10^x)}))))
 logvect.mids <- log10(as.vector(sapply(1:5,function(x){return(c(5,10)*10^x)})))
@@ -23,6 +23,9 @@ df <- read.table(paste(WRKDIR,"plot_data/figure1/sample_counts_by_group.txt",sep
 names(df) <- c("group","color","line","count","description")
 #Add column for log10 counts
 df$logCount <- log10(df$count)
+
+#####Modify NDD and PSYCH to have new color values
+df[which(df$group=="NDD" | df$group=="PSYCH"),2] <- "#66d9f8"
 
 #####Plot
 #Initialize device

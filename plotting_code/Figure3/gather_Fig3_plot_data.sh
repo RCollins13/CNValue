@@ -107,7 +107,7 @@ mkdir ${WRKDIR}/data/plot_data/figure3/constraint_expression_combinations
 for CNV in CNV DEL DUP; do
   for VF in E2 E3 E4 N1; do
     for filt in all; do
-      for context in all; do
+      for context in exonic; do
         for collection in effectSize pValue lowerCI upperCI zScore; do
           bsub -q short -sla miket_sc -u nobody \
           -J ${CNV}_${VF}_${filt}_${context}_${collection} \

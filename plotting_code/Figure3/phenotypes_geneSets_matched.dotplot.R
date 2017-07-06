@@ -148,17 +148,28 @@ matched <- lapply(list("OMIM","HighExpr","VeryExpr","SpecExpr"),function(categor
   return(c(ALL.m,ALL.CI,GERM.m,GERM.CI,CNCR.m,CNCR.CI))
 })
 
+#####Get values for constraint-expression combination categories
+combs.est <- read.table(paste(WRKDIR,"plot_data/figure3/constraint_expression_combinations/",
+                       "CNV_E2_all_exonic.effectSizes.txt",sep=""),header=F)
+combs.est[,-1] <- log2(combs.est[,-1])
+combs.ALL.m <- apply(combs.est[,-1],1,mean,na.rm=T)
+combs.ALL.CI <- 1.96*apply(combs.est[,-1],1,std.error,na.rm=T)
+combs.GERM.m <- apply(combs.est[,2:23],1,mean,na.rm=T)
+combs.GERM.CI <- 1.96*apply(combs.est[,2:23],1,std.error,na.rm=T)
+combs.CNCR.m <- apply(combs.est[,24:36],1,mean,na.rm=T)
+combs.CNCR.CI <- 1.96*apply(combs.est[,24:36],1,std.error,na.rm=T)
+
 #####Prepare plot area
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure3/geneSet_categories_ORs.dotplot.pdf",sep=""),
-    width=2.5,height=4)
+    width=2.5,height=4.5)
 par(mar=c(2.5,1,0.5,0.75),bty="n")
-plot(x=log2(c(1,2.5)),y=c(0,-16),type="n",
+plot(x=log2(c(1,2.5)),y=c(0,-21),type="n",
      xaxt="n",yaxt="n",xlab="",ylab="")
 
 #####Draw gridlines
 rect(xleft=par("usr")[1],xright=par("usr")[2],
-     ybottom=c(0,-1,-3:-7,-9:-10,-12:-13,-15:-16)-0.25,
-     ytop=c(0,-1,-3:-7,-9:-10,-12:-13,-15:-16)+0.25,
+     ybottom=c(0,-1,-3:-4,-6:-7,-9:-10,-12:-16,-18:-21)-0.25,
+     ytop=c(0,-1,-3:-4,-6:-7,-9:-10,-12:-16,-18:-21)+0.25,
      border=NA,col=cols.CTRL[4])
 abline(v=log2(c(1,1.25,1.5,1.75,2,2.5,3)),col=cols.CTRL[3])
 abline(v=log2(c(1,1.5,2)),col=cols.CTRL[2])
@@ -170,121 +181,146 @@ axis(1,at=log2(c(1,1.25,1.5,1.75,2,2.5,3)),tick=F,line=-0.4,
      labels=c(1,1.25,1.5,1.75,2,2.5,3),cex.axis=0.75)
 
 #####Add Y-Axis
-axis(2,at=c(0,-1,-3:-7,-9:-10,-12:-13,-15:-16),labels=NA,tck=-0.015)
+axis(2,at=c(0,-1,-3:-4,-6:-7,-9:-10,-12:-16,-18:-21),labels=NA,tck=-0.015)
 
 #####Plot points & 95% CIs
 #Expected
 segments(x0=EXP.mean-EXP.CI,x1=EXP.mean+EXP.CI,y0=0,y1=0,lwd=0.75)
 points(x=EXP.mean,y=0,pch=21,bg=cols.CTRL,lwd=0.5,cex=1.3)
 #Average across all gene sets
+s=1
 segments(x0=c(ALL.mean-ALL.CI,
               GERM.mean-GERM.CI,
               CNCR.mean-CNCR.CI),
          x1=c(ALL.mean+ALL.CI,
               GERM.mean+GERM.CI,
               CNCR.mean+CNCR.CI),
-         y0=-1+c(0.1,0,-0.1),y1=-1+c(0.1,0,-0.1),lwd=0.75)
+         y0=-s+c(0.1,0,-0.1),y1=-s+c(0.1,0,-0.1),lwd=0.75)
 points(x=c(ALL.mean,GERM.mean,CNCR.mean),
-       y=-1+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
-#Haplosufficient genes
-segments(x0=c(ALL.Haplosuff.avg.mean-ALL.Haplosuff.avg.CI,
-              GERM.Haplosuff.avg.mean-GERM.Haplosuff.avg.CI,
-              CNCR.Haplosuff.avg.mean-CNCR.Haplosuff.avg.CI),
-         x1=c(ALL.Haplosuff.avg.mean+ALL.Haplosuff.avg.CI,
-              GERM.Haplosuff.avg.mean+GERM.Haplosuff.avg.CI,
-              CNCR.Haplosuff.avg.mean+CNCR.Haplosuff.avg.CI),
-         y0=-3+c(0.1,0,-0.1),y1=-3+c(0.1,0,-0.1),lwd=0.75)
-points(x=c(ALL.Haplosuff.avg.mean,GERM.Haplosuff.avg.mean,CNCR.Haplosuff.avg.mean),
-       y=-3+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
-#Not haplosufficient genes
-segments(x0=c(ALL.NotHaplosuff.avg.mean-ALL.NotHaplosuff.avg.CI,
-              GERM.NotHaplosuff.avg.mean-GERM.NotHaplosuff.avg.CI,
-              CNCR.NotHaplosuff.avg.mean-CNCR.NotHaplosuff.avg.CI),
-         x1=c(ALL.NotHaplosuff.avg.mean+ALL.NotHaplosuff.avg.CI,
-              GERM.NotHaplosuff.avg.mean+GERM.NotHaplosuff.avg.CI,
-              CNCR.NotHaplosuff.avg.mean+CNCR.NotHaplosuff.avg.CI),
-         y0=-4+c(0.1,0,-0.1),y1=-4+c(0.1,0,-0.1),lwd=0.75)
-points(x=c(ALL.NotHaplosuff.avg.mean,GERM.NotHaplosuff.avg.mean,CNCR.NotHaplosuff.avg.mean),
-       y=-4+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
-#Constrained genes
-segments(x0=c(ALL.Const.avg.mean-ALL.Const.avg.CI,
-              GERM.Const.avg.mean-GERM.Const.avg.CI,
-              CNCR.Const.avg.mean-CNCR.Const.avg.CI),
-         x1=c(ALL.Const.avg.mean+ALL.Const.avg.CI,
-              GERM.Const.avg.mean+GERM.Const.avg.CI,
-              CNCR.Const.avg.mean+CNCR.Const.avg.CI),
-         y0=-5+c(0.1,0,-0.1),y1=-5+c(0.1,0,-0.1),lwd=0.75)
-points(x=c(ALL.Const.avg.mean,GERM.Const.avg.mean,CNCR.Const.avg.mean),
-       y=-5+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
-#Highly constrained genes
-segments(x0=c(ALL.HiConst.avg.mean-ALL.HiConst.avg.CI,
-              GERM.HiConst.avg.mean-GERM.HiConst.avg.CI,
-              CNCR.HiConst.avg.mean-CNCR.HiConst.avg.CI),
-         x1=c(ALL.HiConst.avg.mean+ALL.HiConst.avg.CI,
-              GERM.HiConst.avg.mean+GERM.HiConst.avg.CI,
-              CNCR.HiConst.avg.mean+CNCR.HiConst.avg.CI),
-         y0=-6+c(0.1,0,-0.1),y1=-6+c(0.1,0,-0.1),lwd=0.75)
-points(x=c(ALL.HiConst.avg.mean,GERM.HiConst.avg.mean,CNCR.HiConst.avg.mean),
-       y=-6+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
-#Extremely constrained genes
-segments(x0=c(ALL.ExtConst.avg.mean-ALL.ExtConst.avg.CI,
-              GERM.ExtConst.avg.mean-GERM.ExtConst.avg.CI,
-              CNCR.ExtConst.avg.mean-CNCR.ExtConst.avg.CI),
-         x1=c(ALL.ExtConst.avg.mean+ALL.ExtConst.avg.CI,
-              GERM.ExtConst.avg.mean+GERM.ExtConst.avg.CI,
-              CNCR.ExtConst.avg.mean+CNCR.ExtConst.avg.CI),
-         y0=-7+c(0.1,0,-0.1),y1=-7+c(0.1,0,-0.1),lwd=0.75)
-points(x=c(ALL.ExtConst.avg.mean,GERM.ExtConst.avg.mean,CNCR.ExtConst.avg.mean),
-       y=-7+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
+       y=-s+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
 #OMIM association (average)
+s=3
 segments(x0=c(ALL.OMIM.avg.mean-ALL.OMIM.avg.CI,
               GERM.OMIM.avg.mean-GERM.OMIM.avg.CI,
               CNCR.OMIM.avg.mean-CNCR.OMIM.avg.CI),
          x1=c(ALL.OMIM.avg.mean+ALL.OMIM.avg.CI,
               GERM.OMIM.avg.mean+GERM.OMIM.avg.CI,
               CNCR.OMIM.avg.mean+CNCR.OMIM.avg.CI),
-         y0=-9+c(0.1,0,-0.1),y1=-9+c(0.1,0,-0.1),lwd=0.75)
+         y0=-s+c(0.1,0,-0.1),y1=-s+c(0.1,0,-0.1),lwd=0.75)
 points(x=c(ALL.OMIM.avg.mean,GERM.OMIM.avg.mean,CNCR.OMIM.avg.mean),
-       y=-9+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
+       y=-s+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
 #OMIM (matched)
+s=4
 segments(x0=matched[[1]][c(1,3,5)]-matched[[1]][c(2,4,6)],
          x1=matched[[1]][c(1,3,5)]+matched[[1]][c(2,4,6)],
-         y0=-10+c(0.1,0,-0.1),y1=-10+c(0.1,0,-0.1),lwd=0.75)
+         y0=-s+c(0.1,0,-0.1),y1=-s+c(0.1,0,-0.1),lwd=0.75)
 points(x=matched[[1]][c(1,3,5)],
-       y=-10+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
-#High expressors (average)
-segments(x0=c(ALL.HighExpr.avg.mean-ALL.HighExpr.avg.CI,
-              GERM.HighExpr.avg.mean-GERM.HighExpr.avg.CI,
-              CNCR.HighExpr.avg.mean-CNCR.HighExpr.avg.CI),
-         x1=c(ALL.HighExpr.avg.mean+ALL.HighExpr.avg.CI,
-              GERM.HighExpr.avg.mean+GERM.HighExpr.avg.CI,
-              CNCR.HighExpr.avg.mean+CNCR.HighExpr.avg.CI),
-         y0=-12+c(0.1,0,-0.1),y1=-12+c(0.1,0,-0.1),lwd=0.75)
-points(x=c(ALL.HighExpr.avg.mean,GERM.HighExpr.avg.mean,CNCR.HighExpr.avg.mean),
-       y=-12+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
-#High expressors (matched)
-segments(x0=matched[[2]][c(1,3,5)]-matched[[2]][c(2,4,6)],
-         x1=matched[[2]][c(1,3,5)]+matched[[2]][c(2,4,6)],
-         y0=-13+c(0.1,0,-0.1),y1=-13+c(0.1,0,-0.1),lwd=0.75)
-points(x=matched[[2]][c(1,3,5)],
-       y=-13+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
+       y=-s+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
 #Specific expressors (average)
+s=6
 segments(x0=c(ALL.SpecExpr.avg.mean-ALL.SpecExpr.avg.CI,
               GERM.SpecExpr.avg.mean-GERM.SpecExpr.avg.CI,
               CNCR.SpecExpr.avg.mean-CNCR.SpecExpr.avg.CI),
          x1=c(ALL.SpecExpr.avg.mean+ALL.SpecExpr.avg.CI,
               GERM.SpecExpr.avg.mean+GERM.SpecExpr.avg.CI,
               CNCR.SpecExpr.avg.mean+CNCR.SpecExpr.avg.CI),
-         y0=-15+c(0.1,0,-0.1),y1=-15+c(0.1,0,-0.1),lwd=0.75)
+         y0=-s+c(0.1,0,-0.1),y1=-s+c(0.1,0,-0.1),lwd=0.75)
 points(x=c(ALL.SpecExpr.avg.mean,GERM.SpecExpr.avg.mean,CNCR.SpecExpr.avg.mean),
-       y=-15+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
+       y=-s+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
 #Specific expressors (matched)
+s=7
 segments(x0=matched[[4]][c(1,3,5)]-matched[[4]][c(2,4,6)],
          x1=matched[[4]][c(1,3,5)]+matched[[4]][c(2,4,6)],
-         y0=-16+c(0.1,0,-0.1),y1=-16+c(0.1,0,-0.1),lwd=0.75)
+         y0=-s+c(0.1,0,-0.1),y1=-s+c(0.1,0,-0.1),lwd=0.75)
 points(x=matched[[4]][c(1,3,5)],
-       y=-16+c(0.1,0,-0.1),
+       y=-s+c(0.1,0,-0.1),
        pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
+#High expressors (average)
+s=9
+segments(x0=c(ALL.HighExpr.avg.mean-ALL.HighExpr.avg.CI,
+              GERM.HighExpr.avg.mean-GERM.HighExpr.avg.CI,
+              CNCR.HighExpr.avg.mean-CNCR.HighExpr.avg.CI),
+         x1=c(ALL.HighExpr.avg.mean+ALL.HighExpr.avg.CI,
+              GERM.HighExpr.avg.mean+GERM.HighExpr.avg.CI,
+              CNCR.HighExpr.avg.mean+CNCR.HighExpr.avg.CI),
+         y0=-s+c(0.1,0,-0.1),y1=-s+c(0.1,0,-0.1),lwd=0.75)
+points(x=c(ALL.HighExpr.avg.mean,GERM.HighExpr.avg.mean,CNCR.HighExpr.avg.mean),
+       y=-s+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
+#High expressors (matched)
+s=10
+segments(x0=matched[[2]][c(1,3,5)]-matched[[2]][c(2,4,6)],
+         x1=matched[[2]][c(1,3,5)]+matched[[2]][c(2,4,6)],
+         y0=-s+c(0.1,0,-0.1),y1=-s+c(0.1,0,-0.1),lwd=0.75)
+points(x=matched[[2]][c(1,3,5)],
+       y=-s+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
+#Haplosufficient genes
+s=12
+segments(x0=c(ALL.Haplosuff.avg.mean-ALL.Haplosuff.avg.CI,
+              GERM.Haplosuff.avg.mean-GERM.Haplosuff.avg.CI,
+              CNCR.Haplosuff.avg.mean-CNCR.Haplosuff.avg.CI),
+         x1=c(ALL.Haplosuff.avg.mean+ALL.Haplosuff.avg.CI,
+              GERM.Haplosuff.avg.mean+GERM.Haplosuff.avg.CI,
+              CNCR.Haplosuff.avg.mean+CNCR.Haplosuff.avg.CI),
+         y0=-s+c(0.1,0,-0.1),y1=-s+c(0.1,0,-0.1),lwd=0.75)
+points(x=c(ALL.Haplosuff.avg.mean,GERM.Haplosuff.avg.mean,CNCR.Haplosuff.avg.mean),
+       y=-s+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
+#Not haplosufficient genes
+s=13
+segments(x0=c(ALL.NotHaplosuff.avg.mean-ALL.NotHaplosuff.avg.CI,
+              GERM.NotHaplosuff.avg.mean-GERM.NotHaplosuff.avg.CI,
+              CNCR.NotHaplosuff.avg.mean-CNCR.NotHaplosuff.avg.CI),
+         x1=c(ALL.NotHaplosuff.avg.mean+ALL.NotHaplosuff.avg.CI,
+              GERM.NotHaplosuff.avg.mean+GERM.NotHaplosuff.avg.CI,
+              CNCR.NotHaplosuff.avg.mean+CNCR.NotHaplosuff.avg.CI),
+         y0=-s+c(0.1,0,-0.1),y1=-s+c(0.1,0,-0.1),lwd=0.75)
+points(x=c(ALL.NotHaplosuff.avg.mean,GERM.NotHaplosuff.avg.mean,CNCR.NotHaplosuff.avg.mean),
+       y=-s+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
+#Constrained genes
+s=14
+segments(x0=c(ALL.Const.avg.mean-ALL.Const.avg.CI,
+              GERM.Const.avg.mean-GERM.Const.avg.CI,
+              CNCR.Const.avg.mean-CNCR.Const.avg.CI),
+         x1=c(ALL.Const.avg.mean+ALL.Const.avg.CI,
+              GERM.Const.avg.mean+GERM.Const.avg.CI,
+              CNCR.Const.avg.mean+CNCR.Const.avg.CI),
+         y0=-s+c(0.1,0,-0.1),y1=-s+c(0.1,0,-0.1),lwd=0.75)
+points(x=c(ALL.Const.avg.mean,GERM.Const.avg.mean,CNCR.Const.avg.mean),
+       y=-s+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
+#Highly constrained genes
+s=15
+segments(x0=c(ALL.HiConst.avg.mean-ALL.HiConst.avg.CI,
+              GERM.HiConst.avg.mean-GERM.HiConst.avg.CI,
+              CNCR.HiConst.avg.mean-CNCR.HiConst.avg.CI),
+         x1=c(ALL.HiConst.avg.mean+ALL.HiConst.avg.CI,
+              GERM.HiConst.avg.mean+GERM.HiConst.avg.CI,
+              CNCR.HiConst.avg.mean+CNCR.HiConst.avg.CI),
+         y0=-s+c(0.1,0,-0.1),y1=-s+c(0.1,0,-0.1),lwd=0.75)
+points(x=c(ALL.HiConst.avg.mean,GERM.HiConst.avg.mean,CNCR.HiConst.avg.mean),
+       y=-s+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
+#Extremely constrained genes
+s=16
+segments(x0=c(ALL.ExtConst.avg.mean-ALL.ExtConst.avg.CI,
+              GERM.ExtConst.avg.mean-GERM.ExtConst.avg.CI,
+              CNCR.ExtConst.avg.mean-CNCR.ExtConst.avg.CI),
+         x1=c(ALL.ExtConst.avg.mean+ALL.ExtConst.avg.CI,
+              GERM.ExtConst.avg.mean+GERM.ExtConst.avg.CI,
+              CNCR.ExtConst.avg.mean+CNCR.ExtConst.avg.CI),
+         y0=-s+c(0.1,0,-0.1),y1=-s+c(0.1,0,-0.1),lwd=0.75)
+points(x=c(ALL.ExtConst.avg.mean,GERM.ExtConst.avg.mean,CNCR.ExtConst.avg.mean),
+       y=-s+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
+#Constratint-expression combos
+s=18
+sapply(1:4,function(i){
+  segments(x0=c(combs.ALL.m[i]-combs.ALL.CI[i],
+                combs.GERM.m[i]-combs.GERM.CI[i],
+                combs.CNCR.m[i]-combs.CNCR.CI[i]),
+           x1=c(combs.ALL.m[i]+combs.ALL.CI[i],
+                combs.GERM.m[i]+combs.GERM.CI[i],
+                combs.CNCR.m[i]+combs.CNCR.CI[i]),
+           y0=-(s+i-1)+c(0.1,0,-0.1),y1=-(s+i-1)+c(0.1,0,-0.1),lwd=0.75)
+  points(x=c(combs.ALL.m[i],combs.GERM.m[i],combs.CNCR.m[i]),
+         y=-(s+i-1)+c(0.1,0,-0.1),pch=21,bg=c("white",cols.GERM[1],cols.CNCR[1]),lwd=0.5,cex=1.3)
+})
 
 #####Close device
 dev.off()
