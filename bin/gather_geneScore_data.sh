@@ -242,8 +242,9 @@ while read gene; do
       awk -v gene=${gene} '{ if ($4==gene) print $0 }' ${EXONS} | \
       sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | \
       awk '{ sum+=$3-$2 }END{ print sum }'
-      #GC content
-      awk -v gene=${gene} '{ if ($1==gene) print $2 }' ${GC_PROFILES}
+      #GC content (take average in the case of multiple hits--this is rare)
+      awk -v gene=${gene} '{ if ($1==gene) print $2 }' ${GC_PROFILES} | \
+      awk '{ sum+=$1 }END{ print sum/NR }'
       #Case CNVs
       caseCNV=$( awk -v gene=${gene} '{ if ($1==gene) print $2 }' ${ALL_GENES_CASE_CNV} )
       if [ -z ${caseCNV} ]; then

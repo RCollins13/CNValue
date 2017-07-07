@@ -29,9 +29,9 @@ for pheno in GERM NEURO SOMA CNCR; do
   mkdir ${WRKDIR}/data/perGene_burden/${pheno}
 done
 
-#####Submit burden data collection for GERM, NEURO, and SOMA at E2-N1 and CNCR at E2
+#####Submit burden data collection for all phenotypes
 #Germline
-for pheno in GERM NEURO SOMA; do
+while read pheno; do
   for CNV in CNV DEL DUP; do
     for VF in E2 E3 E4 N1; do
       #Exonic
@@ -56,33 +56,31 @@ for pheno in GERM NEURO SOMA; do
       ${h37}"
     done
   done
-done
-#Cancer
-for pheno in CNCR; do
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          cut -f1 | fgrep -v CTRL )
+
+#####Copy test datasets to plotting data directory
+if [ -e ${WRKDIR}/data/plot_data/perGene_burden ]; then
+  rm -rf ${WRKDIR}/data/plot_data/perGene_burden
+fi
+mkdir ${WRKDIR}/data/plot_data/perGene_burden
+for pheno in GERM CNCR; do
   for CNV in CNV DEL DUP; do
-    for VF in E2; do
-      #Exonic
-      bsub -q short -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_perGene_burden_dataCollection_exonic \
-      "${WRKDIR}/bin/rCNVmap/bin/gather_geneScore_data.sh \
-      -H ${WRKDIR}/data/misc/exons_boundaries_dictionary/ \
-      -U /data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list \
-      -o ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_exonic.geneScore_data.txt \
-      ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.all.bed.gz \
-      ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.all.bed.gz \
-      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf \
-      ${h37}"
-      #Wholegene
-      bsub -q short -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_perGene_burden_dataCollection_wholegene \
-      "${WRKDIR}/bin/rCNVmap/bin/gather_geneScore_data.sh -W \
-      -H ${WRKDIR}/data/misc/exons_boundaries_dictionary/ \
-      -U /data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list \
-      -o ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_wholegene.geneScore_data.txt \
-      ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.all.bed.gz \
-      ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.all.bed.gz \
-      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf \
-      ${h37}"
+    for VF in E2 N1; do
+      for context in exonic wholegene; do
+        if [ -e ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt ]; then
+          cp ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt \
+          ${WRKDIR}/data/plot_data/perGene_burden/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt
+        fi
+      done
     done
   done
 done
+
+
+
+
+
+
 
 
