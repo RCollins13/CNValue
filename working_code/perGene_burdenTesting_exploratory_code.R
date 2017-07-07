@@ -19,6 +19,9 @@ phenos <- c("GERM","UNK","NEURO","NDD","DD","PSYCH","SCZ","ASD","SEIZ",
 #Sample sizes (CTRL, GERM, CNCR)
 nsamp <- c(38628,63629,10844)
 
+#####Load required libraries
+require(MASS)
+
 #####Set color vectors
 cols.CTRL <- c("#A5A6A7","#DCDDDF","#EAEBEC","#F8F8F9")
 cols.GERM <- c("#7B2AB3","#B07FD1","#CAAAE1","#E5D4F0")
@@ -98,6 +101,11 @@ plotDots <- function(df,CNV,nCTRL,nCASE,sim=10000,colP=T){
        xlab="Control CNVs per Sample",
        ylab="Case CNVs per Sample",
        bg=colvect,pch=21)
+  # #Overlay density plot
+  # complete.dat <- dat[complete.cases(dat),]
+  # contours <- kde2d(complete.dat[,1],complete.dat[,2],n=1000)
+  # contour(contours,drawlabels=FALSE,nlevels=25,add=TRUE,
+  #         col=adjustcolor(rev(rainbow(45)[1:32]),alpha=0.5))
   #X=Y line
   abline(0,1)
   #Linear regression line
@@ -132,7 +140,7 @@ plotDots <- function(df,CNV,nCTRL,nCASE,sim=10000,colP=T){
 #GERM N1 exonic CNV
 plotDots(GERM.N1.exonic,1,nsamp[1],nsamp[2],colP=F)
 #GERM N1 exonic DEL
-plotDots(GERM.N1.exonic,2,nsamp[1],nsamp[2],colP=T)
+plotDots(GERM.N1.exonic,2,nsamp[1],nsamp[2],colP=F)
 #GERM N1 exonic DUP
 plotDots(GERM.N1.exonic,3,nsamp[1],nsamp[2],colP=F)
 #GERM N1 whole-gene CNV
@@ -142,4 +150,12 @@ plotDots(GERM.N1.wholegene,2,nsamp[1],nsamp[2],colP=F)
 #GERM N1 whole-gene DUP
 plotDots(GERM.N1.wholegene,3,nsamp[1],nsamp[2],colP=F)
 
+#####Fisher test
+dat <- head(as.data.frame(GERM.N1.exonic[,2]),500)
+i <- which(dat$case_CNV==max(dat$case_CNV))
+fisher.test(matrix(c(as.numeric(dat$control_CNV[i]),
+                     as.numeric(dat$case_CNV[i]),
+                     nsamp[1]-as.numeric(dat$control_CNV[i]),
+                     nsamp[2]-as.numeric(dat$case_CNV[i])),
+                   byrow=T,nrow=2))$p.value
 
