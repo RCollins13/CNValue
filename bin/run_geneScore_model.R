@@ -19,17 +19,17 @@
 # outfile: path to output file
 
 ##Local dev testing parameters
-infile <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/plot_data/perGene_burden/NDD_DEL_E4_exonic.geneScore_data.txt"
-# infile <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/plot_data/perGene_burden/NDD_DUP_E4_wholegene.geneScore_data.txt"
-outfile <- "~/scratch/geneScore.test.output.txt"
-nCTRL <- 38628
-nCASE <- 35693
-
-#Test run
-df <- adjustCounts(readGeneScores(infile))
-fisher.results <- calcFisherStats(df,nCTRL,nCASE)
-ratio.results <- calcRatioStats(df,nCTRL,nCASE)
-all.results <- cbind(fisher.results,ratio.results[,-c(1:16)])
+# infile <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/plot_data/perGene_burden/NDD_DEL_E4_exonic.geneScore_data.txt"
+# # infile <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/plot_data/perGene_burden/NDD_DUP_E4_wholegene.geneScore_data.txt"
+# outfile <- "~/scratch/geneScore.test.output.txt"
+# nCTRL <- 38628
+# nCASE <- 35693
+#
+# #Test run
+# df <- adjustCounts(readGeneScores(infile))
+# fisher.results <- calcFisherStats(df,nCTRL,nCASE)
+# ratio.results <- calcRatioStats(df,nCTRL,nCASE)
+# all.results <- cbind(fisher.results,ratio.results[,-c(1:16)])
 
 #####Set params
 options(scipen=1000,stringsAsFactors=F)
