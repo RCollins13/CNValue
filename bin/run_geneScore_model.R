@@ -252,6 +252,9 @@ ratio.results <- calcRatioStats(df.adj,nCTRL,nCASE)
 #Combines Fisher & ratio test statistics
 all.results <- cbind(fisher.results,ratio.results[,-c(1:16)])
 
+#Fix header
+colnames(all.results)[1] <- "#gene"
+
 #Write out
 if(opts$outfile != "/dev/stdout"){
   write.table(all.results,opts$outfile,col.names=T,row.names=F,sep="\t",quote=F)

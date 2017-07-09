@@ -98,15 +98,30 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
           cut -f1 | fgrep -v CTRL )
 
 #####Run geneScore model for all germline phenotype groups
+#Create master output directory
+if [ -e ${WRKDIR}/analysis/perGene_burden ]; then
+  rm -rf ${WRKDIR}/analysis/perGene_burden
+fi
+mkdir ${WRKDIR}/analysis/perGene_burden
+#Run model
 while read pheno; do
+  #Create output directory for results
+  if [ -e ${WRKDIR}/data/perGene_burden/${pheno} ]; then
+    rm -rf ${WRKDIR}/data/perGene_burden/${pheno}
+  fi
+  mkdir ${WRKDIR}/data/perGene_burden/${pheno}
+  #Get number of subjects in group
+  nCASE=$( awk -v pheno=${pheno} '{ if ($1==pheno) print $4 }' \
+           ${WRKDIR}/data/plot_data/figure1/sample_counts_by_group.txt )
   for CNV in CNV DEL DUP; do
     for VF in E2 E3 E4 N1; do
       for context in exonic wholegene; do
         if [ -e ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt ]; then
-          ${WRKDIR}/bin/rCNVmap/bin/run_geneScore_model.R \
-          -o \
+          bsub -q short -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${context}_geneScoreModel \
+          "${WRKDIR}/bin/rCNVmap/bin/run_geneScore_model.R \
+          -o ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt \
           ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt \
-          
+          38628 ${nCASE}"
         fi
       done
     done
