@@ -22,12 +22,13 @@ fi
 mkdir ${WRKDIR}/data/perGene_burden
 
 #####Create subdirectories
-for pheno in GERM NEURO SOMA CNCR; do
+while read pheno; do
   if [ -e ${WRKDIR}/data/perGene_burden/${pheno} ]; then
     rm -rf ${WRKDIR}/data/perGene_burden/${pheno}
   fi
   mkdir ${WRKDIR}/data/perGene_burden/${pheno}
-done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          cut -f1 | fgrep -v CTRL )
 
 #####Submit burden data collection for all phenotypes
 #Germline
@@ -76,6 +77,26 @@ for pheno in GERM CNCR; do
     done
   done
 done
+
+#####Copy all datasets to plotting data directory
+if [ -e ${WRKDIR}/data/plot_data/perGene_burden ]; then
+  rm -rf ${WRKDIR}/data/plot_data/perGene_burden
+fi
+mkdir ${WRKDIR}/data/plot_data/perGene_burden
+while read pheno; do
+  for CNV in CNV DEL DUP; do
+    for VF in E2 E3 E4 N1; do
+      for context in exonic wholegene; do
+        if [ -e ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt ]; then
+          cp ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt \
+          ${WRKDIR}/data/plot_data/perGene_burden/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt
+        fi
+      done
+    done
+  done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          cut -f1 | fgrep -v CTRL )
+
 
 
 
