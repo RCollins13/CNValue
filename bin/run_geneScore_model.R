@@ -228,8 +228,8 @@ opts <- args$options
 
 #Assigns positional arguments to named variables
 infile <- args$args[1]
-nCTRL <- args$args[2]
-nCASE <- args$args[3]
+nCTRL <- as.numeric(args$args[2])
+nCASE <- as.numeric(args$args[3])
 
 #Checks for appropriate positional arguments
 if(length(args$args) != 3) {

@@ -97,6 +97,22 @@ while read pheno; do
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
 
+#####Run geneScore model for all germline phenotype groups
+while read pheno; do
+  for CNV in CNV DEL DUP; do
+    for VF in E2 E3 E4 N1; do
+      for context in exonic wholegene; do
+        if [ -e ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt ]; then
+          ${WRKDIR}/bin/rCNVmap/bin/run_geneScore_model.R \
+          -o \
+          ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt \
+          
+        fi
+      done
+    done
+  done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          fgrep -v CTRL | cut -f1 )
 
 
 
