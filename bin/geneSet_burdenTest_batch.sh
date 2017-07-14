@@ -139,7 +139,9 @@ fi
 
 #Iterate over list of annotations and run burden tests
 while read NAME SET UNIV_SPEC; do
-  if [ -e ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt ]; then
+  if [ -e ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt ] && \
+    [ $( fgrep -v "#" ${OUTDIR}/${PREFIX}.${NAME}.CNV_burden_results.txt | \
+         awk -v OFS="\t" '{ print NF }' ) -eq 15 ]; then
     if [ ${FORCE} -eq 0 ]; then
       echo "OUTPUT FILE FOR ${NAME} FOUND; SKIPPING"
     else
