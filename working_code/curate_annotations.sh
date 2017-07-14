@@ -18,9 +18,6 @@ mkdir ${WRKDIR}/data/master_annotations
 mkdir ${WRKDIR}/data/master_annotations/genelists
 
 
-
-
-
 ##########################
 ##########################
 #         GENCODE        #
@@ -512,7 +509,7 @@ while read list; do
   <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed ) | \
   grep -e '^[0-9]' | cut -f4 | sort | uniq | wc -l
 done < <( l ${WRKDIR}/data/master_annotations/genelists/*genes.list | \
-  awk '{ print $9 }' | fgrep _MASTER_ ) | paste - - -
+  awk '{ print $9 }' | fgrep GO_ | fgrep _merged_all.genes.list ) | paste - - -
 
 
 

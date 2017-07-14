@@ -38,3 +38,12 @@ for pheno in GERM NEURO NDD PSYCH SOMA CNCR; do
     done
   done
 done
+
+#####Cut ExAC missense Z-scores for correlation vs CNV Z-score
+cut -f2,19 ${WRKDIR}/data/misc/fordist_cleaned_nonpsych_z_pli_rec_null_data.txt > \
+${WRKDIR}/data/plot_data/figure4/ExAC_LoF_Zscores.txt
+
+
+
+
+
