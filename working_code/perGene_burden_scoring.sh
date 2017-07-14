@@ -106,10 +106,10 @@ mkdir ${WRKDIR}/analysis/perGene_burden
 #Run model
 while read pheno; do
   #Create output directory for results
-  if [ -e ${WRKDIR}/data/perGene_burden/${pheno} ]; then
-    rm -rf ${WRKDIR}/data/perGene_burden/${pheno}
+  if [ -e ${WRKDIR}/analysis/perGene_burden/${pheno} ]; then
+    rm -rf ${WRKDIR}/analysis/perGene_burden/${pheno}
   fi
-  mkdir ${WRKDIR}/data/perGene_burden/${pheno}
+  mkdir ${WRKDIR}/analysis/perGene_burden/${pheno}
   #Get number of subjects in group
   nCASE=$( awk -v pheno=${pheno} '{ if ($1==pheno) print $4 }' \
            ${WRKDIR}/data/plot_data/figure1/sample_counts_by_group.txt )
@@ -119,7 +119,7 @@ while read pheno; do
         if [ -e ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt ]; then
           bsub -q short -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${context}_geneScoreModel \
           "${WRKDIR}/bin/rCNVmap/bin/run_geneScore_model.R \
-          -o ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt \
+          -o ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt \
           ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt \
           38628 ${nCASE}"
         fi
