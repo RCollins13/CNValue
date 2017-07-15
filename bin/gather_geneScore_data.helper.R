@@ -51,13 +51,13 @@ calcCNVdata <- function(path){
   merged.df[,3] <- 1/merged.df[,3]
 
   #Get sum of weighted CNVs per gene
-  weightedGenesPerCNV <- as.data.frame(t(sapply(CNVsPerGene[,1],function(gene){
+  weightedCNVsPerGene <- as.data.frame(t(sapply(CNVsPerGene[,1],function(gene){
     return(c(as.character(gene),
              sum(merged.df[which(merged.df[,2]==as.character(gene)),3])))
   })))
 
   #Return list of results
-  return(list(genesPerCNV,CNVsPerGene,weightedGenesPerCNV))
+  return(list(genesPerCNV,CNVsPerGene,weightedCNVsPerGene))
 }
 
 #######################################
@@ -97,7 +97,7 @@ write.table(CASE.dat[[2]],
             paste(OUTDIR,"/CASE.CNVsPerGene.txt",sep=""),
             col.names=F,row.names=F,sep="\t",quote=F)
 write.table(CASE.dat[[3]],
-            paste(OUTDIR,"/CASE.weightedGenesPerCNV.txt",sep=""),
+            paste(OUTDIR,"/CASE.weightedCNVsPerGene.txt",sep=""),
             col.names=F,row.names=F,sep="\t",quote=F)
 
 #Write CTRL outputs
@@ -108,6 +108,6 @@ write.table(CTRL.dat[[2]],
             paste(OUTDIR,"/CTRL.CNVsPerGene.txt",sep=""),
             col.names=F,row.names=F,sep="\t",quote=F)
 write.table(CTRL.dat[[3]],
-            paste(OUTDIR,"/CTRL.weightedGenesPerCNV.txt",sep=""),
+            paste(OUTDIR,"/CTRL.weightedCNVsPerGene.txt",sep=""),
             col.names=F,row.names=F,sep="\t",quote=F)
 
