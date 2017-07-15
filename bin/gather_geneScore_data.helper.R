@@ -63,9 +63,12 @@ calcCNVdata <- function(path){
 #######################################
 #####Rscript command line functionality
 #######################################
+#List of Rscript options
+option_list <- list()
+
 #Get command-line arguments & options
 parser <- OptionParser(usage="%prog [options] CASE CTRL OUTDIR",
-                       option_list=NULL,add_help_option=T)
+                       option_list=option_list,add_help_option=T)
 args <- parse_args(parser,positional_arguments=TRUE)
 opts <- args$options
 
