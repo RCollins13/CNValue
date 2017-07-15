@@ -129,6 +129,45 @@ while read pheno; do
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           fgrep -v CTRL | cut -f1 )
 
+#####Test code for enrichment tests vs gene sets
+#Get NDD-sig E4 del genes
+awk '{ if ($35<=0.05) print $1 }' \
+${WRKDIR}/analysis/perGene_burden/NDD/NDD_DEL_E4_exonic.geneScore_stats.txt > \
+${TMPDIR}/NDD_DEL_E4_exonic.sig_genes.txt
+#SEIZ E4 DEL
+awk '{ if ($35<=0.05) print $1 }' \
+${WRKDIR}/analysis/perGene_burden/SEIZ/SEIZ_DEL_E4_exonic.geneScore_stats.txt > \
+${TMPDIR}/SEIZ_DEL_E4_exonic.sig_genes.txt
+#SCZ E4 DEL
+awk '{ if ($35<=0.05) print $1 }' \
+${WRKDIR}/analysis/perGene_burden/SCZ/SCZ_DEL_E4_exonic.geneScore_stats.txt > \
+${TMPDIR}/SCZ_DEL_E4_exonic.sig_genes.txt
+#SEIZ E4 DUP
+awk '{ if ($35<=0.05) print $1 }' \
+${WRKDIR}/analysis/perGene_burden/SEIZ/SEIZ_DEL_E2_wholegene.geneScore_stats.txt > \
+${TMPDIR}/SEIZ_DUP_E2_wholegene.sig_genes.txt
+#CARD E4 DEL
+awk '{ if ($35<=0.05) print $1 }' \
+${WRKDIR}/analysis/perGene_burden/CARD/CARD_DEL_E4_exonic.geneScore_stats.txt > \
+${TMPDIR}/CARD_DEL_E4_exonic.sig_genes.txt
+#Get CTRL-sig E4 del genes
+awk '{ if ($35<=0.05) print $1 }' \
+${WRKDIR}/analysis/perGene_burden/DD/DD_DEL_E4_exonic.geneScore_stats.txt > \
+${TMPDIR}/DD_DEL_E4_exonic.sig_genes.txt
+#Get autosomal protein-coding genes
+grep -ve '^X\|^Y\|^M' \
+${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed | \
+cut -f4 | sort | uniq > ${TMPDIR}/autosomal_protein_coding_genes.list
+#Run tests
+/data/talkowski/rlc47/code/ScriptToolbox/bidirectionalEnrichment.sh -n 20 \
+${TMPDIR}/DD_DEL_E4_exonic.sig_genes.txt \
+${WRKDIR}/data/master_annotations/genelists/DDD_2017.genes.list \
+${TMPDIR}/autosomal_protein_coding_genes.list
+/data/talkowski/rlc47/code/ScriptToolbox/bidirectionalEnrichment.sh -n 20 \
+${TMPDIR}/DD_DEL_E4_exonic.sig_genes.txt \
+${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list \
+${TMPDIR}/autosomal_protein_coding_genes.list
+
 
 
 
