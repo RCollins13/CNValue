@@ -240,6 +240,9 @@ ${TMPDIR}/
 echo -e "#gene\tgene_length\texonic_bases\tGC\tcase_CNV\tcontrol_CNV\tcase_CNV_weighted\tcontrol_CNV_weighted" > ${OUTFILE}
 
 #Compute boundary size, exonic bases, and GC per gene
+if [ ${QUIET} -eq 0 ]; then
+  echo -e "STATUS::$(date)::SUMMARIZING RESULTS PER GENE..."
+fi
 while read gene; do
   #Only compute if gene is included in boundaries file
   if [ $( awk -v gene=${gene} '{ if ($4==gene) print $0 }' ${BOUNDARIES} | wc -l ) -gt 0 ]; then 
