@@ -22,13 +22,15 @@
 # infile <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/plot_data/perGene_burden/NDD_DEL_E4_exonic.geneScore_data.txt"
 # #infile <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/plot_data/perGene_burden/CNCR_DEL_E2_exonic.geneScore_data.txt"
 # #infile <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/plot_data/perGene_burden/NDD_DUP_E4_wholegene.geneScore_data.txt"
-# outfile <- "~/scratch/geneScore.test.output.txt"
-# nCTRL <- 38628
-# nCASE <- 35693
+infile <- "~/scratch/ASD_DEL_E4_exonic.geneScore_data.txt"
+outfile <- "~/scratch/geneScore.test.output.txt"
+nCTRL <- 38628
+nCASE <- 3398
 #
 # #Test run
-# df <- adjustCounts(readGeneScores(infile))
-# fisher.results <- calcFisherStats(df,nCTRL,nCASE)
+dat <- readGeneScores(infile)
+df <- adjustCounts(dat)
+fisher.results <- calcFisherStats(df,nCTRL,nCASE)
 # ratio.results <- calcRatioStats(df,nCTRL,nCASE)
 # all.results <- cbind(fisher.results,ratio.results[,-c(1:16)])
 
@@ -49,6 +51,7 @@ readGeneScores <- function(path){
   df <- as.data.frame(df)
   names(df)[1] <- "gene"
   df$all_CNV <- df$case_CNV+df$control_CNV
+  df$all_CNV_weighted <- df$case_CNV_weighted+df$control_CNV_weighted
 
   #Return file
   return(df)
@@ -64,11 +67,11 @@ adjustCounts <- function(df){
   df$gene_length.norm <- scale(log(df$gene_length),center=T,scale=T)
   df$exonic_bases.norm <- scale(log(df$exonic_bases),center=T,scale=T)
 
-  #Linear fit of normalized length, GC, and exonic bases
+  #Linear fit of raw CNV counts by normalized length, GC, and exonic bases
   triple_norm.CTRL.fit <- lm(control_CNV ~ GC.norm + gene_length.norm + exonic_bases.norm,data=df)
   triple_norm.CASE.fit <- lm(case_CNV ~ GC.norm + gene_length.norm + exonic_bases.norm,data=df)
 
-  #Calculate corrections for normalized GC content, length, and exonic bases
+  #Calculate corrections for raw CNV counts by normalized GC content, length, and exonic bases
   adjustments.CTRL <- ((triple_norm.CTRL.fit$coefficients[2]*df$GC.norm)+
                          (triple_norm.CTRL.fit$coefficients[3]*df$gene_length.norm)+
                          (triple_norm.CTRL.fit$coefficients[4]*df$exonic_bases.norm))
@@ -76,7 +79,7 @@ adjustCounts <- function(df){
                          (triple_norm.CASE.fit$coefficients[3]*df$gene_length.norm)+
                          (triple_norm.CASE.fit$coefficients[4]*df$exonic_bases.norm))
 
-  #Apply corrections and round negative corrected counts to zero
+  #Apply corrections for raw CNV counts and round negative corrected counts to zero
   df$control_CNV.adj <- df$control_CNV-adjustments.CTRL
   df$control_CNV.adj_round <- round(df$control_CNV.adj)
   df$control_CNV.adj_round[which(df$control_CNV.adj_round<0)] <- 0
@@ -88,12 +91,42 @@ adjustCounts <- function(df){
   df$sum_adj_CNV <- df$control_CNV.adj + df$case_CNV.adj
   df$sum_adj_CNV_round <- df$control_CNV.adj_round + df$case_CNV.adj_round
 
+  #Linear fit of weighted CNV counts by normalized length, GC, and exonic bases
+  triple_norm.CTRL_weighted.fit <- lm(control_CNV_weighted ~ GC.norm + gene_length.norm + exonic_bases.norm,data=df)
+  triple_norm.CASE_weighted.fit <- lm(case_CNV_weighted ~ GC.norm + gene_length.norm + exonic_bases.norm,data=df)
+
+  #Calculate corrections for raw CNV counts by normalized GC content, length, and exonic bases
+  adjustments.CTRL_weighted <- ((triple_norm.CTRL_weighted.fit$coefficients[2]*df$GC.norm)+
+                         (triple_norm.CTRL_weighted.fit$coefficients[3]*df$gene_length.norm)+
+                         (triple_norm.CTRL_weighted.fit$coefficients[4]*df$exonic_bases.norm))
+  adjustments.CASE_weighted <- ((triple_norm.CASE_weighted.fit$coefficients[2]*df$GC.norm)+
+                         (triple_norm.CASE_weighted.fit$coefficients[3]*df$gene_length.norm)+
+                         (triple_norm.CASE_weighted.fit$coefficients[4]*df$exonic_bases.norm))
+
+  #Apply corrections for raw CNV counts and round negative corrected counts to zero
+  df$control_CNV_weighted.adj <- df$control_CNV_weighted-adjustments.CTRL_weighted
+  df$control_CNV_weighted.adj_round <- round(df$control_CNV_weighted.adj)
+  df$control_CNV_weighted.adj_round[which(df$control_CNV_weighted.adj_round<0)] <- 0
+  df$case_CNV_weighted.adj <- df$case_CNV_weighted-adjustments.CASE_weighted
+  df$case_CNV_weighted.adj_round <- round(df$case_CNV_weighted.adj)
+  df$case_CNV_weighted.adj_round[which(df$case_CNV_weighted.adj_round<0)] <- 0
+
+  #Sum adjusted case+control CNV counts
+  df$sum_adj_CNV_weighted <- df$control_CNV_weighted.adj + df$case_CNV_weighted.adj
+  df$sum_adj_CNV_weighted_round <- df$control_CNV_weighted.adj_round + df$case_CNV_weighted.adj_round
+
   #Reorder & reheader columns
-  df.out <- df[,c(1,2,9,3,10,4,8,6,11,12,5,13,14,7,15,16)]
+  df.out <- df[,c(1,2,12,3,13,4,11,
+                  6,14,15,8,20,21,
+                  5,16,17,7,22,23,
+                  9,18,19,10,24,25)]
   names(df.out) <- c("gene","gene_length","gene_length_Z","exonic_bases","exonic_bases_Z","GC","GC_Z",
-                     "control_raw_CNV","control_adjusted_CNV","control_adjusted_CNV_rounded",
-                     "case_raw_CNV","case_adjusted_CNV","case_adjusted_CNV_rounded",
-                     "total_raw_CNV","total_adjusted_CNV","total_adjusted_CNV_rounded")
+                     "control_raw_CNV","control_raw_CNV_adjusted","control_raw_CNV_adjusted_rounded",
+                     "control_weighted_CNV","control_weighted_CNV_adjusted","control_weighted_CNV_adjusted_rounded",
+                     "case_raw_CNV","case_raw_CNV_adjusted","case_raw_CNV_adjusted_rounded",
+                     "case_weighted_CNV","case_weighted_CNV_adjusted","case_weighted_CNV_adjusted_rounded",
+                     "total_raw_CNV","total_raw_CNV_adjusted","total_raw_CNV_adjusted_rounded",
+                     "total_weighted_CNV","total_weighted_CNV_adjusted","total_weighted_CNV_adjusted_rounded")
 
   #Return data frame
   return(df.out)
@@ -102,9 +135,11 @@ adjustCounts <- function(df){
 ###############################################################
 #####Helper function to calculate Fisher's Exact ORs and p-vals
 ###############################################################
+#Note: uses rounded raw CNV counts, not weighted counts
 calcFisherStats <- function(df,nCTRL,nCASE){
   #Get unique pairs of case/control CNV counts
-  countsTable <- table(df$control_adjusted_CNV_rounded,df$case_adjusted_CNV_rounded)
+  countsTable <- table(df$control_raw_CNV_adjusted_rounded,
+                       df$case_raw_CNV_adjusted_rounded)
   pairs <- sapply(1:nrow(countsTable),function(r){
     rowval <- as.numeric(rownames(countsTable)[r])
     matches <- as.numeric(colnames(countsTable)[which(countsTable[r,]>0)])
@@ -155,8 +190,8 @@ calcFisherStats <- function(df,nCTRL,nCASE){
   fisher.lookup <- fisher.lookup[,c(2,4:8,13:14,9:12,15:16)]
 
   #Iterate over all adjusted rounded CNV counts and pull Fisher stats
-  fisher.matched <- as.data.frame(t(apply(data.frame(df$control_adjusted_CNV_rounded,
-                   df$case_adjusted_CNV_rounded),
+  fisher.matched <- as.data.frame(t(apply(data.frame(df$control_raw_CNV_adjusted_rounded,
+                   df$case_raw_CNV_adjusted_rounded),
         1,function(vals){
           idx <- which(fisher.lookup$control_CNV==vals[1] &
                          fisher.lookup$case_CNV==vals[2])
@@ -174,10 +209,11 @@ calcFisherStats <- function(df,nCTRL,nCASE){
 #######################################################################
 #####Helper function to calculate Z-scores and p-values from ratio test
 #######################################################################
+#Note: uses adjusted, non-rounded weighted CNV counts, not raw CNV counts
 calcRatioStats <- function(df,nCTRL,nCASE){
   #Calculate CNV ratios
-  control_ratio <- df$control_adjusted_CNV/nCTRL
-  case_ratio <- df$case_adjusted_CNV/nCASE
+  control_ratio <- df$control_weighted_CNV_adjusted/nCTRL
+  case_ratio <- df$case_weighted_CNV_adjusted/nCASE
 
   #Calculate theta (difference in ratios) & Z-scores
   theta <- case_ratio-control_ratio
