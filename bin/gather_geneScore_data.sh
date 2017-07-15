@@ -24,6 +24,7 @@
 # CASES=${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.DEL.E3.GRCh37.all.bed.gz
 # GTF=${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf
 # REF=${h37}
+# BIN=${WRKDIR}/bin/rCNVmap/bin/
 
 #Usage statement
 usage(){
@@ -95,6 +96,9 @@ CONTROLS=$1
 CASES=$2
 GTF=$3
 REF=$4
+
+#Get path to rCNVmap bin
+BIN=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 ####NOTE: REPLACES ALL HYPHENS WITH UNDERSCORES IN GENE SYMBOLS FOR GREP COMPATIBILITY####
 
@@ -197,36 +201,43 @@ GC_PROFILES=`mktemp`
 bedtools nuc -fi ${REF} -bed ${BOUNDARIES} | fgrep -v "#" | cut -f4,6 | \
 sort -k1,1 > ${GC_PROFILES}
 
-#Calculate baselike dCNVs per gene
-ALL_GENES_CASE_CNV=`mktemp`
-ALL_GENES_CTRL_CNV=`mktemp`
+#Isolate unique CNV-gene pairs
+CNV_GENE_PAIRS_CASE=`mktemp`
+CNV_GENE_PAIRS_CTRL=`mktemp`
 if [ ${QUIET} -eq 0 ]; then
-  echo -e "STATUS::$(date)::COLLECTING DATA PER GENE..."
+  echo -e "STATUS::$(date)::OVERLAPPING CNVS AND GENES..."
 fi
 if [ ${WG} -eq 1 ]; then
   #Case, whole-gene CNVs
   bedtools intersect -f 1.0 -wa -wb -a ${BOUNDARIES} -b ${CASE} | \
-  awk -v OFS="\t" '{ print $4, $8 }' | \
-  sort -k1,1 -k2,2 | uniq | cut -f1 | uniq -c | \
-  awk -v OFS="\t" '{ print $2, $1 }' > ${ALL_GENES_CASE_CNV}
+  awk -v OFS="\t" '{ print $8, $4 }' | \
+  sort -k1,1 -k2,2 | uniq > ${CNV_GENE_PAIRS_CASE}
   #Control, whole-gene CNVs
   bedtools intersect -f 1.0 -wa -wb -a ${BOUNDARIES} -b ${CTRL} | \
-  awk -v OFS="\t" '{ print $4, $8 }' | \
-  sort -k1,1 -k2,2 | uniq | cut -f1 | uniq -c | \
-  awk -v OFS="\t" '{ print $2, $1 }' > ${ALL_GENES_CTRL_CNV}
+  awk -v OFS="\t" '{ print $8, $4 }' | \
+  sort -k1,1 -k2,2 | uniq > ${CNV_GENE_PAIRS_CTRL}
 else
   #Case, exonic CNVs
   bedtools intersect -wa -wb -a ${CASE} -b ${EXONS} | \
-  awk -v OFS="\t" '{ print $NF, $4 }' | sort -k1,1 -k2,2 | uniq | \
-  cut -f1 | uniq -c | awk -v OFS="\t" '{ print $2, $1 }' > ${ALL_GENES_CASE_CNV}
+  awk -v OFS="\t" '{ print $4, $NF }' | sort -k1,1 -k2,2 | \
+  uniq > ${CNV_GENE_PAIRS_CASE}
   #Control, exonic CNVs
   bedtools intersect -wa -wb -a ${CTRL} -b ${EXONS} | \
-  awk -v OFS="\t" '{ print $NF, $4 }' | sort -k1,1 -k2,2 | uniq | \
-  cut -f1 | uniq -c | awk -v OFS="\t" '{ print $2, $1 }' > ${ALL_GENES_CTRL_CNV}
+  awk -v OFS="\t" '{ print $4, $NF }' | sort -k1,1 -k2,2 | \
+  uniq > ${CNV_GENE_PAIRS_CTRL}
 fi
 
+#Calculate baseline dCNV & dGene info
+if [ ${QUIET} -eq 0 ]; then
+  echo -e "STATUS::$(date)::RUNNING CNV WEIGHTING MODEL..."
+fi
+${BIN}/gather_geneScore_data.helper.R \
+${CNV_GENE_PAIRS_CASE} \
+${CNV_GENE_PAIRS_CTRL} \
+${TMPDIR}/
+
 #Write header to output file
-echo -e "#gene\tgene_length\texonic_bases\tGC\tcase_CNV\tcontrol_CNV" > ${OUTFILE}
+echo -e "#gene\tgene_length\texonic_bases\tGC\tcase_CNV\tcontrol_CNV\tcase_CNV_weighted\tcontrol_CNV_weighted" > ${OUTFILE}
 
 #Compute boundary size, exonic bases, and GC per gene
 while read gene; do
@@ -246,17 +257,29 @@ while read gene; do
       awk -v gene=${gene} '{ if ($1==gene) print $2 }' ${GC_PROFILES} | \
       awk '{ sum+=$1 }END{ print sum/NR }'
       #Case CNVs
-      caseCNV=$( awk -v gene=${gene} '{ if ($1==gene) print $2 }' ${ALL_GENES_CASE_CNV} )
+      caseCNV=$( awk -v gene=${gene} '{ if ($1==gene) print $2 }' ${TMPDIR}/CASE.CNVsPerGene.txt )
       if [ -z ${caseCNV} ]; then
         caseCNV=0
       fi
       echo "${caseCNV}"
       #Control CNVs
-      ctrlCNV=$( awk -v gene=${gene} '{ if ($1==gene) print $2 }' ${ALL_GENES_CTRL_CNV} )
+      ctrlCNV=$( awk -v gene=${gene} '{ if ($1==gene) print $2 }' ${TMPDIR}/CTRL.CNVsPerGene.txt )
       if [ -z ${ctrlCNV} ]; then
         ctrlCNV=0
       fi
       echo "${ctrlCNV}"
+      #Case CNVs (weighted)
+      caseCNVweighted=$( awk -v gene=${gene} '{ if ($1==gene) print $2 }' ${TMPDIR}/CASE.weightedCNVsPerGene.txt )
+      if [ -z ${caseCNVweighted} ]; then
+        caseCNVweighted=0
+      fi
+      echo "${caseCNVweighted}"
+      #Control CNVs (weighted)
+      ctrlCNVweighted=$( awk -v gene=${gene} '{ if ($1==gene) print $2 }' ${TMPDIR}/CTRL.weightedCNVsPerGene.txt )
+      if [ -z ${ctrlCNVweighted} ]; then
+        ctrlCNVweighted=0
+      fi
+      echo "${ctrlCNVweighted}"
     done | paste -s
   fi 
 done < ${UNIVERSE} >> ${OUTFILE}
