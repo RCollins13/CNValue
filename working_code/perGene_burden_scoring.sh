@@ -97,7 +97,7 @@ while read pheno; do
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
 
-#####Run geneScore model for all germline phenotype groups
+#####Run geneScore model for all combinations
 #Create master output directory
 if [ -e ${WRKDIR}/analysis/perGene_burden ]; then
   rm -rf ${WRKDIR}/analysis/perGene_burden
@@ -128,6 +128,54 @@ while read pheno; do
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           fgrep -v CTRL | cut -f1 )
+
+#####Subselect significant genes per combination
+#Create master output directory
+if [ -e ${WRKDIR}/analysis/perGene_burden/signif_genes ]; then
+  rm -rf ${WRKDIR}/analysis/perGene_burden/signif_genes
+fi
+mkdir ${WRKDIR}/analysis/perGene_burden/signif_genes
+#Run model
+while read pheno; do
+  #Create output directory for results
+  if [ -e ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno} ]; then
+    rm -rf ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}
+  fi
+  mkdir ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}
+  for CNV in CNV DEL DUP; do
+    for VF in E2 E3 E4 N1; do
+      for context in exonic wholegene; do
+        if [ -e ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt ]; then
+          #Nominal
+          awk -v FS="\t" '{ if ($51<=0.05) print $1 }' \
+          ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
+          sort | uniq > \
+          ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_nominally_sig.genes.list
+          #FDR
+          awk -v FS="\t" '{ if ($52<=0.05) print $1 }' \
+          ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
+          sort | uniq > \
+          ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_FDR_sig.genes.list
+          #Bonferroni
+          awk -v FS="\t" '{ if ($53<=0.05) print $1 }' \
+          ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
+          sort | uniq > \
+          ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_Bonferroni_sig.genes.list
+        fi
+      done
+    done
+  done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          fgrep -v CTRL | cut -f1 )
+
+#####Get summary table of significant gene counts
+while read pheno; do
+  for CNV in CNV DEL DUP; do
+    for VF in E2 E3 E4 N1; do
+      for context in exonic wholegene; do
+
+
+
 
 #####Test code for enrichment tests vs gene sets
 #Get NDD-sig E4 del genes

@@ -286,7 +286,7 @@ fisher.results <- calcFisherStats(df.adj,nCTRL,nCASE)
 ratio.results <- calcRatioStats(df.adj,nCTRL,nCASE)
 
 #Combines Fisher & ratio test statistics
-all.results <- cbind(fisher.results,ratio.results[,-c(1:16)])
+all.results <- cbind(fisher.results,ratio.results[,-c(1:25)])
 
 #Fix header
 colnames(all.results)[1] <- "#gene"
