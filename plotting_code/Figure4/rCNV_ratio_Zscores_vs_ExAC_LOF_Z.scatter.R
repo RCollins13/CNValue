@@ -104,10 +104,10 @@ theta_ExAC_scatter <- function(df,yvar,color,
   #Add background shading & lines
   abline(h=seq(0,100,5),col=cols.CTRL[3])
   abline(h=50)
-  rect(xleft=c(85,90,95),xright=rep(par("usr")[2],3),
-       ybottom=rep(par("usr")[3],3),ytop=rep(par("usr")[4],3),
-       border=NA,col=adjustcolor("yellow",0.25))
-  abline(v=c(85,90,95),lty=2)
+  rect(xleft=90,xright=par("usr")[2],
+       ybottom=par("usr")[3],ytop=par("usr")[4],
+       border=NA,col=adjustcolor("yellow",0.35))
+  abline(v=90,lty=2)
 
   #Plot 95% CI
   polygon(x=c(yvar.stats.smoothed$V2[,1],rev(yvar.stats.smoothed$V3[,1])),

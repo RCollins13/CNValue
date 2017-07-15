@@ -28,17 +28,17 @@ require("optparse")
 # infile <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/plot_data/perGene_burden/NDD_DEL_E4_exonic.geneScore_data.txt"
 # #infile <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/plot_data/perGene_burden/CNCR_DEL_E2_exonic.geneScore_data.txt"
 # #infile <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/plot_data/perGene_burden/NDD_DUP_E4_wholegene.geneScore_data.txt"
-# infile <- "~/scratch/ASD_DEL_E4_exonic.geneScore_data.txt"
-# outfile <- "~/scratch/geneScore.test.output.txt"
-# nCTRL <- 38628
-# nCASE <- 3398
+infile <- "~/scratch/ASD_DEL_E4_exonic.geneScore_data.txt"
+outfile <- "~/scratch/geneScore.test.output.txt"
+nCTRL <- 38628
+nCASE <- 3398
 #
 # #Test run
-# dat <- readGeneScores(infile)
-# df <- adjustCounts(dat)
-# fisher.results <- calcFisherStats(df,nCTRL,nCASE)
-# ratio.results <- calcRatioStats(df,nCTRL,nCASE)
-# all.results <- cbind(fisher.results,ratio.results[,-c(1:16)])
+dat <- readGeneScores(infile)
+df <- adjustCounts(dat)
+fisher.results <- calcFisherStats(df,nCTRL,nCASE)
+ratio.results <- calcRatioStats(df,nCTRL,nCASE)
+all.results <- cbind(fisher.results,ratio.results[,-c(1:25)])
 
 ######################################################
 #####Helper function to read & clean geneScore dataset
@@ -212,7 +212,7 @@ calcFisherStats <- function(df,nCTRL,nCASE){
 #Note: uses adjusted, non-rounded weighted CNV counts, not raw CNV counts
 calcRatioStats <- function(df,nCTRL,nCASE){
   #Calculate CNV ratios
-  control_ratio <- df$control_weighted_CNV_adjusted
+  control_ratio <- df$control_weighted_CNV_adjusted/nCTRL
   case_ratio <- df$case_weighted_CNV_adjusted/nCASE
 
   #Calculate theta (difference in ratios) & Z-scores
