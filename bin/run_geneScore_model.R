@@ -28,15 +28,15 @@ require("optparse")
 # infile <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/plot_data/perGene_burden/NDD_DEL_E4_exonic.geneScore_data.txt"
 # #infile <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/plot_data/perGene_burden/CNCR_DEL_E2_exonic.geneScore_data.txt"
 # #infile <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/plot_data/perGene_burden/NDD_DUP_E4_wholegene.geneScore_data.txt"
-infile <- "~/scratch/ASD_DEL_E4_exonic.geneScore_data.txt"
-outfile <- "~/scratch/geneScore.test.output.txt"
-nCTRL <- 38628
-nCASE <- 3398
-#
-# #Test run
-dat <- readGeneScores(infile)
-df <- adjustCounts(dat)
-fisher.results <- calcFisherStats(df,nCTRL,nCASE)
+# infile <- "~/scratch/ASD_DEL_E4_exonic.geneScore_data.txt"
+# outfile <- "~/scratch/geneScore.test.output.txt"
+# nCTRL <- 38628
+# nCASE <- 3398
+# #
+# # #Test run
+# dat <- readGeneScores(infile)
+# df <- adjustCounts(dat)
+# fisher.results <- calcFisherStats(df,nCTRL,nCASE)
 # ratio.results <- calcRatioStats(df,nCTRL,nCASE)
 # all.results <- cbind(fisher.results,ratio.results[,-c(1:16)])
 

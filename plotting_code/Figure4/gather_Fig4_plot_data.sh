@@ -39,10 +39,15 @@ for pheno in GERM NEURO NDD PSYCH SOMA CNCR; do
   done
 done
 
-#####Cut ExAC missense Z-scores for correlation vs CNV Z-score
-cut -f2,19 ${WRKDIR}/data/misc/fordist_cleaned_nonpsych_z_pli_rec_null_data.txt > \
-${WRKDIR}/data/plot_data/figure4/ExAC_LoF_Zscores.txt
-
+#####Cut ExAC lof obs/exp, Z-scores, and pLI for correlation vs CNV Z-score
+#Constraint
+sed '1d' ${WRKDIR}/data/misc/fordist_cleaned_nonpsych_z_pli_rec_null_data.txt | \
+awk -v OFS="\t" '{ if ($16>0) print $2, $13/$16, $19, $20 }' > \
+${WRKDIR}/data/plot_data/figure4/ExAC_LoF_constraint.txt
+#RVIS (0.01%)
+sed '1d' ${WRKDIR}/data/misc/RVIS_Unpublished_ExAC_May2015.txt | \
+awk -v OFS="\t" '{ print $1, $(NF-1), $NF }' > \
+${WRKDIR}/data/plot_data/figure4/ExAC_RVIS.txt
 
 
 
