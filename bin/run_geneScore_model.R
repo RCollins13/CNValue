@@ -18,27 +18,27 @@
 ##Command line option:
 # outfile: path to output file
 
-##Local dev testing parameters
-# infile <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/plot_data/perGene_burden/NDD_DEL_E4_exonic.geneScore_data.txt"
-# #infile <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/plot_data/perGene_burden/CNCR_DEL_E2_exonic.geneScore_data.txt"
-# #infile <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/plot_data/perGene_burden/NDD_DUP_E4_wholegene.geneScore_data.txt"
-# infile <- "~/scratch/ASD_DEL_E4_exonic.geneScore_data.txt"
-# outfile <- "~/scratch/geneScore.test.output.txt"
-# nCTRL <- 38628
-# nCASE <- 3398
-#
-# #Test run
-# dat <- readGeneScores(infile)
-# df <- adjustCounts(dat)
-# fisher.results <- calcFisherStats(df,nCTRL,nCASE)
-# ratio.results <- calcRatioStats(df,nCTRL,nCASE)
-# all.results <- cbind(fisher.results,ratio.results[,-c(1:16)])
-
 #####Set params
 options(scipen=1000,stringsAsFactors=F)
 
 #####Load requirements
 require("optparse")
+
+##Local dev testing parameters
+# infile <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/plot_data/perGene_burden/NDD_DEL_E4_exonic.geneScore_data.txt"
+# #infile <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/plot_data/perGene_burden/CNCR_DEL_E2_exonic.geneScore_data.txt"
+# #infile <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/plot_data/perGene_burden/NDD_DUP_E4_wholegene.geneScore_data.txt"
+infile <- "~/scratch/ASD_DEL_E4_exonic.geneScore_data.txt"
+outfile <- "~/scratch/geneScore.test.output.txt"
+nCTRL <- 38628
+nCASE <- 3398
+#
+# #Test run
+dat <- readGeneScores(infile)
+df <- adjustCounts(dat)
+fisher.results <- calcFisherStats(df,nCTRL,nCASE)
+# ratio.results <- calcRatioStats(df,nCTRL,nCASE)
+# all.results <- cbind(fisher.results,ratio.results[,-c(1:16)])
 
 ######################################################
 #####Helper function to read & clean geneScore dataset
@@ -212,12 +212,15 @@ calcFisherStats <- function(df,nCTRL,nCASE){
 #Note: uses adjusted, non-rounded weighted CNV counts, not raw CNV counts
 calcRatioStats <- function(df,nCTRL,nCASE){
   #Calculate CNV ratios
-  control_ratio <- df$control_weighted_CNV_adjusted/nCTRL
+  control_ratio <- df$control_weighted_CNV_adjusted
   case_ratio <- df$case_weighted_CNV_adjusted/nCASE
 
   #Calculate theta (difference in ratios) & Z-scores
   theta <- case_ratio-control_ratio
   theta.z <- scale(theta,scale=T,center=F)
+
+  #Assign percentile based on theta.z
+  theta.z.pct <- rank(theta.z)/length(theta.z)
 
   #Calculate p-values
   theta.z.p.case_gt_control <- pnorm(theta.z,lower.tail=F)
@@ -234,6 +237,7 @@ calcRatioStats <- function(df,nCTRL,nCASE){
                     "case_ratio"=case_ratio,
                     "theta"=theta,
                     "theta_Zscore"=theta.z,
+                    "theta_centile"=theta.z.rank,
                     "case_gt_control_ratio_uncorrected_p"=theta.z.p.case_gt_control,
                     "case_gt_control_ratio_FDR_q"=theta.z.FDR_q.case_gt_control,
                     "case_gt_control_ratio_Bonferroni_p"=theta.z.Bonferroni_p.case_gt_control,

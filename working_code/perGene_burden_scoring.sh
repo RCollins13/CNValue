@@ -135,7 +135,7 @@ if [ -e ${WRKDIR}/analysis/perGene_burden/signif_genes ]; then
   rm -rf ${WRKDIR}/analysis/perGene_burden/signif_genes
 fi
 mkdir ${WRKDIR}/analysis/perGene_burden/signif_genes
-#Run model
+#Per disease phenotype
 while read pheno; do
   #Create output directory for results
   if [ -e ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno} ]; then
@@ -147,20 +147,46 @@ while read pheno; do
       for context in exonic wholegene; do
         if [ -e ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt ]; then
           #Nominal
-          awk -v FS="\t" '{ if ($51<=0.05) print $1 }' \
-          ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
-          sort | uniq > \
+          fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
+          awk -v FS="\t" '{ if ($42<=0.05) print $1 }' | sort | uniq > \
           ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_nominally_sig.genes.list
           #FDR
-          awk -v FS="\t" '{ if ($52<=0.05) print $1 }' \
-          ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
-          sort | uniq > \
+          fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
+          awk -v FS="\t" '{ if ($43<=0.05) print $1 }' | sort | uniq > \
           ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_FDR_sig.genes.list
           #Bonferroni
-          awk -v FS="\t" '{ if ($53<=0.05) print $1 }' \
-          ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
-          sort | uniq > \
+          fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
+          awk -v FS="\t" '{ if ($44<=0.05) print $1 }' | sort | uniq > \
           ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_Bonferroni_sig.genes.list
+        fi
+      done
+    done
+  done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          fgrep -v CTRL | cut -f1 )
+#Create output directory for control results
+if [ -e ${WRKDIR}/analysis/perGene_burden/signif_genes/CTRL ]; then
+  rm -rf ${WRKDIR}/analysis/perGene_burden/signif_genes/CTRL
+fi
+mkdir ${WRKDIR}/analysis/perGene_burden/signif_genes/CTRL
+#Genes per control comparison
+while read pheno; do  
+  for CNV in CNV DEL DUP; do
+    for VF in E2 E3 E4 N1; do
+      for context in exonic wholegene; do
+        if [ -e ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt ]; then
+          #Nominal
+          fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
+          awk -v FS="\t" '{ if ($45<=0.05) print $1 }' | sort | uniq > \
+          ${WRKDIR}/analysis/perGene_burden/signif_genes/CTRL/CTRL_vs_${pheno}_${CNV}_${VF}_${context}.geneScore_nominally_sig.genes.list
+          #FDR
+          fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
+          awk -v FS="\t" '{ if ($46<=0.05) print $1 }' | sort | uniq > \
+          ${WRKDIR}/analysis/perGene_burden/signif_genes/CTRL/CTRL_vs_${pheno}_${CNV}_${VF}_${context}.geneScore_FDR_sig.genes.list
+          #Bonferroni
+          fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
+          awk -v FS="\t" '{ if ($47<=0.05) print $1 }' | sort | uniq > \
+          ${WRKDIR}/analysis/perGene_burden/signif_genes/CTRL/CTRL_vs_${pheno}_${CNV}_${VF}_${context}.geneScore_Bonferroni_sig.genes.list
         fi
       done
     done
@@ -169,52 +195,25 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
           fgrep -v CTRL | cut -f1 )
 
 #####Get summary table of significant gene counts
+VF=E4
+CNV=DEL
+context=exonic
 while read pheno; do
-  for CNV in CNV DEL DUP; do
-    for VF in E2 E3 E4 N1; do
-      for context in exonic wholegene; do
+  for dummy in 1; do
+    echo ${pheno}
+    for sig in nominally FDR Bonferroni; do
+      cat ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.genes.list | wc -l
+    done
+    for sig in nominally FDR Bonferroni; do
+      cat ${WRKDIR}/analysis/perGene_burden/signif_genes/CTRL/CTRL_vs_${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.genes.list | wc -l
+    done
+  done | paste -s
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          fgrep -v CTRL | cut -f1 )
 
 
 
 
-#####Test code for enrichment tests vs gene sets
-#Get NDD-sig E4 del genes
-awk '{ if ($35<=0.05) print $1 }' \
-${WRKDIR}/analysis/perGene_burden/NDD/NDD_DEL_E4_exonic.geneScore_stats.txt > \
-${TMPDIR}/NDD_DEL_E4_exonic.sig_genes.txt
-#SEIZ E4 DEL
-awk '{ if ($35<=0.05) print $1 }' \
-${WRKDIR}/analysis/perGene_burden/SEIZ/SEIZ_DEL_E4_exonic.geneScore_stats.txt > \
-${TMPDIR}/SEIZ_DEL_E4_exonic.sig_genes.txt
-#SCZ E4 DEL
-awk '{ if ($35<=0.05) print $1 }' \
-${WRKDIR}/analysis/perGene_burden/SCZ/SCZ_DEL_E4_exonic.geneScore_stats.txt > \
-${TMPDIR}/SCZ_DEL_E4_exonic.sig_genes.txt
-#SEIZ E4 DUP
-awk '{ if ($35<=0.05) print $1 }' \
-${WRKDIR}/analysis/perGene_burden/SEIZ/SEIZ_DEL_E2_wholegene.geneScore_stats.txt > \
-${TMPDIR}/SEIZ_DUP_E2_wholegene.sig_genes.txt
-#CARD E4 DEL
-awk '{ if ($35<=0.05) print $1 }' \
-${WRKDIR}/analysis/perGene_burden/CARD/CARD_DEL_E4_exonic.geneScore_stats.txt > \
-${TMPDIR}/CARD_DEL_E4_exonic.sig_genes.txt
-#Get CTRL-sig E4 del genes
-awk '{ if ($35<=0.05) print $1 }' \
-${WRKDIR}/analysis/perGene_burden/DD/DD_DEL_E4_exonic.geneScore_stats.txt > \
-${TMPDIR}/DD_DEL_E4_exonic.sig_genes.txt
-#Get autosomal protein-coding genes
-grep -ve '^X\|^Y\|^M' \
-${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed | \
-cut -f4 | sort | uniq > ${TMPDIR}/autosomal_protein_coding_genes.list
-#Run tests
-/data/talkowski/rlc47/code/ScriptToolbox/bidirectionalEnrichment.sh -n 20 \
-${TMPDIR}/DD_DEL_E4_exonic.sig_genes.txt \
-${WRKDIR}/data/master_annotations/genelists/DDD_2017.genes.list \
-${TMPDIR}/autosomal_protein_coding_genes.list
-/data/talkowski/rlc47/code/ScriptToolbox/bidirectionalEnrichment.sh -n 20 \
-${TMPDIR}/DD_DEL_E4_exonic.sig_genes.txt \
-${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list \
-${TMPDIR}/autosomal_protein_coding_genes.list
 
 
 
