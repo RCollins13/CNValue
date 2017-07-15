@@ -148,15 +148,15 @@ while read pheno; do
         if [ -e ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt ]; then
           #Nominal
           fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
-          awk -v FS="\t" '{ if ($42<=0.05) print $1 }' | sort | uniq > \
+          awk -v FS="\t" '{ if ($43<=0.05) print $1 }' | sort | uniq > \
           ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_nominally_sig.genes.list
           #FDR
           fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
-          awk -v FS="\t" '{ if ($43<=0.05) print $1 }' | sort | uniq > \
+          awk -v FS="\t" '{ if ($44<=0.05) print $1 }' | sort | uniq > \
           ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_FDR_sig.genes.list
           #Bonferroni
           fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
-          awk -v FS="\t" '{ if ($44<=0.05) print $1 }' | sort | uniq > \
+          awk -v FS="\t" '{ if ($45<=0.05) print $1 }' | sort | uniq > \
           ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_Bonferroni_sig.genes.list
         fi
       done
@@ -177,15 +177,15 @@ while read pheno; do
         if [ -e ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt ]; then
           #Nominal
           fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
-          awk -v FS="\t" '{ if ($45<=0.05) print $1 }' | sort | uniq > \
+          awk -v FS="\t" '{ if ($46<=0.05) print $1 }' | sort | uniq > \
           ${WRKDIR}/analysis/perGene_burden/signif_genes/CTRL/CTRL_vs_${pheno}_${CNV}_${VF}_${context}.geneScore_nominally_sig.genes.list
           #FDR
           fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
-          awk -v FS="\t" '{ if ($46<=0.05) print $1 }' | sort | uniq > \
+          awk -v FS="\t" '{ if ($47<=0.05) print $1 }' | sort | uniq > \
           ${WRKDIR}/analysis/perGene_burden/signif_genes/CTRL/CTRL_vs_${pheno}_${CNV}_${VF}_${context}.geneScore_FDR_sig.genes.list
           #Bonferroni
           fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
-          awk -v FS="\t" '{ if ($47<=0.05) print $1 }' | sort | uniq > \
+          awk -v FS="\t" '{ if ($48<=0.05) print $1 }' | sort | uniq > \
           ${WRKDIR}/analysis/perGene_burden/signif_genes/CTRL/CTRL_vs_${pheno}_${CNV}_${VF}_${context}.geneScore_Bonferroni_sig.genes.list
         fi
       done

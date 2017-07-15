@@ -32,8 +32,8 @@ require("optparse")
 # outfile <- "~/scratch/geneScore.test.output.txt"
 # nCTRL <- 38628
 # nCASE <- 3398
-# #
-# # #Test run
+#
+# #Test run
 # dat <- readGeneScores(infile)
 # df <- adjustCounts(dat)
 # fisher.results <- calcFisherStats(df,nCTRL,nCASE)
@@ -220,7 +220,7 @@ calcRatioStats <- function(df,nCTRL,nCASE){
   theta.z <- scale(theta,scale=T,center=F)
 
   #Assign percentile based on theta.z
-  theta.z.pct <- rank(theta.z)/length(theta.z)
+  theta.z.rank <- rank(theta.z)/length(theta.z)
 
   #Calculate p-values
   theta.z.p.case_gt_control <- pnorm(theta.z,lower.tail=F)

@@ -24,6 +24,9 @@ cols.NEURO <- c("#00BFF4","#66D9F8","#99E5FB","#CCF2FD")
 cols.SOMA <- c("#EC008D","#F466BB","#F799D1","#FBCCE8")
 cols.CNCR <- c("#FFCB00","#FFCB00","#FFE066","#FFF5CC")
 
+#####Load libraries
+require(plotrix)
+
 ##################################################################################
 #####Helper function to read data, & match with ExAC scores (based on gene symbol)
 ##################################################################################
@@ -36,13 +39,15 @@ ExAC.RVIS <- read.table(paste(WRKDIR,"plot_data/figure4/ExAC_RVIS.txt",sep=""),
                         header=F)
 colnames(ExAC.RVIS) <- c("gene","RVIS","RVIS_pct")
 #Read CNV data & match w/ExAC Z-scores
-readData <- function(pheno,VF,context){
+readData <- function(pheno,VF,context,minCNV=2){
   lapply(list("CNV","DEL","DUP"),function(CNV){
     #Read table
     dat <- read.table(paste(WRKDIR,"plot_data/figure4/geneScore_results/",
                             pheno,"_",CNV,"_",VF,"_",context,
                             ".geneScore_stats.txt",sep=""),
                       comment.char="",header=T)
+    #Exclude genes with fewer than minCNV total CNVs
+    dat <- dat[which(dat$total_raw_CNV>=minCNV),]
     #Replace first column header
     names(dat)[1] <- "gene"
     #Match w/ExAC
@@ -54,21 +59,46 @@ readData <- function(pheno,VF,context){
   })
 }
 
-###########################
-#####Helper function to plot
+######################################################
+#####Helper function to plot ExAC vs rCNV scatterplots
+######################################################
+theta_ExAC_scatter <- function(df,yvar,color){
+  #Compute rCNV z-score percentiles
+  rCNV.cents <- quantile(x=df$theta_Zscore,probs=seq(0,1,0.01))
+
+  #Compute response variable mean & 95% CIs per centile
+  yvar.stats <- as.data.frame(t(sapply(1:100,function(q){
+    #Extract relevant values
+    if(yvar=="constraint"){
+      vals <- df[which(df$theta_Zscore>=rCNV.cents[q]
+                       & df$theta_Zscore<rCNV.cents[q+1]),]$lof_z_rank
+    }else{
+      vals <- 100-df[which(df$theta_Zscore>=rCNV.cents[q]
+                       & df$theta_Zscore<rCNV.cents[q+1]),]$RVIS_pct
+    }
+
+    #Compute stats & return
+    CI.margin <- 1.96*std.error(vals)
+    stats <- c(mean(vals),
+               mean(vals)-CI.margin,
+               mean(vals)+CI.margin)
+    return(stats)
+  })))
+}
+
 
 #Test percentile plots - theta Z vs ExAC lof Z
-dat <- readData("GERM","E4","exonic")
+dat <- readData("GERM","E4","exonic",minCNV=3)
 
 
 #DEL
-DEL.cents <- quantile(x=dat[[2]]$theta_Zscore,probs=seq(0,1,0.01))
+
 DEL.means <- sapply(1:100,function(q){
   mean(c(DEL.cents[q],DEL.cents[q+1]))
 })
 DEL.lof_z <- sapply(1:100,function(q){
   df <- dat[[2]]
-  mean(df[which(df$theta_Zscore>=DEL.cents[q] & df$theta_Zscore<DEL.cents[q+1]),]$lof_z)
+
 })
 plot(DEL.means,DEL.lof_z,xlim=c(-2,2))
 DEL.lof_z_pct <- sapply(1:100,function(q){
@@ -175,13 +205,13 @@ CNV.lof_z_pct <- sapply(1:100,function(q){
 })
 plot(CNV.means,CNV.lof_z_pct,xlim=c(-2,2))
 ###############
-plot(CNV.lof_z_pct,lwd=2,pch=21,col="red",
+plot(CNV.lof_z_pct,lwd=2,pch=21,col="black",
      xlab="rCNV Burden Percentile",ylim=c(45,65),
      panel.first=c(rect(xleft=90,xright=par("usr")[2],
                         ybottom=par("usr")[3],ytop=par("usr")[4],
                         col="yellow",border=NA)))
 abline(h=50)
-points(smooth.spline(1:100,CNV.lof_z_pct,spar=0.4),lwd=3,col="red",type="l")
+points(smooth.spline(1:100,CNV.lof_z_pct,spar=0.4),lwd=3,col="black",type="l")
 abline(v=90,lty=2)
 # abline(v=95,lty=3)
 ###############
@@ -196,13 +226,13 @@ CNV.RVIS_pct <- sapply(1:100,function(q){
 })
 plot(CNV.means,CNV.RVIS_pct,xlim=c(-2,2))
 ###############
-plot(100-CNV.RVIS_pct,lwd=2,pch=21,col="red",
+plot(100-CNV.RVIS_pct,lwd=2,pch=21,col="black",
      xlab="rCNV Burden Percentile",ylim=c(45,65),
      panel.first=c(rect(xleft=90,xright=par("usr")[2],
                         ybottom=par("usr")[3],ytop=par("usr")[4],
                         col="yellow",border=NA)))
 abline(h=50)
-points(smooth.spline(1:100,100-CNV.RVIS_pct,spar=0.4),lwd=3,col="red",type="l")
+points(smooth.spline(1:100,100-CNV.RVIS_pct,spar=0.4),lwd=3,col="black",type="l")
 abline(v=90,lty=2)
 # abline(v=95,lty=3)
 ###############
