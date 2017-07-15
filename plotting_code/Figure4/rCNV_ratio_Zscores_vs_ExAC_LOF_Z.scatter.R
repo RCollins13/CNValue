@@ -54,6 +54,9 @@ readData <- function(pheno,VF,context,minCNV=2){
     dat <- merge(dat,ExAC.constraint)
     #Match w/RVIS
     dat <- merge(dat,ExAC.RVIS)
+    #Revise ExAC & RVIS percentiles based on subsetted gene list
+    dat$lof_z_rank <- 100*rank(dat$lof_z_rank)/length(dat$lof_z_rank)
+    dat$RVIS_pct <- 100*rank(dat$RVIS_pct)/length(dat$RVIS_pct)
     #Return data
     return(dat)
   })
@@ -62,7 +65,9 @@ readData <- function(pheno,VF,context,minCNV=2){
 ######################################################
 #####Helper function to plot ExAC vs rCNV scatterplots
 ######################################################
-theta_ExAC_scatter <- function(df,yvar,color){
+theta_ExAC_scatter <- function(df,yvar,color,
+                               ylim=c(40,70),spar=0.4,
+                               xaxis=T,yaxis=T){
   #Compute rCNV z-score percentiles
   rCNV.cents <- quantile(x=df$theta_Zscore,probs=seq(0,1,0.01))
 
@@ -84,158 +89,93 @@ theta_ExAC_scatter <- function(df,yvar,color){
                mean(vals)+CI.margin)
     return(stats)
   })))
+
+  #Smooth response variable values
+  yvar.stats.smoothed <- apply(yvar.stats,2,function(vals){
+    smoothed <- smooth.spline(vals,spar=spar)
+    return(data.frame(smoothed$x,smoothed$y))
+  })
+
+  #Prepare plot area
+  par(mar=c(2,2,0.5,0.5))
+  plot(x=c(0,101),y=ylim,type="n",
+       xaxt="n",yaxt="n",xlab="",ylab="",xaxs="i",yaxs="i")
+
+  #Add background shading & lines
+  abline(h=seq(0,100,5),col=cols.CTRL[3])
+  abline(h=50)
+  rect(xleft=c(85,90,95),xright=rep(par("usr")[2],3),
+       ybottom=rep(par("usr")[3],3),ytop=rep(par("usr")[4],3),
+       border=NA,col=adjustcolor("yellow",0.25))
+  abline(v=c(85,90,95),lty=2)
+
+  #Plot 95% CI
+  polygon(x=c(yvar.stats.smoothed$V2[,1],rev(yvar.stats.smoothed$V3[,1])),
+          y=c(yvar.stats.smoothed$V2[,2],rev(yvar.stats.smoothed$V3[,2])),
+          border=NA,col=adjustcolor(color,0.4))
+
+  #Plot observed percentiles
+  points(x=1:100,y=yvar.stats[,1],lwd=2,pch=21,col=color,bg="white")
+
+  #Plot smoothed trendline
+  points(yvar.stats.smoothed$V1,type="l",lwd=4,col=color)
+
+  #Add x-axis (if optioned)
+  if(xaxis==T){
+    axis(1,at=seq(0,100,5),labels=NA,tck=-0.01,col=cols.CTRL[1])
+    axis(1,at=seq(0,100,10),labels=NA,tck=-0.02)
+    axis(1,at=seq(0,100,10),tick=F,line=-0.8,cex.axis=0.9)
+  }
+
+  #Add y-axis (if optioned)
+  if(yaxis==T){
+    axis(2,at=seq(0,100,5),labels=NA,tck=-0.01,col=cols.CTRL[1])
+    axis(2,at=seq(0,100,10),labels=NA,tck=-0.02)
+    axis(2,at=seq(0,100,10),tick=F,line=-0.6,las=2,cex.axis=0.9)
+  }
 }
 
+###############################################
+#####Plot master theta pctile scatters for Fig4
+###############################################
+#Load data -- GERM/E4/exonic/minCNV=4
+dat <- readData("GERM","E4","exonic",minCNV=4)
 
-#Test percentile plots - theta Z vs ExAC lof Z
-dat <- readData("GERM","E4","exonic",minCNV=3)
-
-
-#DEL
-
-DEL.means <- sapply(1:100,function(q){
-  mean(c(DEL.cents[q],DEL.cents[q+1]))
-})
-DEL.lof_z <- sapply(1:100,function(q){
-  df <- dat[[2]]
-
-})
-plot(DEL.means,DEL.lof_z,xlim=c(-2,2))
-DEL.lof_z_pct <- sapply(1:100,function(q){
-  df <- dat[[2]]
-  mean(df[which(df$theta_Zscore>=DEL.cents[q] & df$theta_Zscore<DEL.cents[q+1]),]$lof_z_rank)
-})
-plot(DEL.means,DEL.RVIS_pct,xlim=c(-2,2))
-###############
-plot(DEL.lof_z_pct,lwd=2,pch=21,col="red",
-     xlab="rCNV Burden Percentile",ylim=c(45,65),
-     panel.first=c(rect(xleft=90,xright=par("usr")[2],
-                        ybottom=par("usr")[3],ytop=par("usr")[4],
-                        col="yellow",border=NA)))
-abline(h=50)
-points(smooth.spline(1:100,DEL.lof_z_pct,spar=0.4),lwd=3,col="red",type="l")
-abline(v=90,lty=2)
-# abline(v=95,lty=3)
-###############
-DEL.RVIS <- sapply(1:100,function(q){
-  df <- dat[[2]]
-  mean(df[which(df$theta_Zscore>=DEL.cents[q] & df$theta_Zscore<DEL.cents[q+1]),]$RVIS)
-})
-plot(DEL.means,DEL.RVIS,xlim=c(-2,2))
-DEL.RVIS_pct <- sapply(1:100,function(q){
-  df <- dat[[2]]
-  mean(df[which(df$theta_Zscore>=DEL.cents[q] & df$theta_Zscore<DEL.cents[q+1]),]$RVIS_pct)
-})
-plot(DEL.means,DEL.RVIS_pct,xlim=c(-2,2))
-###############
-plot(100-DEL.RVIS_pct,lwd=2,pch=21,col="red",
-     xlab="rCNV Burden Percentile",ylim=c(45,65),
-     panel.first=c(rect(xleft=90,xright=par("usr")[2],
-                        ybottom=par("usr")[3],ytop=par("usr")[4],
-                        col="yellow",border=NA)))
-abline(h=50)
-points(smooth.spline(1:100,100-DEL.RVIS_pct,spar=0.4),lwd=3,col="red",type="l")
-abline(v=90,lty=2)
-# abline(v=95,lty=3)
-###############
-
-
-#DUP
-DUP.cents <- quantile(x=dat[[3]]$theta_Zscore,probs=seq(0,1,0.01))
-DUP.means <- sapply(1:100,function(q){
-  mean(c(DUP.cents[q],DUP.cents[q+1]))
-})
-DUP.lof_z <- sapply(1:100,function(q){
-  df <- dat[[3]]
-  mean(df[which(df$theta_Zscore>=DUP.cents[q] & df$theta_Zscore<DUP.cents[q+1]),]$lof_z)
-})
-plot(DUP.means,DUP.lof_z,xlim=c(-5,5))
-DUP.lof_z_pct <- sapply(1:100,function(q){
-  df <- dat[[3]]
-  mean(df[which(df$theta_Zscore>=DUP.cents[q] & df$theta_Zscore<DUP.cents[q+1]),]$lof_z_rank)
-})
-plot(DUP.means,DUP.lof_z_pct,xlim=c(-2,2))
-###############
-plot(DUP.lof_z_pct,lwd=2,pch=21,col="blue",
-     xlab="rCNV Burden Percentile",ylim=c(45,65),
-     panel.first=c(rect(xleft=90,xright=par("usr")[2],
-                        ybottom=par("usr")[3],ytop=par("usr")[4],
-                        col="yellow",border=NA)))
-abline(h=50)
-points(smooth.spline(1:100,DUP.lof_z_pct,spar=0.4),lwd=3,col="blue",type="l")
-abline(v=90,lty=2)
-# abline(v=95,lty=3)
-###############
-DUP.RVIS <- sapply(1:100,function(q){
-  df <- dat[[3]]
-  mean(df[which(df$theta_Zscore>=DUP.cents[q] & df$theta_Zscore<DUP.cents[q+1]),]$RVIS)
-})
-plot(DUP.means,DUP.RVIS,xlim=c(-2,2))
-DUP.RVIS_pct <- sapply(1:100,function(q){
-  df <- dat[[3]]
-  mean(df[which(df$theta_Zscore>=DUP.cents[q] & df$theta_Zscore<DUP.cents[q+1]),]$RVIS_pct)
-})
-plot(DUP.means,DUP.RVIS_pct,xlim=c(-2,2))
-###############
-plot(100-DUP.RVIS_pct,lwd=2,pch=21,col="blue",
-     xlab="rCNV Burden Percentile",ylim=c(45,65),
-     panel.first=c(rect(xleft=90,xright=par("usr")[2],
-                        ybottom=par("usr")[3],ytop=par("usr")[4],
-                        col="yellow",border=NA)))
-points(smooth.spline(1:100,100-DUP.RVIS_pct,spar=0.4),lwd=3,col="blue",type="l")
-abline(h=50)
-abline(v=90,lty=2)
-# abline(v=95,lty=3)
-###############
-
-
-#CNV
-CNV.cents <- quantile(x=dat[[1]]$theta_Zscore,probs=seq(0,1,0.01))
-CNV.means <- sapply(1:100,function(q){
-  mean(c(CNV.cents[q],CNV.cents[q+1]))
-})
-CNV.lof_z <- sapply(1:100,function(q){
-  df <- dat[[1]]
-  mean(df[which(df$theta_Zscore>=CNV.cents[q] & df$theta_Zscore<CNV.cents[q+1]),]$lof_z)
-})
-plot(CNV.means,CNV.lof_z,xlim=c(-2,2))
-CNV.lof_z_pct <- sapply(1:100,function(q){
-  df <- dat[[1]]
-  mean(df[which(df$theta_Zscore>=CNV.cents[q] & df$theta_Zscore<CNV.cents[q+1]),]$lof_z_rank)
-})
-plot(CNV.means,CNV.lof_z_pct,xlim=c(-2,2))
-###############
-plot(CNV.lof_z_pct,lwd=2,pch=21,col="black",
-     xlab="rCNV Burden Percentile",ylim=c(45,65),
-     panel.first=c(rect(xleft=90,xright=par("usr")[2],
-                        ybottom=par("usr")[3],ytop=par("usr")[4],
-                        col="yellow",border=NA)))
-abline(h=50)
-points(smooth.spline(1:100,CNV.lof_z_pct,spar=0.4),lwd=3,col="black",type="l")
-abline(v=90,lty=2)
-# abline(v=95,lty=3)
-###############
-CNV.RVIS <- sapply(1:100,function(q){
-  df <- dat[[1]]
-  mean(df[which(df$theta_Zscore>=CNV.cents[q] & df$theta_Zscore<CNV.cents[q+1]),]$RVIS)
-})
-plot(CNV.means,CNV.RVIS,xlim=c(-2,2))
-CNV.RVIS_pct <- sapply(1:100,function(q){
-  df <- dat[[1]]
-  mean(df[which(df$theta_Zscore>=CNV.cents[q] & df$theta_Zscore<CNV.cents[q+1]),]$RVIS_pct)
-})
-plot(CNV.means,CNV.RVIS_pct,xlim=c(-2,2))
-###############
-plot(100-CNV.RVIS_pct,lwd=2,pch=21,col="black",
-     xlab="rCNV Burden Percentile",ylim=c(45,65),
-     panel.first=c(rect(xleft=90,xright=par("usr")[2],
-                        ybottom=par("usr")[3],ytop=par("usr")[4],
-                        col="yellow",border=NA)))
-abline(h=50)
-points(smooth.spline(1:100,100-CNV.RVIS_pct,spar=0.4),lwd=3,col="black",type="l")
-abline(v=90,lty=2)
-# abline(v=95,lty=3)
-###############
-
-
+#Plot CNV
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_CNV.",
+          "theta_RVIS_percentile_scatters.pdf",sep=""),
+    width=4,height=2)
+theta_ExAC_scatter(dat[[1]],yvar="RVIS",color="#333333",
+                   ylim=c(35,70),xaxis=F)
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_CNV.",
+          "theta_constraint_percentile_scatters.pdf",sep=""),
+    width=4,height=2)
+theta_ExAC_scatter(dat[[1]],yvar="constraint",color="#333333",
+                   ylim=c(35,70),xaxis=F,yaxis=F)
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_DEL.",
+          "theta_RVIS_percentile_scatters.pdf",sep=""),
+    width=4,height=2)
+theta_ExAC_scatter(dat[[2]],yvar="RVIS",color="red",
+                   ylim=c(35,70),xaxis=F)
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_DEL.",
+          "theta_constraint_percentile_scatters.pdf",sep=""),
+    width=4,height=2)
+theta_ExAC_scatter(dat[[2]],yvar="constraint",color="red",
+                   ylim=c(35,70),xaxis=F,yaxis=F)
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_DUP.",
+          "theta_RVIS_percentile_scatters.pdf",sep=""),
+    width=4,height=2)
+theta_ExAC_scatter(dat[[3]],yvar="RVIS",color="blue",
+                   ylim=c(35,70))
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_DUP.",
+          "theta_constraint_percentile_scatters.pdf",sep=""),
+    width=4,height=2)
+theta_ExAC_scatter(dat[[3]],yvar="constraint",color="blue",
+                   ylim=c(35,70),yaxis=F)
+dev.off()
 
