@@ -49,6 +49,13 @@ sed '1d' ${WRKDIR}/data/misc/RVIS_Unpublished_ExAC_May2015.txt | \
 awk -v OFS="\t" '{ print $1, $(NF-1), $NF }' > \
 ${WRKDIR}/data/plot_data/figure4/ExAC_RVIS.txt
 
+#####Gather data per phenotype for gene set enrichment plots
+#Make universal list of genes tested
+fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/GERM/GERM_CNV_E2_exonic.geneScore_stats.txt | \
+cut -f1 > ${TMPDIR}/all_tested_genes.list
+
+
+
 
 
 
