@@ -7,7 +7,7 @@
 #Copyright (c) 2017 Ryan Collins
 #Distributed under terms of the MIT License
 
-#Code to generate CNV Z-score rank vs ExAC  scatterplots
+#Code to generate CNV Z-score rank vs ExAC scatterplots
 
 #####Set parameters
 WRKDIR <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/"
