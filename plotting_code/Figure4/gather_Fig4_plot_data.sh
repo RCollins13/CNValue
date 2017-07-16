@@ -73,6 +73,14 @@ for CNV in CNV DEL DUP; do
     done
   done
 done
+#Copy to plot data directory
+if [ -e ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons ]; then
+  rm -rf ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons
+fi
+mkdir ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons
+cp ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons/* \
+${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons/
+
 
 
 
