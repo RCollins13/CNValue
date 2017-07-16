@@ -18,7 +18,7 @@
 CNV=$1
 VF=$2
 context=$3
-signif=$4
+sig=$4
 complist=$5 #two columns: gene list name & full path. Tab-delimmed
 universe=$6 #list of genes considered in test
 outfile=$7

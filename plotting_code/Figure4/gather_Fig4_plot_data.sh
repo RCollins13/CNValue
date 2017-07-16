@@ -53,6 +53,27 @@ ${WRKDIR}/data/plot_data/figure4/ExAC_RVIS.txt
 #Make universal list of genes tested
 fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/GERM/GERM_CNV_E2_exonic.geneScore_stats.txt | \
 cut -f1 > ${TMPDIR}/all_tested_genes.list
+#Create directory
+if [ -e ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons/ ]; then
+  rm -rf ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons/
+fi
+mkdir ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons/
+#Submit data collection
+for CNV in CNV DEL DUP; do
+  for VF in E2 E3 E4 N1; do
+    for context in exonic wholegene; do
+      for sig in nominally FDR Bonferroni; do
+        bsub -q short -sla miket_sc -J ${CNV}_${VF}_${context}_${sig}_collectComparisons -u nobody \
+        "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_geneScore_signif_overlaps_vs_other_gene_sets.sh \
+        ${CNV} ${VF} ${context} ${sig} \
+        ${WRKDIR}/bin/rCNVmap/misc/geneSet_enrichment_comparison_sets.list \
+        ${TMPDIR}/all_tested_genes.list \
+        ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons/${CNV}_${VF}_${context}_${sig}.comparisons.txt"
+      done
+    done
+  done
+done
+
 
 
 
