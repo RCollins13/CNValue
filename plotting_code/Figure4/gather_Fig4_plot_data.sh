@@ -58,7 +58,7 @@ if [ -e ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons/ ]; t
   rm -rf ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons/
 fi
 mkdir ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons/
-#Submit data collection
+#Submit data collection - merged master pheno groups
 for CNV in CNV DEL DUP; do
   for VF in E2 E3 E4 N1; do
     for context in exonic wholegene; do
@@ -73,6 +73,21 @@ for CNV in CNV DEL DUP; do
     done
   done
 done
+#All original pheno groups, all gene sets
+for CNV in CNV DEL DUP; do
+  for VF in E2 E3 E4 N1; do
+    for context in exonic wholegene; do
+      for sig in nominally FDR Bonferroni; do
+        bsub -q short -sla miket_sc -J ${CNV}_${VF}_${context}_${sig}_collectComparisons -u nobody \
+        "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_geneScore_signif_overlaps_vs_other_gene_sets.all_phenos.sh \
+        ${CNV} ${VF} ${context} ${sig} \
+        ${WRKDIR}/bin/rCNVmap/misc/master_gene_sets.sorted.list \
+        ${TMPDIR}/all_tested_genes.list \
+        ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons/${CNV}_${VF}_${context}_${sig}.comparisons.txt"
+      done
+    done
+  done
+done
 #Copy to plot data directory
 if [ -e ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons ]; then
   rm -rf ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons
@@ -81,6 +96,14 @@ mkdir ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons
 cp ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons/* \
 ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons/
 
+#####Copy significant genes to plotting data directory
+#Make directory
+if [ -e ${WRKDIR}/data/plot_data/signif_genes_unique ]; then
+  rm -rf ${WRKDIR}/data/plot_data/signif_genes_unique
+fi
+mkdir ${WRKDIR}/data/plot_data/signif_genes_unique
+cp /data/talkowski/Samples/rCNVmap/analysis/perGene_burden/signif_genes/merged/*unique.genes.list \
+${WRKDIR}/data/plot_data/signif_genes_unique/
 
 
 
