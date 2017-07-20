@@ -169,7 +169,7 @@ binomStats <- function(df){
 ##############################################################
 readData <- function(CNV,VF,context,sig){
   #Read file
-  df <- read.table(paste(WRKDIR,"plot_data/signif_genes_geneset_comparisons/",
+  df <- read.table(paste(WRKDIR,"plot_data/signif_genes_geneset_comparisons/subset/",
                          CNV,"_",VF,"_",context,"_",sig,".comparisons.txt",sep=""),
                    header=T,comment.char="")
   colnames(df)[1] <- "geneset"

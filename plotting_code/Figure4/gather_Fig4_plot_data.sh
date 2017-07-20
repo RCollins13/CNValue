@@ -97,6 +97,8 @@ if [ -e ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons ]; then
   rm -rf ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons
 fi
 mkdir ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons
+mkdir ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons/subset/
+mkdir ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons/allPhenos_allSets/
 cp ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons/* \
 ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons/
 cp ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons_allPhenos/* \
