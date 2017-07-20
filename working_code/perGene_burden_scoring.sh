@@ -227,12 +227,12 @@ for CNV in CNV DEL DUP; do
       for sig in nominally FDR Bonferroni; do
         echo ${sig}
         #Each original pheno group
-        while read pheno; do
-          cat ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.genes.list | \
-          sort | uniq > \
-          ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.union.genes.list
-        done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-                  fgrep -v CTRL | cut -f1 )
+        # while read pheno; do
+        #   cat ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.genes.list | \
+        #   sort | uniq > \
+        #   ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.union.genes.list
+        # done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+        #           fgrep -v CTRL | cut -f1 )
         # #GERM
         # while read pheno; do
         #   cat ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.genes.list
@@ -280,30 +280,66 @@ for CNV in CNV DEL DUP; do
         #Each original pheno group
         while read pheno; do
           fgrep -wvf \
-          <( sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_CTRL_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.union.genes.list ) \
+          <( sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_CTRL_groups_*_${VF}_${context}.geneScore_${sig}_sig.union.genes.list ) \
           <( sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.union.genes.list ) | \
           sed 's/_/\-/g' | sort | uniq > \
           ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list
         done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
                   fgrep -v CTRL | cut -f1 )
-        #Cases - merged
-        # for group in GERM NEURO NDD PSYCH SOMA CNCR; do
-        #   fgrep -wvf \
-        #   <( sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_CTRL_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.union.genes.list ) \
-        #   <( sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_${group}_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.union.genes.list ) | \
-        #   sed 's/_/\-/g' | sort | uniq > \
-        #   ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_${group}_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list
-        # done
-        # #Controls
-        # for group in GERM NEURO NDD PSYCH SOMA CNCR; do
-        #   sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_${group}_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.union.genes.list
-        # done | sort | uniq | fgrep -wvf - \
-        # <( sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_CTRL_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.union.genes.list ) > \
-        # ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_CTRL_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list
+        # Cases - merged
+        for group in GERM NEURO NDD PSYCH SOMA CNCR; do
+          fgrep -wvf \
+          <( sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_CTRL_groups_*_${VF}_${context}.geneScore_${sig}_sig.union.genes.list ) \
+          <( sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_${group}_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.union.genes.list ) | \
+          sed 's/_/\-/g' | sort | uniq > \
+          ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_${group}_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list
+        done
+        #Controls
+        for group in GERM NEURO NDD PSYCH SOMA CNCR; do
+          sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_${group}_groups_*_${VF}_${context}.geneScore_${sig}_sig.union.genes.list
+        done | sort | uniq | fgrep -wvf - \
+        <( sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_CTRL_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.union.genes.list ) > \
+        ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_CTRL_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list
       done
     done
   done
 done
+
+#####Get summary table of significant gene counts - genes unique to disease or control
+VF=E4
+context=exonic
+for CNV in CNV DEL DUP; do
+  echo -e "\n\n${CNV}\n----"
+  for dummy in 1; do
+    #Control
+    for dummy in 1; do
+      echo "CTRL"
+      for sig in nominally FDR Bonferroni; do
+        cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_CTRL_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
+      done
+    done | paste -s
+    #Affected pheno groups
+    while read pheno; do
+      for dummy in 1; do
+        echo ${pheno}
+        for sig in nominally FDR Bonferroni; do
+          cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
+        done
+      done | paste -s
+    done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+              fgrep -v CTRL | cut -f1 )
+    #Affected - unions
+    for group in GERM NEURO NDD PSYCH SOMA CNCR; do
+      for dummy in 1; do
+        echo "ALL_${group}_UNION"
+        for sig in nominally FDR Bonferroni; do
+          cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_${group}_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
+        done
+      done | paste -s
+    done
+  done
+done
+  
 
 
 

@@ -211,7 +211,7 @@ plotDots <- function(dat,yaxis=T,
        border=NA,col=cols.CTRL[4])
   abline(v=seq(0,4.2,0.5),col=cols.CTRL[3],lty=2)
   abline(v=seq(0,4.2,1),col=cols.CTRL[2],lty=2)
-  abline(v=1)
+  abline(v=c(0,1))
 
   #Plot 95% CIs
   sapply(1:nrow(dat$counts),function(i){

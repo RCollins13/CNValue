@@ -53,11 +53,15 @@ ${WRKDIR}/data/plot_data/figure4/ExAC_RVIS.txt
 #Make universal list of genes tested
 fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/GERM/GERM_CNV_E2_exonic.geneScore_stats.txt | \
 cut -f1 > ${TMPDIR}/all_tested_genes.list
-#Create directory
+#Create directories
 if [ -e ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons/ ]; then
   rm -rf ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons/
 fi
 mkdir ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons/
+if [ -e ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons_allPhenos/ ]; then
+  rm -rf ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons_allPhenos/
+fi
+mkdir ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons_allPhenos/
 #Submit data collection - merged master pheno groups
 for CNV in CNV DEL DUP; do
   for VF in E2 E3 E4 N1; do
@@ -78,12 +82,12 @@ for CNV in CNV DEL DUP; do
   for VF in E2 E3 E4 N1; do
     for context in exonic wholegene; do
       for sig in nominally FDR Bonferroni; do
-        bsub -q short -sla miket_sc -J ${CNV}_${VF}_${context}_${sig}_collectComparisons -u nobody \
+        bsub -q short -sla miket_sc -J ${CNV}_${VF}_${context}_${sig}_collectComparisons_allPhenos_allGenes -u nobody \
         "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_geneScore_signif_overlaps_vs_other_gene_sets.all_phenos.sh \
         ${CNV} ${VF} ${context} ${sig} \
         ${WRKDIR}/bin/rCNVmap/misc/master_gene_sets.sorted.list \
         ${TMPDIR}/all_tested_genes.list \
-        ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons/${CNV}_${VF}_${context}_${sig}.comparisons.txt"
+        ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons_allPhenos/${CNV}_${VF}_${context}_${sig}.comparisons.txt"
       done
     done
   done
@@ -95,6 +99,8 @@ fi
 mkdir ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons
 cp ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons/* \
 ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons/
+cp ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons_allPhenos/* \
+${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons/
 
 #####Copy significant genes to plotting data directory
 #Make directory
@@ -105,6 +111,43 @@ mkdir ${WRKDIR}/data/plot_data/signif_genes_unique
 cp /data/talkowski/Samples/rCNVmap/analysis/perGene_burden/signif_genes/merged/*unique.genes.list \
 ${WRKDIR}/data/plot_data/signif_genes_unique/
 
+#####Get union set of NDD and CNCR E4 exonic Bonf sig genes
+VF="E4"
+for CNV in DEL DUP; do
+  for pheno in CNCR NDD; do
+    cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_exonic.geneScore_Bonferroni_sig.unique.genes.list
+  done
+done | sort | uniq > \
+${TMPDIR}/NDD_CNCR_DEL_DUP_Bonferroni.genes.list
+while read gene; do
+  for dummy in 1; do
+    echo ${gene}
+    for pheno in NDD CNCR; do
+      for CNV in DEL DUP; do
+        fgrep -w ${gene} ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_exonic.geneScore_Bonferroni_sig.unique.genes.list | wc -l
+      done
+    done
+  done | paste -s
+done < ${TMPDIR}/NDD_CNCR_DEL_DUP_Bonferroni.genes.list > \
+${WRKDIR}/data/plot_data/figure4/NDD_CNCR_PPI_CNVmembership.txt
+for CNV in CNV DEL DUP; do
+  for pheno in CNCR NDD; do
+    cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_exonic.geneScore_Bonferroni_sig.unique.genes.list
+  done
+done | sort | uniq > \
+${TMPDIR}/NDD_CNCR_CNV_DEL_DUP_Bonferroni.genes.list
+while read gene; do
+  for dummy in 1; do
+    echo ${gene}
+    for pheno in NDD CNCR; do
+      for CNV in CNV DEL DUP; do
+        fgrep -w ${gene} ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_exonic.geneScore_Bonferroni_sig.unique.genes.list | wc -l
+      done
+    done
+    fgrep -w ${gene} ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list | wc -l
+  done | paste -s
+done < ${TMPDIR}/NDD_CNCR_CNV_DEL_DUP_Bonferroni.genes.list > \
+${WRKDIR}/data/plot_data/figure4/NDD_CNCR_PPI_CNVmembership_CNV_DEL_DUP.txt
 
 
 
