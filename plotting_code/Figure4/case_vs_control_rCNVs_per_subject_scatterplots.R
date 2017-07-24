@@ -40,14 +40,15 @@ readData <- function(pheno,VF,context){
 }
 
 #####Helper function to plot individual scatterplot
-CNVscatter <- function(df,color="red",maxval=NULL,xaxis=T,yaxis=T){
+CNVscatter <- function(df,color="red",maxval=NULL,
+                       xaxis=T,yaxis=T,mar=c(3,3,0.5,0.5)){
   #Get max value between cases & controls
   if(is.null(maxval)){
     maxval <- max(c(df$control_ratio,df$case_ratio))
   }
 
   #Set plot parameters
-  par(mar=c(3,3,0.5,0.5))
+  par(mar=mar)
 
   #Prepare plot area
   plot(df$control_ratio,df$case_ratio,type="n",
@@ -103,20 +104,20 @@ CNVscatter <- function(df,color="red",maxval=NULL,xaxis=T,yaxis=T){
   #        col="blue",cex=0.5)
 
   #Add x-axis
-  axis(1,at=(axTicks(1)+(0.5*(axTicks(1)[2]-axTicks(1)[1])))[1:(length(axTicks(1))-1)],
-       tck=-0.011,col="#dcdddf",label=NA)
-  axis(1,at=axTicks(1),labels=NA,tck=-0.02)
   if(xaxis==T){
+    axis(1,at=(axTicks(1)+(0.5*(axTicks(1)[2]-axTicks(1)[1])))[1:(length(axTicks(1))-1)],
+         tck=-0.011,col="#dcdddf",label=NA)
+    axis(1,at=axTicks(1),labels=NA,tck=-0.02)
     axis(1,at=axTicks(1),tick=F,line=-0.5,las=2,cex.axis=0.85,
          labels=paste(round(100*axTicks(1),2),"%",sep=""))
     # mtext(1,text="Adjusted rCNVs per Control Genome",line=1.1)
   }
 
   #Add y-axis
-  axis(2,at=(axTicks(2)+(0.5*(axTicks(2)[2]-axTicks(2)[1])))[1:(length(axTicks(2))-1)],
-       tck=-0.01,col="#dcdddf",label=NA)
-  axis(2,at=axTicks(2),labels=NA,tck=-0.02)
   if(yaxis==T){
+    axis(2,at=(axTicks(2)+(0.5*(axTicks(2)[2]-axTicks(2)[1])))[1:(length(axTicks(2))-1)],
+         tck=-0.01,col="#dcdddf",label=NA)
+    axis(2,at=axTicks(2),labels=NA,tck=-0.02)
     axis(2,at=axTicks(2),tick=F,line=-0.5,las=2,cex.axis=0.85,
          labels=paste(round(100*axTicks(2),2),"%",sep=""))
     # mtext(2,text="Adjusted rCNVs per Case Genome",line=1.1)
@@ -129,7 +130,7 @@ CNVscatter <- function(df,color="red",maxval=NULL,xaxis=T,yaxis=T){
 }
 
 #####Read data
-GERM.exonic.dfs <- readData("GERM","E4","exonic")
+# GERM.exonic.dfs <- readData("GERM","E4","exonic")
 # NEURO.exonic.dfs <- readData("NEURO","E4","exonic")
 # NDD.exonic.dfs <- readData("NDD","E4","exonic")
 # PSYCH.exonic.dfs <- readData("PSYCH","E4","exonic")
@@ -138,30 +139,30 @@ GERM.exonic.dfs <- readData("GERM","E4","exonic")
 
 #####Plot scatters
 #GERM E4 exonic CNV
-png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_CNV.",
-          "case_control_scatter.png",sep=""),
-    width=3,height=3,units="in",res=1000)
-CNVscatter(GERM.exonic.dfs[[1]],color="#333333",maxval=0.0015)
-dev.off()
-#GERM E4 exonic DEL
-png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_DEL.",
-          "case_control_scatter.png",sep=""),
-    width=3,height=3,units="in",res=1000)
-CNVscatter(GERM.exonic.dfs[[2]],color="#ed2126",yaxis=F,maxval=0.0015)
-dev.off()
-#GERM E4 exonic DUP
-png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_DUP.",
-          "case_control_scatter.png",sep=""),
-    width=3,height=3,units="in",res=1000)
-CNVscatter(GERM.exonic.dfs[[3]],color="#3b53a4",yaxis=F,maxval=0.0015)
-dev.off()
-
-#####Get number of case/control significant genes for GERM E4 exonic CNVs
-sapply(1:3,function(i){
-  case <- length(which(GERM.exonic.dfs[[i]]$case_gt_control_ratio_Bonferroni_p<=0.05))
-  ctrl <- length(which(GERM.exonic.dfs[[i]]$control_gt_case_ratio_Bonferroni_p<=0.05))
-  return(c(case,ctrl))
-})
+# png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_CNV.",
+#           "case_control_scatter.png",sep=""),
+#     width=3,height=3,units="in",res=1000)
+# CNVscatter(GERM.exonic.dfs[[1]],color="#333333",maxval=0.0015)
+# dev.off()
+# #GERM E4 exonic DEL
+# png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_DEL.",
+#           "case_control_scatter.png",sep=""),
+#     width=3,height=3,units="in",res=1000)
+# CNVscatter(GERM.exonic.dfs[[2]],color="#ed2126",yaxis=F,maxval=0.0015)
+# dev.off()
+# #GERM E4 exonic DUP
+# png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_DUP.",
+#           "case_control_scatter.png",sep=""),
+#     width=3,height=3,units="in",res=1000)
+# CNVscatter(GERM.exonic.dfs[[3]],color="#3b53a4",yaxis=F,maxval=0.0015)
+# dev.off()
+#
+# #####Get number of case/control significant genes for GERM E4 exonic CNVs
+# sapply(1:3,function(i){
+#   case <- length(which(GERM.exonic.dfs[[i]]$case_gt_control_ratio_Bonferroni_p<=0.05))
+#   ctrl <- length(which(GERM.exonic.dfs[[i]]$control_gt_case_ratio_Bonferroni_p<=0.05))
+#   return(c(case,ctrl))
+# })
 
 
 
@@ -185,6 +186,29 @@ sapply(1:3,function(i){
 # dev.off()
 
 
+#SOMA exonic E4 DEL (for geneScore schematic)
+# SOMA.exonic.dfs <- readData("SOMA","E4","exonic")
+png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/SOMA_E4_exonic_CNV.",
+          "case_control_scatter.png",sep=""),
+    width=2.5,height=2.5,units="in",res=400)
+CNVscatter(SOMA.exonic.dfs[[3]],color="#FF6A09",
+           maxval=0.001,xaxis=F,yaxis=F,
+           mar=c(0.3,0.3,0.2,0.2))
+dev.off()
+
+
+####################################################
+#####Theta histogram from SOMA vs CTRL E4 exonic DUP
+####################################################
+# SOMA.exonic.dfs <- readData("SOMA","E4","exonic")
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/theta_Z_hist.pdf",sep=""),
+    width=2,height=2)
+par(mar=c(0.3,0.3,0.2,0.2))
+hist(SOMA.exonic.dfs[[3]]$theta_Zscore,
+     breaks=200,xlim=c(-2,3),col=cols.CTRL[1],
+     yaxs="i",yaxt="n",ylab="",main="",xlab="")
+axis(2,at=seq(0,4000,1000),labels=NA)
+dev.off()
 
 
 

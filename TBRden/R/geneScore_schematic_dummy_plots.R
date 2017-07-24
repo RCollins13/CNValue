@@ -47,17 +47,42 @@ points(x=1:6,y=c(1/(1:6)),
        pch=21,lwd=3,bg="white")
 axis(1,at=1:6,labels=NA)
 axis(2,at=seq(0,1,0.2),labels=NA)
+rect(xleft=par("usr")[1],xright=par("usr")[2],
+     ybottom=par("usr")[3],ytop=par("usr")[4],
+     col=NA)
 dev.off()
 
 ########################################
 #####Regression model (for fitting CNVs)
 ########################################
+mu <- rep(0,4)
+Sigma <- matrix(.7, nrow=4, ncol=4) + diag(4)*.3
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/CNV_regression_example.pdf",sep=""),
+    width=2,height=2)
+corrval <- 0.35
 par(mar=rep(0.2,4))
 plot(x=c(-3,3),y=c(-3,3),type="n",
      xaxs="i",xaxt="n",xlab="",
      yaxs="i",yaxt="n",ylab="")
-points(rnorm(1000),
-       rnorm(1000))
+abline(h=-3:3,v=-3:3,col=cols.CTRL[3])
+rdat <- as.data.frame(mvrnorm(n=1000,mu=rep(0,2),
+                              Sigma=matrix(corrval,nrow=2,ncol=2)+diag(2)*(1-corrval)))
+names(rdat) <- c("x","y")
+points(rdat,pch=21,col=cols.CTRL[1],
+       bg=adjustcolor(cols.CTRL[1],alpha=0.3),
+       cex=0.5)
+fit <- lm(y ~ x, data=rdat)
+polygon(x=c(-3,3,3,-3),
+        y=c(0,0,3*fit$coefficients[2],-3*fit$coefficients[2]),
+        col=adjustcolor("#FF6A09",alpha=0.2),border=NA)
+abline(fit,col="#FF6A09",lwd=2)
+abline(h=0,lty=2,lwd=2)
+rect(xleft=par("usr")[1],xright=par("usr")[2],
+     ybottom=par("usr")[3],ytop=par("usr")[4],
+     col=NA)
+dev.off()
+
+
 
 
 
