@@ -62,6 +62,10 @@ if [ -e ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons_allPh
   rm -rf ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons_allPhenos/
 fi
 mkdir ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons_allPhenos/
+if [ -e ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons_allPhenos_noConstrained/ ]; then
+  rm -rf ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons_allPhenos_noConstrained/
+fi
+mkdir ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons_allPhenos_noConstrained/
 #Submit data collection - merged master pheno groups
 for CNV in CNV DEL DUP; do
   for VF in E2 E3 E4 N1; do
@@ -92,6 +96,22 @@ for CNV in CNV DEL DUP; do
     done
   done
 done
+#All original pheno groups, all gene sets, exclude constrained genes
+for CNV in CNV DEL DUP; do
+  for VF in E2 E3 E4 N1; do
+    for context in exonic wholegene; do
+      for sig in nominally FDR Bonferroni; do
+        bsub -q short -sla miket_sc -J ${CNV}_${VF}_${context}_${sig}_collectComparisons_allPhenos_allGenes_noConstrained -u nobody \
+        "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_geneScore_signif_overlaps_vs_other_gene_sets.all_phenos.wExclusion.sh \
+        ${CNV} ${VF} ${context} ${sig} \
+        ${WRKDIR}/bin/rCNVmap/misc/master_gene_sets.sorted.list \
+        ${TMPDIR}/all_tested_genes.list \
+        ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons_allPhenos_noConstrained/${CNV}_${VF}_${context}_${sig}.comparisons.txt \
+        ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list"
+      done
+    done
+  done
+done
 #Copy to plot data directory
 if [ -e ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons ]; then
   rm -rf ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons
@@ -99,10 +119,15 @@ fi
 mkdir ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons
 mkdir ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons/subset/
 mkdir ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons/allPhenos_allSets/
+mkdir ${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons/allPhenos_allSets_noConstrained/
 cp ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons/* \
-${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons/
+${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons/subset/
 cp ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons_allPhenos/* \
-${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons/
+${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons/allPhenos_allSets/
+cp ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons_allPhenos/* \
+${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons/allPhenos_allSets/
+cp ${WRKDIR}/analysis/perGene_burden/signif_genes/geneset_comparisons_allPhenos_noConstrained/* \
+${WRKDIR}/data/plot_data/signif_genes_geneset_comparisons/allPhenos_allSets_noConstrained/
 
 #####Copy significant genes to plotting data directory
 #Make directory

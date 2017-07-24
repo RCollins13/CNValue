@@ -20,8 +20,8 @@
 # ALLO=0
 # QUIET=0
 # OVER=${WRKDIR}/data/misc/exons_boundaries_dictionary/
-# CONTROLS=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DEL.E3.GRCh37.all.bed.gz
-# CASES=${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.DEL.E3.GRCh37.all.bed.gz
+# CONTROLS=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.CNV.E4.GRCh37.all.bed.gz
+# CASES=${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.CNV.E4.GRCh37.all.bed.gz
 # GTF=${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf
 # REF=${h37}
 # BIN=${WRKDIR}/bin/rCNVmap/bin/

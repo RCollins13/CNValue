@@ -129,59 +129,59 @@ CNVscatter <- function(df,color="red",maxval=NULL,xaxis=T,yaxis=T){
 }
 
 #####Read data
-# GERM.exonic.dfs <- readData("GERM","E4","exonic")
+GERM.exonic.dfs <- readData("GERM","E4","exonic")
 # NEURO.exonic.dfs <- readData("NEURO","E4","exonic")
-NDD.exonic.dfs <- readData("NDD","E4","exonic")
+# NDD.exonic.dfs <- readData("NDD","E4","exonic")
 # PSYCH.exonic.dfs <- readData("PSYCH","E4","exonic")
 # SOMA.exonic.dfs <- readData("SOMA","E4","exonic")
 # CNCR.exonic.dfs <- readData("CNCR","E4","exonic")
 
 #####Plot scatters
-#NDD E4 exonic CNV
-png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/NDD_E4_exonic_CNV.",
+#GERM E4 exonic CNV
+png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_CNV.",
           "case_control_scatter.png",sep=""),
     width=3,height=3,units="in",res=1000)
-CNVscatter(NDD.exonic.dfs[[1]],color="#333333")
+CNVscatter(GERM.exonic.dfs[[1]],color="#333333",maxval=0.0015)
 dev.off()
-#NDD E4 exonic DEL
-png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/NDD_E4_exonic_DEL.",
+#GERM E4 exonic DEL
+png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_DEL.",
           "case_control_scatter.png",sep=""),
     width=3,height=3,units="in",res=1000)
-CNVscatter(NDD.exonic.dfs[[2]],color="#ed2126",yaxis=F)
+CNVscatter(GERM.exonic.dfs[[2]],color="#ed2126",yaxis=F,maxval=0.0015)
 dev.off()
-#NDD E4 exonic DUP
-png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/NDD_E4_exonic_DUP.",
+#GERM E4 exonic DUP
+png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_DUP.",
           "case_control_scatter.png",sep=""),
     width=3,height=3,units="in",res=1000)
-CNVscatter(NDD.exonic.dfs[[3]],color="#3b53a4",yaxis=F)
+CNVscatter(GERM.exonic.dfs[[3]],color="#3b53a4",yaxis=F,maxval=0.0015)
 dev.off()
 
-#####Get number of case/control significant genes for NDD E4 exonic CNVs
+#####Get number of case/control significant genes for GERM E4 exonic CNVs
 sapply(1:3,function(i){
-  case <- length(which(NDD.exonic.dfs[[i]]$case_gt_control_ratio_Bonferroni_p<=0.05))
-  ctrl <- length(which(NDD.exonic.dfs[[i]]$control_gt_case_ratio_Bonferroni_p<=0.05))
+  case <- length(which(GERM.exonic.dfs[[i]]$case_gt_control_ratio_Bonferroni_p<=0.05))
+  ctrl <- length(which(GERM.exonic.dfs[[i]]$control_gt_case_ratio_Bonferroni_p<=0.05))
   return(c(case,ctrl))
 })
 
 
 
-# #NDD E4 wholegene CNV
-# png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/NDD_E4_wholegene_CNV.",
+# #GERM E4 wholegene CNV
+# png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_wholegene_CNV.",
 #           "case_control_scatter.png",sep=""),
 #     width=3,height=3,units="in",res=1000)
-# CNVscatter(NDD.wholegene.dfs[[1]])
+# CNVscatter(GERM.wholegene.dfs[[1]])
 # dev.off()
-# #NDD E4 wholegene DEL
-# png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/NDD_E4_wholegene_DEL.",
+# #GERM E4 wholegene DEL
+# png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_wholegene_DEL.",
 #           "case_control_scatter.png",sep=""),
 #     width=3,height=3,units="in",res=1000)
-# CNVscatter(NDD.wholegene.dfs[[2]])
+# CNVscatter(GERM.wholegene.dfs[[2]])
 # dev.off()
-# #NDD E4 wholegene DUP
-# png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/NDD_E4_wholegene_DUP.",
+# #GERM E4 wholegene DUP
+# png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_wholegene_DUP.",
 #           "case_control_scatter.png",sep=""),
 #     width=3,height=3,units="in",res=1000)
-# CNVscatter(NDD.wholegene.dfs[[3]])
+# CNVscatter(GERM.wholegene.dfs[[3]])
 # dev.off()
 
 

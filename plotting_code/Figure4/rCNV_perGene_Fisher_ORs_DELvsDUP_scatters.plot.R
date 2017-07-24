@@ -67,11 +67,11 @@ readCNVs <- function(pheno,VF){
 ######################################################
 #####Helper function to plot scatter given two vectors
 ######################################################
-plotScatter <- function(x,y,lim=6,
+plotScatter <- function(x,y,lim=6,plotlims=c(-6,6),ptcex=0.5,
                         xaxis=T,yaxis=T){
   #Prepare plotting area
   par(mar=c(3.5,3.5,0.5,0.5))
-  plot(x=c(-lim,lim),y=c(-lim,lim),type="n",
+  plot(x=plotlims,y=plotlims,type="n",
        xaxt="n",yaxt="n",xlab="",ylab="")
 
   #Plot gridlines
@@ -100,7 +100,7 @@ plotScatter <- function(x,y,lim=6,
   }
 
   #Plot points
-  points(x,y,pch=19,col=adjustcolor("black",alpha=0.2),cex=0.5)
+  points(x,y,pch=19,col=adjustcolor("black",alpha=0.2),cex=ptcex)
 
   #Plot trendline
   means.df <- data.frame(x,y)
@@ -126,7 +126,7 @@ plotScatter <- function(x,y,lim=6,
 }
 
 #Generate plots
-df <- readCNVs("GERM","E4")
+# df <- readCNVs("GERM","E4")
 png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/FisherORs_exDEL_wgDEL.png",sep=""),
     width=3,height=3,units="in",res=1000)
 plotScatter(df$log2.dat.case_gt_control_Fisher_OR.exonicDEL,
