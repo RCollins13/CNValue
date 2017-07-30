@@ -28,7 +28,7 @@ if [ -e ${WRKDIR}/data/plot_data/figure4/geneScore_results ]; then
 fi
 mkdir ${WRKDIR}/data/plot_data/figure4/geneScore_results
 #Copy all files
-for pheno in GERM NEURO NDD PSYCH SOMA CNCR; do
+for pheno in GERM NEURO NDD ASD PSYCH SOMA HEAD CNCR; do
   for CNV in CNV DEL DUP; do
     for VF in E3 E4 N1; do
       for context in exonic wholegene; do
