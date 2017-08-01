@@ -201,7 +201,7 @@ plotDots <- function(dat,yaxis=T,
 
   #Prepare plot area
   par(mar=c(0.5,1,2.5,0.75),bty="n")
-  plot(x=c(-0.1,5.1),y=c(0,-(nrow(dat$counts)-1)),type="n",
+  plot(x=c(-0.1,5.3),y=c(0,-(nrow(dat$counts)-1)),type="n",
        xaxt="n",yaxt="n",xlab="",ylab="",xaxs="i")
 
   #Draw gridlines
@@ -232,6 +232,9 @@ plotDots <- function(dat,yaxis=T,
   # axis(3,at=seq(0,4,1),tick=F,line=-0.7,
   #      labels=c(0:3,">4"),las=2)
 
+  #Add lower x-limit bar
+  segments(x0=0,x1=4,y0=par("usr")[3],y1=par("usr")[3])
+
   # #Add Y-Axis (if optioned)
   # if(yaxis==T){
   #   sapply(1:nrow(dat$counts),function(i){
@@ -256,30 +259,38 @@ plotDots <- function(dat,yaxis=T,
                 cols.CNCR[1]),pch=21)
   })
 
-  #Prepare for p-value bars
-  abline(v=seq(4.5,5.1,0.2),col=cols.CTRL[3])
-  axis(3,at=c(4.3,5.1),labels=NA,tck=-0.02)
+  #Prepare for p-value
+  abline(v=seq(4.3,5.3,0.2),col=cols.CTRL[3])
+  rect(xleft=4.3,xright=5.3,
+       ybottom=par("usr")[3],ytop=par("usr")[4],
+       col=NA,border="black")
 
-  #Plot -log10(p) as bars
+  #Add rectangles for significant comparisons
   sapply(1:nrow(dat$counts),function(i){
-    #Adjust p-vals
-    pvals <- -log10(as.data.frame(dat$binom[i])[c(1:3,6:7),4])
-    pvals[which(pvals>4)] <- 4
-    pvals <- pvals/5
+    #Iterate over phenotypes
+    sapply(c(1:3,6:7),function(k){
+      #Get data
+      pval <- -log10(as.data.frame(dat$binom[i])[k,4])
+      fold <- as.data.frame(dat$binom[i])[k,1]
+      k.idx <- which(c(1:3,6:7)==k)
 
-    #Plot bars
-    rect(xleft=4.3,xright=4.3+pvals,
-         ybottom=-(i-1)+seq(0.25,-0.25,-0.1)[2:6],
-         ytop=-(i-1)+seq(0.25,-0.25,-0.1)[1:5],
-         col=c(cols.CTRL[1],cols.GERM[1],
-               cols.NEURO[1],cols.SOMA[1],
-               cols.CNCR[1]),
-         lwd=0.3)
+      #Plot rectangle, or "0" if fold=0
+      if(pval>=-log10(0.05) & fold>0){
+        rect(xleft=4.3+(0.2*(k.idx-1)),
+             xright=4.3+(0.2*k.idx),
+             ybottom=-i+0.8,ytop=-i+1.2,
+             col=c(cols.CTRL[1],cols.GERM[1],
+                   cols.NEURO[1],cols.SOMA[1],
+                   cols.CNCR[1])[k.idx],
+             border="black",lwd=0.75)
+        points(x=4.3+(0.2*(k.idx-0.5)),y=-i+1,
+               pch=8,cex=0.4,lwd=0.6)
+      }else if (fold==0){
+        text(x=4.3+(0.2*(k.idx-0.5)),y=-i+1,
+             labels="0",font=2,cex=0.75)
+      }
+    })
   })
-
-  #Add significance bars
-  abline(v=4.3+((-log10(0.05))/5),col="red")
-  axis(3,at=4.3+((-log10(0.05))/5),col="red",labels=NA,tck=-0.02,lwd=2)
 }
 
 ###################
@@ -291,10 +302,10 @@ if(!dir.exists(PLOTDIR)){
   dir.create(PLOTDIR)
 }
 #Generate plots
-sapply(c("CNV","DEL","DUP"),function(CNV){
-  sapply(c("E2","E3","E4","N1"),function(VF){
-    sapply(c("exonic","wholegene"),function(context){
-      sapply(c("nominally","FDR","Bonferroni"),function(sig){
+sapply(c("DEL","DUP"),function(CNV){
+  sapply(c("E4","N1"),function(VF){
+    sapply(c("exonic"),function(context){
+      sapply(c("Bonferroni"),function(sig){
         #Read data
         dat <- readData(CNV,VF,context,sig)
 

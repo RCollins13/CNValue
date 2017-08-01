@@ -204,6 +204,31 @@ for dummy in 1; do
 done | paste - - - > \
 ${WRKDIR}/data/plot_data/figure4/signif_genes_by_pheno.count.txt
 
+#####Print list of genes significant in any cancer or any germline group (DEL/DUP exonic E4 only)
+VF=E4
+context=exonic
+sig=Bonferroni
+for group in GERM CNCR; do
+  while read pheno; do
+    for CNV in DEL DUP; do
+      cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list
+    done
+  done < <( awk -v group=${group} '{ if ($2==group) print $1 }' \
+            ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list ) | \
+  sort | uniq -c | awk '{ if ($1>=3) print $2 }' > ${TMPDIR}/${group}_union_genes.list
+done
+#GERM union vs CNCR union - asterisk if constrained
+while read gene; do
+  const=$( fgrep -w $( echo ${gene} | sed 's/\-/_/g' ) \
+  <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list ) | wc -l )
+  if [ ${const} -gt 0 ]; then
+    echo "${gene}*"
+  else
+    echo ${gene}
+  fi
+done < <( fgrep -wf <( sed 's/\-/_/g' ${TMPDIR}/GERM_union_genes.list ) \
+          <( sed 's/\-/_/g' ${TMPDIR}/CNCR_union_genes.list ) | \
+          sed 's/\_/\-/g' | sort | uniq )
 
 
 

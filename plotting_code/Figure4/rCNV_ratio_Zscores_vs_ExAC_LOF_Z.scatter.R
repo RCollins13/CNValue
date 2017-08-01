@@ -144,37 +144,37 @@ dat <- readData("GERM","E4","exonic",minCNV=1)
 #Plot CNV
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_CNV.",
           "theta_RVIS_percentile_scatters.pdf",sep=""),
-    width=4,height=2)
+    width=4.25,height=2)
 theta_ExAC_scatter(dat[[1]],yvar="RVIS",color="#333333",
                    ylim=c(40,65),xaxis=F)
 dev.off()
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_CNV.",
           "theta_constraint_percentile_scatters.pdf",sep=""),
-    width=4,height=2)
+    width=4.25,height=2)
 theta_ExAC_scatter(dat[[1]],yvar="constraint",color="#333333",
                    ylim=c(40,65),xaxis=F,yaxis=F)
 dev.off()
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_DEL.",
           "theta_RVIS_percentile_scatters.pdf",sep=""),
-    width=4,height=2)
+    width=4.25,height=2)
 theta_ExAC_scatter(dat[[2]],yvar="RVIS",color="red",
                    ylim=c(40,65),xaxis=F)
 dev.off()
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_DEL.",
           "theta_constraint_percentile_scatters.pdf",sep=""),
-    width=4,height=2)
+    width=4.25,height=2)
 theta_ExAC_scatter(dat[[2]],yvar="constraint",color="red",
                    ylim=c(40,65),xaxis=F,yaxis=F)
 dev.off()
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_DUP.",
           "theta_RVIS_percentile_scatters.pdf",sep=""),
-    width=4,height=2)
+    width=4.25,height=2)
 theta_ExAC_scatter(dat[[3]],yvar="RVIS",color="blue",
                    ylim=c(40,65))
 dev.off()
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_DUP.",
           "theta_constraint_percentile_scatters.pdf",sep=""),
-    width=4,height=2)
+    width=4.25,height=2)
 theta_ExAC_scatter(dat[[3]],yvar="constraint",color="blue",
                    ylim=c(40,65),yaxis=F)
 dev.off()

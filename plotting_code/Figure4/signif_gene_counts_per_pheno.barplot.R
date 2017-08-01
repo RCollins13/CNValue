@@ -96,7 +96,7 @@ plotBars <- function(df){
 
   #Add y-axis
   sapply(df.sumOrder,function(i){
-    axis(2,at=-i+0.5,tick=F,line=-0.8,las=2,cex.axis=0.7,
+    axis(2,at=-i+0.5,tick=F,line=-0.8,las=2,cex.axis=0.75,
          labels=phenos[phenos.reorder][df.sumOrder][i])
   })
 }

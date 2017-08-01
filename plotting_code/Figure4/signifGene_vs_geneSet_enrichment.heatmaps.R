@@ -258,7 +258,7 @@ p.heat <- function(df,pmax=10,bonf=F,
       color <- cols[ceiling(10*mat.reordered[row,col])+1]
       rect(xleft=col-1,xright=col,
            ybottom=-row,ytop=-row+1,
-           border=color,col=color)
+           border=NA,col=color)
     })
   })
 
@@ -266,6 +266,11 @@ p.heat <- function(df,pmax=10,bonf=F,
   if(!is.null(lv)){
     abline(v=lv,col="white")
   }
+
+  #Add thin white gridlines
+  abline(h=-nrow(mat):nrow(mat),
+         v=-nrow(mat):nrow(mat),
+         col="white",lwd=0.25)
 
   #Add x-axis margin boxes
   rect(xleft=0:(ncol(mat.reordered)-1),
@@ -407,7 +412,7 @@ delta.heat <- function(df,pmax=3,thresh=NA,
       color <- cols[ceiling(10*mat.reordered[row,col])+(10*pmax)+1]
       rect(xleft=col-1,xright=col,
            ybottom=-row,ytop=-row+1,
-           border=color,col=color)
+           border=NA,col=color)
     })
   })
 
@@ -415,6 +420,11 @@ delta.heat <- function(df,pmax=3,thresh=NA,
   if(!is.null(lv)){
     abline(v=lv,col="white")
   }
+
+  #Add thin white gridlines
+  abline(h=-nrow(mat):nrow(mat),
+         v=-nrow(mat):nrow(mat),
+         col="white",lwd=0.25)
 
   #Add x-axis margin boxes
   rect(xleft=0:(ncol(mat.reordered)-1),
@@ -456,16 +466,16 @@ delta.heat <- function(df,pmax=3,thresh=NA,
 ####Generate heatmap of all gene sets vs all phenotypes for figure
 ##################################################################
 #Read data
-# DEL <- readData("DEL","E4","exonic","Bonferroni",constrained=T)
+DEL <- readData("DEL","E4","exonic","Bonferroni",constrained=T)
 DEL.p <- extractP(DEL$binom)
 DEL.OR <- extractOR(DEL$binom)
-# DEL.noCon <- readData("DEL","E4","exonic","Bonferroni",constrained=F)
+DEL.noCon <- readData("DEL","E4","exonic","Bonferroni",constrained=F)
 DEL.noCon.p <- extractP(DEL.noCon$binom)
 DEL.noCon.OR <- extractOR(DEL.noCon$binom)
-# DUP <- readData("DUP","E4","exonic","Bonferroni",constrained=T)
+DUP <- readData("DUP","E4","exonic","Bonferroni",constrained=T)
 DUP.p <- extractP(DUP$binom)
 DUP.OR <- extractOR(DUP$binom)
-# DUP.noCon <- readData("DUP","E4","exonic","Bonferroni",constrained=F)
+DUP.noCon <- readData("DUP","E4","exonic","Bonferroni",constrained=F)
 DUP.noCon.p <- extractP(DUP.noCon$binom)
 DUP.noCon.OR <- extractOR(DUP.noCon$binom)
 #Select which columns are significant in DEL and/or DUP

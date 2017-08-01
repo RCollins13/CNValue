@@ -147,7 +147,7 @@ halfHeat <- function(mat,half=T,valMax=0.4,
       }
       rect(xleft=col-1,xright=col,
            ybottom=-row,ytop=-row+1,
-           border=color,col=color)
+           border=NA,col=color)
     })
   })
 
@@ -176,7 +176,7 @@ halfHeat <- function(mat,half=T,valMax=0.4,
 
   #Add x-axis margin labels
   sapply(1:(ncol(mat)-1),function(i){
-    axis(1,at=i-0.5,tick=F,
+    axis(1,at=i-0.5,tick=F,cex.axis=1.1,
          labels=colnames(mat)[i],las=2,line=-0.9)
   })
 
@@ -189,7 +189,7 @@ halfHeat <- function(mat,half=T,valMax=0.4,
 
   #Add y-axis margin labels
   sapply(2:nrow(mat),function(i){
-    axis(2,at=-i+0.5,tick=F,
+    axis(2,at=-i+0.5,tick=F,cex.axis=1.1,
          labels=rownames(mat)[i],las=2,line=-0.9)
   })
 }
@@ -209,7 +209,7 @@ dev.off()
 #######################
 #Scale for p-value heatmap
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/jaccard_index_blue_green_yellow.scale.pdf",sep=""),
-    width=4,height=0.4)
+    width=5,height=0.75)
 par(mar=c(0.5,0.5,0.5,0.5),bty="o")
 plot(x=c(1,101),y=c(0,1),type="n",
      xaxt="n",xlab="",xaxs="i",
@@ -218,7 +218,7 @@ cols <- rev(rainbow(200)[35:135])
 rect(xleft=0:100,xright=1:101,
      ybottom=0,ytop=1,
      border=cols,col=cols)
-axis(3,at=seq(1,101,25),labels=NA)
+axis(1,at=seq(1,101,25),labels=NA)
 dev.off()
 
 
