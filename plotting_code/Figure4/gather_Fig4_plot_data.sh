@@ -201,7 +201,8 @@ for dummy in 1; do
       cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_${group}_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
     done
   done
-done | paste - - -
+done | paste - - - > \
+${WRKDIR}/data/plot_data/figure4/signif_genes_by_pheno.count.txt
 
 
 

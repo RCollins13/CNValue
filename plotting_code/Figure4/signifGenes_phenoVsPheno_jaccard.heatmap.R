@@ -59,31 +59,29 @@ jaccard <- function(phenoA,phenoB,CNV="BOTH"){
     genesB <- as.vector(read.table(paste(WRKDIR,"plot_data/signif_genes_unique/",phenoB,
                                          "_DEL_E4_exonic.geneScore_Bonferroni_sig.unique.genes.list",sep=""),
                                    header=F)[,1])
+  }else if(CNV=="DUP"){
+    genesA <- as.vector(read.table(paste(WRKDIR,"plot_data/signif_genes_unique/",phenoA,
+                                         "_DUP_E4_exonic.geneScore_Bonferroni_sig.unique.genes.list",sep=""),
+                                   header=F)[,1])
+    genesB <- as.vector(read.table(paste(WRKDIR,"plot_data/signif_genes_unique/",phenoB,
+                                         "_DUP_E4_exonic.geneScore_Bonferroni_sig.unique.genes.list",sep=""),
+                                   header=F)[,1])
   }else{
-    if(CNV=="DEL"){
-      genesA <- as.vector(read.table(paste(WRKDIR,"plot_data/signif_genes_unique/",phenoA,
-                                           "_DUP_E4_exonic.geneScore_Bonferroni_sig.unique.genes.list",sep=""),
-                                     header=F)[,1])
-      genesB <- as.vector(read.table(paste(WRKDIR,"plot_data/signif_genes_unique/",phenoB,
-                                           "_DUP_E4_exonic.geneScore_Bonferroni_sig.unique.genes.list",sep=""),
-                                     header=F))
-    }else{
-      genesA.DEL <- as.vector(read.table(paste(WRKDIR,"plot_data/signif_genes_unique/",phenoA,
-                                               "_DEL_E4_exonic.geneScore_Bonferroni_sig.unique.genes.list",sep=""),
-                                         header=F)[,1])
-      genesB.DEL <- as.vector(read.table(paste(WRKDIR,"plot_data/signif_genes_unique/",phenoB,
-                                               "_DEL_E4_exonic.geneScore_Bonferroni_sig.unique.genes.list",sep=""),
-                                         header=F)[,1])
-      genesA.DUP <- as.vector(read.table(paste(WRKDIR,"plot_data/signif_genes_unique/",phenoA,
-                                               "_DUP_E4_exonic.geneScore_Bonferroni_sig.unique.genes.list",sep=""),
-                                         header=F)[,1])
-      genesB.DUP <- as.vector(read.table(paste(WRKDIR,"plot_data/signif_genes_unique/",phenoB,
-                                               "_DUP_E4_exonic.geneScore_Bonferroni_sig.unique.genes.list",sep=""),
-                                         header=F)[,1])
-      #Merge
-      genesA <- unique(genesA.DEL,genesA.DUP)
-      genesB <- unique(genesB.DEL,genesB.DUP)
-    }
+    genesA.DEL <- as.vector(read.table(paste(WRKDIR,"plot_data/signif_genes_unique/",phenoA,
+                                             "_DEL_E4_exonic.geneScore_Bonferroni_sig.unique.genes.list",sep=""),
+                                       header=F)[,1])
+    genesB.DEL <- as.vector(read.table(paste(WRKDIR,"plot_data/signif_genes_unique/",phenoB,
+                                             "_DEL_E4_exonic.geneScore_Bonferroni_sig.unique.genes.list",sep=""),
+                                       header=F)[,1])
+    genesA.DUP <- as.vector(read.table(paste(WRKDIR,"plot_data/signif_genes_unique/",phenoA,
+                                             "_DUP_E4_exonic.geneScore_Bonferroni_sig.unique.genes.list",sep=""),
+                                       header=F)[,1])
+    genesB.DUP <- as.vector(read.table(paste(WRKDIR,"plot_data/signif_genes_unique/",phenoB,
+                                             "_DUP_E4_exonic.geneScore_Bonferroni_sig.unique.genes.list",sep=""),
+                                       header=F)[,1])
+    #Merge
+    genesA <- unique(union(genesA.DEL,genesA.DUP))
+    genesB <- unique(union(genesB.DEL,genesB.DUP))
   }
 
   #Calculate jaccard index
@@ -97,7 +95,7 @@ jaccard <- function(phenoA,phenoB,CNV="BOTH"){
 #Compute jaccard indexes
 jacMat <- sapply(phenos.filenames,function(phenoA){
   sapply(phenos.filenames,function(phenoB){
-    jaccard(phenoA,phenoB)
+    jaccard(phenoA,phenoB,CNV="BOTH")
   })
 })
 #Hierarchical clustering of rows/columns
@@ -143,7 +141,7 @@ halfHeat <- function(mat,half=T,valMax=0.4,
   sapply(1:nrow(mat),function(row){
     sapply(1:ncol(mat),function(col){
       if(half==T & col>=row){
-        color <- "white"
+        color <- NA
       }else{
         color <- cols[ceiling(100*(1/valMax)*mat[row,col])+1]
       }
@@ -152,6 +150,9 @@ halfHeat <- function(mat,half=T,valMax=0.4,
            border=color,col=color)
     })
   })
+
+  #Add gridlines
+  abline(v=1:ncol(mat),h=-1:-nrow(mat),col="white",lwd=0.25)
 
   #Add outline
   segments(x0=c(0,0),x1=c(nrow(mat)-1,0),
@@ -201,6 +202,23 @@ pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/signifGenes_phenoVsPheno_jaccar
 halfHeat(jacMat,
          xcolors=cols.allPhenos[order],
          ycolors=cols.allPhenos[order])
+dev.off()
+
+#######################
+#####Plot Jaccard scale
+#######################
+#Scale for p-value heatmap
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/jaccard_index_blue_green_yellow.scale.pdf",sep=""),
+    width=4,height=0.4)
+par(mar=c(0.5,0.5,0.5,0.5),bty="o")
+plot(x=c(1,101),y=c(0,1),type="n",
+     xaxt="n",xlab="",xaxs="i",
+     yaxt="n",ylab="",yaxs="i")
+cols <- rev(rainbow(200)[35:135])
+rect(xleft=0:100,xright=1:101,
+     ybottom=0,ytop=1,
+     border=cols,col=cols)
+axis(3,at=seq(1,101,25),labels=NA)
 dev.off()
 
 
