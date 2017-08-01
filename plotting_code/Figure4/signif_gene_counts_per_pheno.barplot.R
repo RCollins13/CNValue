@@ -67,13 +67,13 @@ plotBars <- function(df){
 
   #Plot rectangles
   rect(xleft=0,xright=df$DEL[df.sumOrder],
-       ybottom=-(1:nrow(df))+0.3,
-       ytop=-(1:nrow(df))+0.7,
+       ybottom=-(1:nrow(df))+0.25,
+       ytop=-(1:nrow(df))+0.75,
        col="red")
   rect(xleft=df$DEL[df.sumOrder],
        xright=(df$DEL+df$DUP)[df.sumOrder],
-       ybottom=-(1:nrow(df))+0.3,
-       ytop=-(1:nrow(df))+0.7,
+       ybottom=-(1:nrow(df))+0.25,
+       ytop=-(1:nrow(df))+0.75,
        col="blue")
 
   #Plot y-axis rectanges

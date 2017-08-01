@@ -67,8 +67,8 @@ readCNVs <- function(pheno,VF){
 ######################################################
 #####Helper function to plot scatter given two vectors
 ######################################################
-plotScatter <- function(x,y,lim=6,plotlims=c(-6,6),ptcex=0.65,
-                        xaxis=T,yaxis=T){
+plotScatter <- function(x,y,lim=6,plotlims=c(-6,6),ptcex=0.6,
+                        levels=25,xaxis=T,yaxis=T){
   #Prepare plotting area
   par(mar=c(3.5,3.5,0.5,0.5))
   plot(x=plotlims,y=plotlims,type="n",
@@ -100,7 +100,7 @@ plotScatter <- function(x,y,lim=6,plotlims=c(-6,6),ptcex=0.65,
   }
 
   #Plot points
-  points(x,y,pch=19,col=adjustcolor("black",alpha=0.2),cex=ptcex)
+  points(x,y,pch=19,col=adjustcolor("black",alpha=0.15),cex=ptcex)
 
   #Plot trendline
   means.df <- data.frame(x,y)
@@ -110,9 +110,10 @@ plotScatter <- function(x,y,lim=6,plotlims=c(-6,6),ptcex=0.65,
   abline(lm(y ~ x,data=means.df),lwd=2)
 
   #Plot density contours
+  cont.cols <- rev(rainbow(200)[floor(seq(10,140,140/levels))])
   contours <- kde2d(means.df[,1],means.df[,2],n=200)
-  contour(contours,drawlabels=FALSE,nlevels=30,add=TRUE,
-          col=adjustcolor(rev(rainbow(50)[1:40]),alpha=0.5))
+  contour(contours,drawlabels=FALSE,nlevels=levels,add=TRUE,lwd=0.7,
+          col=adjustcolor(cont.cols,alpha=0.4))
 
   #Compute stats (add manually in illustrator)
   print(cor(x,y,use="complete.obs",method="spearman"))
@@ -126,10 +127,10 @@ plotScatter <- function(x,y,lim=6,plotlims=c(-6,6),ptcex=0.65,
 }
 
 #Generate plots
-df <- readCNVs("GERM","E4")
+# df <- readCNVs("GERM","E4")
 png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/FisherORs_exDEL_wgDEL.png",sep=""),
     width=3,height=3,units="in",res=2000)
-plotScatter(df$log2.dat.case_gt_control_Fisher_OR.exonicDEL,
+plotScatter(df$log2.dat.case_gt_control_Fisher_OR.exonicDEL,levels=39,
      df$log2.dat.case_gt_control_Fisher_OR.wholegeneDEL)
 dev.off()
 png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/FisherORs_exDUP_wgDUP.png",sep=""),
@@ -139,7 +140,7 @@ plotScatter(df$log2.dat.case_gt_control_Fisher_OR.exonicDUP,
 dev.off()
 png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/FisherORs_exDEL_exDUP.png",sep=""),
     width=3,height=3,units="in",res=2000)
-plotScatter(df$log2.dat.case_gt_control_Fisher_OR.exonicDEL,
+plotScatter(df$log2.dat.case_gt_control_Fisher_OR.exonicDEL,levels=58,
      df$log2.dat.case_gt_control_Fisher_OR.exonicDUP)
 dev.off()
 png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/FisherORs_wgDEL_wgDUP.png",sep=""),
