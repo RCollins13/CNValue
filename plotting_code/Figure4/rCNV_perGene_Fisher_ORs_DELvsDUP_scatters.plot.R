@@ -67,7 +67,7 @@ readCNVs <- function(pheno,VF){
 ######################################################
 #####Helper function to plot scatter given two vectors
 ######################################################
-plotScatter <- function(x,y,lim=6,plotlims=c(-6,6),ptcex=0.5,
+plotScatter <- function(x,y,lim=6,plotlims=c(-6,6),ptcex=0.75,
                         xaxis=T,yaxis=T){
   #Prepare plotting area
   par(mar=c(3.5,3.5,0.5,0.5))
@@ -126,24 +126,24 @@ plotScatter <- function(x,y,lim=6,plotlims=c(-6,6),ptcex=0.5,
 }
 
 #Generate plots
-# df <- readCNVs("GERM","E4")
+df <- readCNVs("GERM","E4")
 png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/FisherORs_exDEL_wgDEL.png",sep=""),
-    width=3,height=3,units="in",res=1000)
+    width=3.5,height=3.5,units="in",res=2000)
 plotScatter(df$log2.dat.case_gt_control_Fisher_OR.exonicDEL,
      df$log2.dat.case_gt_control_Fisher_OR.wholegeneDEL)
 dev.off()
 png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/FisherORs_exDUP_wgDUP.png",sep=""),
-    width=3,height=3,units="in",res=1000)
+    width=3.5,height=3.5,units="in",res=2000)
 plotScatter(df$log2.dat.case_gt_control_Fisher_OR.exonicDUP,
      df$log2.dat.case_gt_control_Fisher_OR.wholegeneDUP,yaxis=F)
 dev.off()
 png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/FisherORs_exDEL_exDUP.png",sep=""),
-    width=3,height=3,units="in",res=1000)
+    width=3.5,height=3.5,units="in",res=2000)
 plotScatter(df$log2.dat.case_gt_control_Fisher_OR.exonicDEL,
      df$log2.dat.case_gt_control_Fisher_OR.exonicDUP)
 dev.off()
 png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/FisherORs_wgDEL_wgDUP.png",sep=""),
-    width=3,height=3,units="in",res=1000)
+    width=3.5,height=3.5,units="in",res=2000)
 plotScatter(df$log2.dat.case_gt_control_Fisher_OR.wholegeneDEL,
      df$log2.dat.case_gt_control_Fisher_OR.wholegeneDUP,yaxis=F)
 dev.off()

@@ -176,6 +176,33 @@ while read gene; do
 done < ${TMPDIR}/NDD_CNCR_CNV_DEL_DUP_Bonferroni.genes.list > \
 ${WRKDIR}/data/plot_data/figure4/NDD_CNCR_PPI_CNVmembership_CNV_DEL_DUP.txt
 
+#####Get counts of significant genes (DEL/DUP) per phenotype
+VF=E4
+context=exonic
+sig=Bonferroni
+for dummy in 1; do
+  #Control
+  echo "CTRL"
+  for CNV in DEL DUP; do
+    cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_CTRL_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
+  done
+  #Affected pheno groups
+  while read pheno; do
+    echo "${pheno}"
+    for CNV in DEL DUP; do
+      cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
+    done
+  done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+            fgrep -v CTRL | cut -f1 )
+  #Affected - unions
+  for group in GERM NEURO NDD PSYCH SOMA CNCR; do
+    echo "ALL_${group}_UNION"
+    for CNV in DEL DUP; do
+      cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_${group}_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
+    done
+  done
+done | paste - - -
+
 
 
 

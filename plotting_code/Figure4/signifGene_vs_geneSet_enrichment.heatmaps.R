@@ -457,42 +457,42 @@ delta.heat <- function(df,pmax=3,thresh=NA,
 ##################################################################
 #Read data
 # DEL <- readData("DEL","E4","exonic","Bonferroni",constrained=T)
-# DEL.p <- extractP(DEL$binom)
-# DEL.OR <- extractOR(DEL$binom)
+DEL.p <- extractP(DEL$binom)
+DEL.OR <- extractOR(DEL$binom)
 # DEL.noCon <- readData("DEL","E4","exonic","Bonferroni",constrained=F)
-# DEL.noCon.p <- extractP(DEL.noCon$binom)
-# DEL.noCon.OR <- extractOR(DEL.noCon$binom)
+DEL.noCon.p <- extractP(DEL.noCon$binom)
+DEL.noCon.OR <- extractOR(DEL.noCon$binom)
 # DUP <- readData("DUP","E4","exonic","Bonferroni",constrained=T)
-# DUP.p <- extractP(DUP$binom)
-# DUP.OR <- extractOR(DUP$binom)
+DUP.p <- extractP(DUP$binom)
+DUP.OR <- extractOR(DUP$binom)
 # DUP.noCon <- readData("DUP","E4","exonic","Bonferroni",constrained=F)
-# DUP.noCon.p <- extractP(DUP.noCon$binom)
-# DUP.noCon.OR <- extractOR(DUP.noCon$binom)
-# #Select which columns are significant in DEL and/or DUP
-# DEL.sig <- apply(DEL.p,1,function(vals){
-#   return(any(vals>-log10(0.05/(nrow(DEL.p)*ncol(DEL.p)))))
-# })
-# DUP.sig <- apply(DUP.p,1,function(vals){
-#   return(any(vals>-log10(0.05/(nrow(DUP.p)*ncol(DUP.p)))))
-# })
-# all.sig <- sort(unique(c(which(DEL.sig),which(DUP.sig))))
-#Subset dfs to keep columns that are significant in either
-# DEL.p.eitherSig <- DEL.p[all.sig,]
-# DEL.OR.eitherSig <- DEL.OR[all.sig,]
-# DEL.noCon.p.eitherSig <- DEL.noCon.p[all.sig,]
-# DEL.noCon.OR.eitherSig <- DEL.noCon.OR[all.sig,]
-# DUP.p.eitherSig <- DUP.p[all.sig,]
-# DUP.OR.eitherSig <- DUP.OR[all.sig,]
-# DUP.noCon.p.eitherSig <- DUP.noCon.p[all.sig,]
-# DUP.noCon.OR.eitherSig <- DUP.noCon.OR[all.sig,]
-# #Cluster based on joined DEL & DUP to determine y-ordering
-# joined <- cbind(DEL.p.eitherSig,DUP.p.eitherSig)
-# rowOrder <- hclust(dist(as.matrix(joined)))$order
-# #Compute delta p and delta OR for gene sets of interest
-# delta.p.eitherSig <- DEL.p.eitherSig - DUP.p.eitherSig
-# delta.noCon.p.eitherSig <- DEL.noCon.p.eitherSig - DUP.noCon.p.eitherSig
-# delta.OR.eitherSig <- deltaOR(DEL.OR.eitherSig,DUP.OR.eitherSig)
-# delta.noCon.OR.eitherSig <- deltaOR(DEL.noCon.OR.eitherSig,DUP.noCon.OR.eitherSig)
+DUP.noCon.p <- extractP(DUP.noCon$binom)
+DUP.noCon.OR <- extractOR(DUP.noCon$binom)
+#Select which columns are significant in DEL and/or DUP
+DEL.sig <- apply(DEL.p,1,function(vals){
+  return(any(vals>-log10(0.05/(nrow(DEL.p)*ncol(DEL.p)))))
+})
+DUP.sig <- apply(DUP.p,1,function(vals){
+  return(any(vals>-log10(0.05/(nrow(DUP.p)*ncol(DUP.p)))))
+})
+all.sig <- sort(unique(c(which(DEL.sig),which(DUP.sig))))
+# Subset dfs to keep columns that are significant in either
+DEL.p.eitherSig <- DEL.p[all.sig,]
+DEL.OR.eitherSig <- DEL.OR[all.sig,]
+DEL.noCon.p.eitherSig <- DEL.noCon.p[all.sig,]
+DEL.noCon.OR.eitherSig <- DEL.noCon.OR[all.sig,]
+DUP.p.eitherSig <- DUP.p[all.sig,]
+DUP.OR.eitherSig <- DUP.OR[all.sig,]
+DUP.noCon.p.eitherSig <- DUP.noCon.p[all.sig,]
+DUP.noCon.OR.eitherSig <- DUP.noCon.OR[all.sig,]
+#Cluster based on joined DEL & DUP to determine y-ordering
+joined <- cbind(DEL.p.eitherSig,DUP.p.eitherSig)
+rowOrder <- hclust(dist(as.matrix(joined)))$order
+#Compute delta p and delta OR for gene sets of interest
+delta.p.eitherSig <- DEL.p.eitherSig - DUP.p.eitherSig
+delta.noCon.p.eitherSig <- DEL.noCon.p.eitherSig - DUP.noCon.p.eitherSig
+delta.OR.eitherSig <- deltaOR(DEL.OR.eitherSig,DUP.OR.eitherSig)
+delta.noCon.OR.eitherSig <- deltaOR(DEL.noCon.OR.eitherSig,DUP.noCon.OR.eitherSig)
 #Set colors for y-axis categories of interest
 catCols <- c("#EAEBEC","#EAEBEC","red","red","red","red","red",
              "red","red","#00BFF4","#7B2AB3","#00BFF4","#00BFF4",
