@@ -183,25 +183,30 @@ sig=Bonferroni
 for dummy in 1; do
   #Control
   echo "CTRL"
-  for CNV in DEL DUP; do
-    cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_CTRL_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
-  done
+  #DEL only
+  fgrep -wvf ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_CTRL_groups_DUP_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list \
+  ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_CTRL_groups_DEL_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
+  #Both DEL and DUP
+  fgrep -wf ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_CTRL_groups_DEL_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list \
+  ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_CTRL_groups_DUP_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
+  #DUP only
+  fgrep -wvf ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_CTRL_groups_DEL_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list \
+  ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_CTRL_groups_DUP_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
   #Affected pheno groups
   while read pheno; do
     echo "${pheno}"
-    for CNV in DEL DUP; do
-      cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
-    done
+    #DEL only
+    fgrep -wvf ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_DUP_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list \
+    ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_DEL_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
+    #Both DEL and DUP
+    fgrep -wf ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_DUP_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list \
+    ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_DEL_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
+    #DUP only
+    fgrep -wvf ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_DEL_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list \
+    ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_DUP_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
   done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
             fgrep -v CTRL | cut -f1 )
-  #Affected - unions
-  for group in GERM NEURO NDD PSYCH SOMA CNCR; do
-    echo "ALL_${group}_UNION"
-    for CNV in DEL DUP; do
-      cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_${group}_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
-    done
-  done
-done | paste - - - > \
+done | paste - - - - > \
 ${WRKDIR}/data/plot_data/figure4/signif_genes_by_pheno.count.txt
 
 #####Get union of all genes signif in any disease group and not controls
@@ -298,12 +303,12 @@ while read gene count; do
   done | paste -s
 done < ${TMPDIR}/${N}min_union_genes.list
 
-#####Print list of genes significant in at least 11/22 germ phenos and NO cancers
+#####Print list of genes significant in at least 17/22 (>75%) germ phenos and NO cancers
 VF=E4
 context=exonic
 sig=Bonferroni
-N=11
-for group in GERM CNCR; do
+N=17
+for group in GERM; do
   while read pheno; do
     for CNV in DEL DUP; do
       cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list
@@ -325,12 +330,12 @@ while read gene count; do
   fi
 done < ${TMPDIR}/${N}min_germ_only_genes.list
 
-#####Print list of genes significant in at least 7/13 CNCR phenos and NO germline
+#####Print list of genes significant in at least 11/13 (>90%) CNCR phenos and NO germline
 VF=E4
 context=exonic
 sig=Bonferroni
 N=11
-for group in GERM CNCR; do
+for group in CNCR; do
   while read pheno; do
     for CNV in DEL DUP; do
       cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list
@@ -338,9 +343,9 @@ for group in GERM CNCR; do
   done < <( awk -v group=${group} '{ if ($2==group) print $1 }' \
             ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list ) | \
   sort | uniq -c 
-done | fgrep -wvf ${TMPDIR}/CNCR_union_genes.list | \
+done | fgrep -wvf ${TMPDIR}/GERM_union_genes.list | \
 awk -v OFS="\t" -v N=${N} '{ if ($1>=N) print $2, $1 }' | sort -nrk2,2 > \
-${TMPDIR}/${N}min_germ_only_genes.list
+${TMPDIR}/${N}min_cncr_only_genes.list
 #asterisk if constrained
 while read gene count; do
   const=$( fgrep -w $( echo ${gene} | sed 's/\-/_/g' ) \
@@ -350,7 +355,7 @@ while read gene count; do
   else
     echo -e "${gene}\t${count}"
   fi
-done < ${TMPDIR}/${N}min_germ_only_genes.list
+done < ${TMPDIR}/${N}min_cncr_only_genes.list
 
 
 

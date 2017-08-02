@@ -201,7 +201,7 @@ plotDots <- function(dat,yaxis=T,
 
   #Prepare plot area
   par(mar=c(0.5,1,2.5,0.75),bty="n")
-  plot(x=c(-0.1,5.3),y=c(0,-(nrow(dat$counts)-1)),type="n",
+  plot(x=c(-0.15,5.3),y=c(0,-(nrow(dat$counts)-1)),type="n",
        xaxt="n",yaxt="n",xlab="",ylab="",xaxs="i")
 
   #Draw gridlines
@@ -256,7 +256,8 @@ plotDots <- function(dat,yaxis=T,
     points(x=vals,y=-(i-1)+seq(0.2,-0.2,-0.1),
            bg=c(cols.CTRL[1],cols.GERM[1],
                 cols.NEURO[1],cols.SOMA[1],
-                cols.CNCR[1]),pch=21)
+                cols.CNCR[1]),
+           pch=c(23,rep(21,4)))
   })
 
   #Prepare for p-value

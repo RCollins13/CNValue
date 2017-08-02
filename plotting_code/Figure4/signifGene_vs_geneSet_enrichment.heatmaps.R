@@ -580,7 +580,7 @@ plot(x=c(0.5,1.5),y=c(0,-length(catCols)),type="n",
      yaxt="n",ylab="",yaxs="i")
 points(x=rep(1,length(catCols)),
        y=(-1:-length(catCols))+0.5,
-       pch=21,bg=catCols[rowOrder],lwd=0.8)
+       pch=22,bg=catCols[rowOrder],lwd=0.8)
 dev.off()
 #Scale for p-value heatmap
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/blue_green_yellow_p_scale.pdf",sep=""),

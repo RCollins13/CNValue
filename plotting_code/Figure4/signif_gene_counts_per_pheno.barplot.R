@@ -42,9 +42,9 @@ cols.allPhenos <- c(cols.CTRL[1],
 #####Read data
 ##############
 df <- read.table(paste(WRKDIR,"plot_data/figure4/signif_genes_by_pheno.count.txt",sep=""),header=F)
-names(df) <- c("pheno","DEL","DUP")
+names(df) <- c("pheno","DEL","BOTH","DUP")
 df <- df[phenos.reorder,]
-df$SUM <- df$DEL+df$DUP
+df$SUM <- df$DEL+df$BOTH+df$DUP
 df.sumOrder <- order(df$SUM,decreasing=T)
 
 ########################
@@ -52,7 +52,7 @@ df.sumOrder <- order(df$SUM,decreasing=T)
 ########################
 plotBars <- function(df){
   #Determine max x-value
-  xmax <- max(df[,2]+df[,3])
+  xmax <- max(df$SUM)
 
   #Prepare plot area
   par(mar=c(0.5,2.5,1.5,0.5),
@@ -69,12 +69,21 @@ plotBars <- function(df){
   rect(xleft=0,xright=df$DEL[df.sumOrder],
        ybottom=-(1:nrow(df))+0.25,
        ytop=-(1:nrow(df))+0.75,
-       col="red")
+       col="red",lwd=0.5)
   rect(xleft=df$DEL[df.sumOrder],
-       xright=(df$DEL+df$DUP)[df.sumOrder],
+       xright=df$DEL[df.sumOrder]+df$BOTH[df.sumOrder],
        ybottom=-(1:nrow(df))+0.25,
        ytop=-(1:nrow(df))+0.75,
-       col="blue")
+       col=cols.CTRL[2],lwd=0.5)
+  rect(xleft=df$DEL[df.sumOrder]+df$BOTH[df.sumOrder],
+       xright=df$SUM[df.sumOrder],
+       ybottom=-(1:nrow(df))+0.25,
+       ytop=-(1:nrow(df))+0.75,
+       col="blue",lwd=0.5)
+  rect(xleft=0,xright=df$SUM[df.sumOrder],
+       ybottom=-(1:nrow(df))+0.25,
+       ytop=-(1:nrow(df))+0.75,
+       col=NA)
 
   #Plot y-axis rectanges
   rect(xleft=-20,xright=0,
