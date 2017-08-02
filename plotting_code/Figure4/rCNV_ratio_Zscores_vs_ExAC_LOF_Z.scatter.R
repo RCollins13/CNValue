@@ -98,16 +98,16 @@ theta_ExAC_scatter <- function(df,yvar,color,
 
   #Prepare plot area
   par(mar=c(2,2,0.5,1))
-  plot(x=c(0,101),y=ylim,type="n",
+  plot(x=c(50,100),y=ylim,type="n",
        xaxt="n",yaxt="n",xlab="",ylab="",xaxs="i",yaxs="i")
 
   #Add background shading & lines
   abline(h=seq(0,100,5),col=cols.CTRL[3])
-  abline(h=50)
-  rect(xleft=90,xright=par("usr")[2],
+  abline(h=50,lwd=2)
+  rect(xleft=c(90,95),xright=par("usr")[2],
        ybottom=par("usr")[3],ytop=par("usr")[4],
        border=NA,col=adjustcolor("yellow",0.35))
-  abline(v=90,lty=2)
+  abline(v=c(90,95),lty=2)
 
   #Plot 95% CI
   polygon(x=c(yvar.stats.smoothed$V2[,1],rev(yvar.stats.smoothed$V3[,1])),
@@ -115,6 +115,10 @@ theta_ExAC_scatter <- function(df,yvar,color,
           border=NA,col=adjustcolor(color,0.4))
 
   #Plot observed percentiles
+  segments(x0=1:100,x1=1:100,
+           y0=yvar.stats[,2],
+           y1=yvar.stats[,3],
+           col=color,lwd=0.8)
   points(x=1:100,y=yvar.stats[,1],lwd=2,pch=21,col=color,bg="white")
 
   #Plot smoothed trendline
@@ -122,24 +126,29 @@ theta_ExAC_scatter <- function(df,yvar,color,
 
   #Add x-axis (if optioned)
   if(xaxis==T){
-    axis(1,at=seq(0,100,5),labels=NA,tck=-0.01,col=cols.CTRL[1])
-    axis(1,at=seq(0,100,10),labels=NA,tck=-0.02)
-    axis(1,at=seq(0,100,20),tick=F,line=-0.8,cex.axis=1.3)
+    axis(1,at=seq(0,100,5),labels=NA,tck=-0.02,col=cols.CTRL[1])
+    axis(1,at=seq(0,100,10),labels=NA,tck=-0.03)
+    axis(1,at=seq(0,100,10),tick=F,line=-0.6,cex.axis=1.3)
   }
 
   #Add y-axis (if optioned)
   if(yaxis==T){
-    axis(2,at=seq(0,100,5),labels=NA,tck=-0.01,col=cols.CTRL[1])
-    axis(2,at=seq(0,100,10),labels=NA,tck=-0.02)
+    axis(2,at=seq(0,100,5),labels=NA,tck=-0.02,col=cols.CTRL[1])
+    axis(2,at=seq(0,100,10),labels=NA,tck=-0.03)
     axis(2,at=seq(0,100,10),tick=F,line=-0.6,las=2,cex.axis=1.3)
   }
+
+  #Add cleanup rectangle
+  rect(xleft=par("usr")[1],xright=par("usr")[2],
+       ybottom=par("usr")[3],ytop=par("usr")[4],
+       col=NA)
 }
 
 ###############################################
 #####Plot master theta pctile scatters for Fig4
 ###############################################
 #Load data -- GERM/E4/exonic/minCNV=4
-dat <- readData("GERM","E4","exonic",minCNV=1)
+# dat <- readData("GERM","E4","exonic",minCNV=1)
 
 #Plot CNV
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/GERM_E4_exonic_CNV.",

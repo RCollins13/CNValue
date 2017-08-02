@@ -287,7 +287,7 @@ plotDots <- function(dat,yaxis=T,
                pch=8,cex=0.4,lwd=0.6)
       }else if (fold==0){
         text(x=4.3+(0.2*(k.idx-0.5)),y=-i+1,
-             labels="0",font=2,cex=0.75)
+             labels="0",cex=0.65)
       }
     })
   })
