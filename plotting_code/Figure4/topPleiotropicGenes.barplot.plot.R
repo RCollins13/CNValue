@@ -37,18 +37,13 @@ cols.allPhenos <- c(cols.GERM[1],
                     rep(cols.SOMA[1],10),
                     rep(cols.CNCR[1],13))
 
-##############
-#####Read data
-##############
-df <- read.table(paste(WRKDIR,"plot_data/figure4/topGenes_assocByPheno.txt",sep=""),header=T)
-df <- df[,c(1,phenos.reorder+1)]
-
-#########################################
+####################################
 #####Helper function to plot heatmap
-#########################################
+####################################
 plotHeat <- function(mat,
                      xcolors=NULL,
-                     marwd=0.025){
+                     ylabs=NULL,
+                     marwd=0.001){
   #Convert df to matrix
   mat <- as.matrix(mat)
 
@@ -59,8 +54,7 @@ plotHeat <- function(mat,
 
   #Prepare plotting area
   par(mar=c(0.5,3.5,3.5,0.5),bty="n")
-  plot(x=c(0,1.005*ncol(mat)),
-       y=c(0.005*ncol(mat),-((marwd+1)*ncol(mat))),
+  plot(x=c(0,ncol(mat)),y=c(-nrow(mat),marwd*ncol(mat)),
        type="n",xaxs="i",yaxs="i",xaxt="n",yaxt="n",xlab="",ylab="")
 
   #Iterate over cells and plot heatmap
@@ -84,45 +78,54 @@ plotHeat <- function(mat,
   #Add gridlines
   abline(v=1:ncol(mat),h=-1:-nrow(mat),col="white",lwd=0.25)
 
-  #Add outline
-  segments(x0=c(0,0),x1=c(nrow(mat)-1,0),
-           y0=c(-nrow(mat),-nrow(mat)),
-           y1=c(-nrow(mat),-1))
-  sapply(1:nrow(mat),function(row){
-    sapply(1:ncol(mat),function(col){
-      if(half==T & col+1==row){
-        segments(x0=c(col-1,col),x1=c(col,col),
-                 y0=c(-row+1,-row+1),y1=c(-row+1,-row))
-      }
-    })
-  })
-
   #Add x-axis margin boxes
   rect(xleft=0:(ncol(mat)-2),
        xright=1:(ncol(mat)-1),
-       ytop=-((1+(0.15*marwd))*nrow(mat)),
-       ybottom=par("usr")[3],
+       ybottom=0,ytop=par("usr")[4],
        col=xcolors,lwd=0.75)
 
   #Add x-axis margin labels
   sapply(1:(ncol(mat)-1),function(i){
-    axis(1,at=i-0.5,tick=F,cex.axis=1.1,
+    axis(3,at=i-0.5,tick=F,cex.axis=1.1,
          labels=colnames(mat)[i],las=2,line=-0.9)
   })
 
-  #Add y-axis margin boxes
-  rect(ybottom=-2:-nrow(mat),
-       ytop=-1:-(nrow(mat)-1),
-       xright=-0.15*marwd*ncol(mat),
-       xleft=par("usr")[1],
-       col=xcolors[-1],lwd=0.75)
-
   #Add y-axis margin labels
-  sapply(2:nrow(mat),function(i){
-    axis(2,at=-i+0.5,tick=F,cex.axis=1.1,
-         labels=rownames(mat)[i],las=2,line=-0.9)
-  })
+  if(!is.null(ylabs)){
+    sapply(2:nrow(mat),function(i){
+      axis(2,at=-i+0.5,tick=F,cex.axis=1.1,
+           labels=ylabs[i],las=2,line=-0.9)
+    })
+  }
 }
 
+##############
+#####Read data
+##############
+df <- read.table(paste(WRKDIR,"plot_data/figure4/topGenes_assocByPheno.txt",sep=""),header=T)
+genes <- df[,1]
+#Count DEL-DUP in GERM and DEL-DUP in CNCR
+dGERM <- apply(df[,2:23],1,function(vals){
+  DEL <- length(which(vals=="BOTH" | vals=="DEL"))
+  DUP <- length(which(vals=="BOTH" | vals=="DUP"))
+  d <- (DEL/22)-(DUP/22)
+  return(d)
+})
+dCNCR <- apply(df[,24:ncol(df)],1,function(vals){
+  DEL <- length(which(vals=="BOTH" | vals=="DEL"))
+  DUP <- length(which(vals=="BOTH" | vals=="DUP"))
+  d <- (DEL/13)-(DUP/13)
+  return(d)
+})
+dCross <- dGERM-dCNCR
+gene.order <- c(order(dCross,decreasing=T)[1:13],14,
+                14+order(dCross[15:18],decreasing=T),19,
+                19+order(dCross[20:length(dCross)],decreasing=T))
+df <- df[gene.order,
+         phenos.reorder+1]
 
-
+#################
+#####Plot heatmap
+#################
+plotHeat(df,xcolors=cols.allPhenos[phenos.reorder],
+         ylabs=genes[gene.order])
