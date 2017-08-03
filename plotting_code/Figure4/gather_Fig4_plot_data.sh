@@ -312,6 +312,41 @@ while read gene; do
 done < ${TMPDIR}/pleiotropicGenes_CNCR_GERM.genes.list >> \
 ${WRKDIR}/data/plot_data/figure4/pleiotropicGenes_CNCR_GERM.genes.list
 
+#####Get number of significant groups per gene for DEL/DUP
+VF=E4
+context=exonic
+sig=Bonferroni
+N=6
+#Get list of all significant genes in >N pheno groups for DEL/DUP
+for CNV in DEL DUP; do
+  while read pheno; do
+    cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list
+  done < <( sed '1d' ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+    fgrep -v CTRL | cut -f1 ) | sort | uniq -c | awk -v N=${N} '{ if ($1>N) print $2 }' > \
+  ${TMPDIR}/N${N}_Sig_${CNV}.genes.list
+done
+while read gene; do
+  #asterisk if constrained
+  const=$( fgrep -w $( echo ${gene} | sed 's/\-/_/g' ) \
+  <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list ) | wc -l )
+  if [ ${const} -gt 0 ]; then
+    echo -e "${gene}*"
+  else
+    echo -e "${gene}"
+  fi
+  for group in GERM CNCR; do
+    for CNV in DEL DUP; do
+      while read pheno; do
+        echo ${gene} | sed 's/\-/_/g' | fgrep -wf - \
+        <( sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list ) | wc -l
+      done < <( awk -v group=${group} '{ if ($2==group) print $1 }' \
+            ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list ) | \
+      awk '{ sum+=$1 }END{ print sum }'
+    done
+  done
+done < <( cat ${TMPDIR}/N${N}_Sig_*.genes.list | sort | uniq ) | paste - - - - - > \
+  ${WRKDIR}/data/plot_data/figure4/sigGenes_min${N}_countsPerGene_byGroup.txt  
+
 #####Print lists of genes significant in >0 CNCR or >0 GERM
 VF=E4
 context=exonic
@@ -414,38 +449,6 @@ done < <( cat ${TMPDIR}/10min_union_genes.list \
               <( echo "SKIP" ) \
               ${TMPDIR}/11min_cncr_only_genes.list | cut -f1 ) >> \
 ${WRKDIR}/data/plot_data/figure4/topGenes_assocByPheno.txt
-
-
-
-
-#####Get number of significant groups per gene for DEL/DUP
-VF=E4
-context=exonic
-sig=Bonferroni
-N=5
-#Get list of all significant genes in >N pheno groups for DEL/DUP
-for CNV in DEL DUP; do
-  while read pheno; do
-    cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list
-  done < <( sed '1d' ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-    fgrep -v CTRL | cut -f1 ) | sort | uniq -c | awk -v N=${N} '{ if ($1>N) print $2 }' > \
-  ${TMPDIR}/N${N}_Sig_${CNV}.genes.list
-done
-for CNV in DEL DUP; do
-  while read gene; do
-    echo ${gene}
-    for group in GERM CNCR; do
-      while read pheno; do
-        echo ${gene} | sed 's/\-/_/g' | fgrep -wf - \
-        <( sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list ) | wc -l
-      done < <( awk -v group=${group} '{ if ($2==group) print $1 }' \
-            ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list ) | \
-      awk '{ sum+=$1 }END{ print sum }'
-    done
-  done < ${TMPDIR}/anySig_${CNV}.genes.list | paste - - - > \
-  ${WRKDIR}/data/plot_data/figure4/sigGenes_countsPerGene_byGroup.${CNV}.txt
-done
-
 
 
 

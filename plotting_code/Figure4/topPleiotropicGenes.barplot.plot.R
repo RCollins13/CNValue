@@ -1,13 +1,13 @@
 #!/usr/bin/env R
 
 #rCNV Map Project
-#Spring 2017
+#Summer 2017
 #Talkowski Lab & Collaborators
 
 #Copyright (c) 2017 Ryan Collins
 #Distributed under terms of the MIT License
 
-#Code to generate dotplot grid of top 25 most pleiotropic genes
+#Code to generate herringbone barplot of most recurrently mutated (pleiotropic) genes
 
 ###################
 #####Set parameters
@@ -37,95 +37,125 @@ cols.allPhenos <- c(cols.GERM[1],
                     rep(cols.SOMA[1],10),
                     rep(cols.CNCR[1],13))
 
-####################################
-#####Helper function to plot heatmap
-####################################
-plotHeat <- function(mat,
-                     xcolors=NULL,
-                     ylabs=NULL,
-                     marwd=0.001){
-  #Convert df to matrix
-  mat <- as.matrix(mat)
+##########################################
+#####Helper function to read & format data
+##########################################
+readDat <- function(path){
+  #Read data
+  dat <- read.table(path,header=F)
 
-  #Instatiate margin colors if NULL
-  if(is.null(xcolors)){
-    xcolors <- rep("white",ncol(mat))
-  }
+  #Convert group counts to pct
+  dat <- cbind(dat,
+               t(apply(dat[,2:3],1,function(vals){return(vals/22)})),
+               t(apply(dat[,4:5],1,function(vals){return(vals/13)})))
+  dat$max <- apply(dat[,6:9],1,max)
+  dat$max.GERM <- apply(dat[,6:7],1,max)
+  dat$max.CNCR <- apply(dat[,8:9],1,max)
+  dat$avg <- apply(dat[,6:9],1,mean)
 
-  #Prepare plotting area
-  par(mar=c(0.5,3.5,3.5,0.5),bty="n")
-  plot(x=c(0,ncol(mat)),y=c(-nrow(mat),marwd*ncol(mat)),
-       type="n",xaxs="i",yaxs="i",xaxt="n",yaxt="n",xlab="",ylab="")
-
-  #Iterate over cells and plot heatmap
-  sapply(1:nrow(mat),function(row){
-    sapply(1:ncol(mat),function(col){
-      if(mat[row,col]=="DEL"){
-        color <- "red"
-      }else if(mat[row,col]=="DUP"){
-        color <- "blue"
-      }else if(mat[row,col]=="BOTH"){
-        color <- cols.CTRL[1]
-      }else{
-        color <- NA
-      }
-      rect(xleft=col-1,xright=col,
-           ybottom=-row,ytop=-row+1,
-           border=NA,col=color)
-    })
-  })
-
-  #Add gridlines
-  abline(v=1:ncol(mat),h=-1:-nrow(mat),col="white",lwd=0.25)
-
-  #Add x-axis margin boxes
-  rect(xleft=0:(ncol(mat)-2),
-       xright=1:(ncol(mat)-1),
-       ybottom=0,ytop=par("usr")[4],
-       col=xcolors,lwd=0.75)
-
-  #Add x-axis margin labels
-  sapply(1:(ncol(mat)-1),function(i){
-    axis(3,at=i-0.5,tick=F,cex.axis=1.1,
-         labels=colnames(mat)[i],las=2,line=-0.9)
-  })
-
-  #Add y-axis margin labels
-  if(!is.null(ylabs)){
-    sapply(2:nrow(mat),function(i){
-      axis(2,at=-i+0.5,tick=F,cex.axis=1.1,
-           labels=ylabs[i],las=2,line=-0.9)
-    })
-  }
+  #Reformat column names
+  names(dat) <- c("gene","GERM.DEL","GERM.DUP","CNCR.DEL","CNCR.DUP",
+                  "GERM.DEL.pct","GERM.DUP.pct","CNCR.DEL.pct","CNCR.DUP.pct",
+                  "max","max.GERM","max.CNCR","mean")
+  return(dat)
 }
 
 ##############
 #####Read data
 ##############
-df <- read.table(paste(WRKDIR,"plot_data/figure4/topGenes_assocByPheno.txt",sep=""),header=T)
-genes <- df[,1]
-#Count DEL-DUP in GERM and DEL-DUP in CNCR
-dGERM <- apply(df[,2:23],1,function(vals){
-  DEL <- length(which(vals=="BOTH" | vals=="DEL"))
-  DUP <- length(which(vals=="BOTH" | vals=="DUP"))
-  d <- (DEL/22)-(DUP/22)
-  return(d)
-})
-dCNCR <- apply(df[,24:ncol(df)],1,function(vals){
-  DEL <- length(which(vals=="BOTH" | vals=="DEL"))
-  DUP <- length(which(vals=="BOTH" | vals=="DUP"))
-  d <- (DEL/13)-(DUP/13)
-  return(d)
-})
-dCross <- dGERM-dCNCR
-gene.order <- c(order(dCross,decreasing=T)[1:13],14,
-                14+order(dCross[15:18],decreasing=T),19,
-                19+order(dCross[20:length(dCross)],decreasing=T))
-df <- df[gene.order,
-         phenos.reorder+1]
+dat <- readDat(paste(WRKDIR,"/plot_data/figure4/sigGenes_min6_countsPerGene_byGroup.txt",sep=""))
+dat.orderGERM <- dat[order(-dat$max.GERM,-dat$max.CNCR,dat$gene),]
+dat.orderCNCR <- dat[order(-dat$max.CNCR,-dat$max.GERM,dat$gene),]
 
-#################
-#####Plot heatmap
-#################
-plotHeat(df,xcolors=cols.allPhenos[phenos.reorder],
-         ylabs=genes[gene.order])
+#####Helper funnction to plot horizontal herringbone plots
+herringbone <- function(df,N=25,cMar=0.3,rev=F,
+                        ytop=100,ybottom=100,
+                        highlight=NULL){
+  #Invert df & set margins if optioned
+  if(rev==T){
+    df <- head(df,N)[N:1,]
+    mar <- c(0.5,0.5,0.5,2.5)
+    axSide <- 4
+  }else{
+    mar <- c(0.5,2.5,0.5,0.5)
+    axSide <- 2
+  }
+
+  #Prepare highlights
+  fills <- rep(cols.CTRL[3],N)
+  fonts <- rep(3,N)
+  borders <- rep(NA,N)
+  if(!is.null(highlight)){
+    fills[highlight] <- "yellow"
+    fonts[highlight] <- 4
+    borders[highlight] <- "black"
+  }
+
+  #Prepare plot area
+  par(mar=mar,bty="n")
+  plot(x=c(0,N),y=c(-1-cMar,1+cMar),type="n",
+       xaxt="n",yaxt="n",xlab="",ylab="",xaxs="i",yaxs="i")
+
+  #Add plot background
+  rect(xleft=(0:(N-1))+0.1,xright=(1:N)-0.1,
+       ybottom=-cMar,ytop=cMar,
+       border=borders,col=fills)
+  abline(h=seq(cMar,cMar+(ytop/100),0.25),col=cols.CTRL[4])
+  abline(h=-seq(cMar,cMar+(ybottom/100),0.25),col=cols.CTRL[4])
+
+  #Iterate and plot bars
+  sapply(1:N,function(i){
+    rect(xleft=c(i-0.8,i-0.5,i-0.8,i-0.5),
+         xright=c(i-0.5,i-0.2,i-0.5,i-0.2),
+         ybottom=c(cMar,cMar,-df[i,8:9]-cMar),
+         ytop=c(df[i,6:7]+cMar,-cMar,-cMar),
+         col=c("red","blue","red","blue"),lwd=0.5)
+  })
+
+  #Add cleanup lines
+  abline(h=c(-cMar,cMar))
+
+  #Add gene symbols
+  sapply(1:N,function(i){
+    text(x=i-0.5,y=0,srt=90,font=fonts[i],labels=df[i,1])
+  })
+
+  #Add top y-axis
+  axis(axSide,at=seq(cMar,(ytop/100)+cMar,0.125),
+       labels=NA,tck=-0.015,col=cols.GERM[3])
+  axis(axSide,at=seq(cMar,(ytop/100)+cMar,0.25),
+       labels=NA,tck=-0.025,col=cols.GERM[1])
+  axis(axSide,at=seq(cMar,(ytop/100)+cMar,0.25),tick=F,
+       labels=paste(seq(0,ytop,25),"%",sep=""),
+       las=2,line=-0.6,cex.axis=0.9)
+
+  #Add bottom y-axis
+  axis(axSide,at=-seq(cMar,(ybottom/100)+cMar,0.125),
+       labels=NA,tck=-0.015,col=cols.CNCR[3])
+  axis(axSide,at=-seq(cMar,(ybottom/100)+cMar,0.25),
+       labels=NA,tck=-0.025,col=cols.CNCR[1])
+  axis(axSide,at=-seq(cMar,(ybottom/100)+cMar,0.25),tick=F,
+       labels=paste(seq(0,ybottom,25),"%",sep=""),
+       las=2,line=-0.6,cex.axis=0.9)
+}
+
+###################
+#####Generate plots
+###################
+#GERM
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/topPleiotropicGenes_GERM.pdf",sep=""),
+    width=9,height=3)
+herringbone(dat.orderGERM,N=40,cMar=0.5,ybottom=50,
+            highlight=c(6,12,23,24,31,40))
+dev.off()
+#CNCR
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/topPleiotropicGenes_CNCR.pdf",sep=""),
+    width=9,height=3)
+herringbone(dat.orderCNCR,N=40,cMar=0.5,ytop=50,
+            highlight=c(23,39))
+dev.off()
+
+
+
+
+
