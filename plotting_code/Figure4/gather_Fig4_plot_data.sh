@@ -450,7 +450,18 @@ done < <( cat ${TMPDIR}/10min_union_genes.list \
               ${TMPDIR}/11min_cncr_only_genes.list | cut -f1 ) >> \
 ${WRKDIR}/data/plot_data/figure4/topGenes_assocByPheno.txt
 
-
-
-
+######Process Tanya's GO term enrichment analyses
+#Get list of all terms with Bonf-sig enrichment for DEL/DUP
+#N=4,807 total terms tested (correct at 0.05/(35*4807) )
+for CNV in DEL DUP; do
+  while read pheno; do
+    fgrep "\"" \
+    ${WRKDIR}/analysis/GO_enrichments/perGene_burden/merged/${pheno}_${CNV}_E4_exonic.geneScore_Bonferroni_sig.unique-classic-BP.txt | \
+    sed '1d' | sed 's/\"//g' | \
+    awk -v pheno=${pheno} -v FS="\t" -v OFS="\t" '{ if ($6<=0.001) print pheno, $0 }'
+  done < <( fgrep -v "#" \
+            ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+            fgrep -v CTRL | cut -f1 ) | cut -f2 | sort | uniq
+done
+"GO:0007399"
 
