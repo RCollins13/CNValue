@@ -113,6 +113,19 @@ ${TMPDIR}/genes_for_KM/GroupD.genes.list
 ################################
 #####Get lists of genes: Group E
 ################################
+#Group E: non-constrained, DEL or DUP significant genes, near GWAS hits from relevant phenotype
+VF=E4
+context=exonic
+sig=Bonferroni
+#Get list
+while read pheno; do
+  for CNV in DEL DUP; do
+    cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | \
+    sed 's/\-/_/g' | fgrep -wvf \
+    <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list ) | \
+    fgrep -wf <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/GWAS_nearest.genes.list )
+  done
+done < <( sed '1,2d' ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | cut -f1 ) | sort | uniq
 
 
 
