@@ -113,22 +113,78 @@ ${TMPDIR}/genes_for_KM/GroupD.genes.list
 ################################
 #####Get lists of genes: Group E
 ################################
-#Group E: non-constrained, DEL or DUP significant genes, near GWAS hits from relevant phenotype
+#Group E: non-constrained, DEL or DUP significant genes, near (±250kb) GWAS hits from relevant phenotype
 VF=E4
 context=exonic
 sig=Bonferroni
+dist=250000
 #Get list
 while read pheno; do
   for CNV in DEL DUP; do
     cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | \
     sed 's/\-/_/g' | fgrep -wvf \
     <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list ) | \
-    fgrep -wf <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/GWAS_nearest.genes.list )
-  done
-done < <( sed '1,2d' ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | cut -f1 ) | sort | uniq
+    fgrep -wf - <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed ) | \
+    awk -v OFS="\t" -v dist=${dist} '{ print $1, $2-dist, $3+dist, $4 }' | \
+    awk -v OFS="\t" '{ if ($2<1) $2=1; print }' | bedtools intersect -wb -b - \
+    -a ${WRKDIR}/data/master_annotations/noncoding/GWAS_loci_NDD.elements.bed
+    done | awk '{ print $NF }' | sort | uniq
+done < <( sed '1,2d' ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | cut -f1 ) | sort | uniq > \
+${TMPDIR}/genes_for_KM/GroupE.genes.list
 
-
-
+###########################################
+#####Gather metadata for all genes per list
+###########################################
+VF=E4
+context=exonic
+sig=Bonferroni
+#Write header to metadata file
+paste <( echo -e "gene\tcriteria" ) \
+<( sed '1,2d' ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | cut -f1 | paste -s ) \
+<( echo -e "constrained\tgeneSets" ) > \
+${WRKDIR}/data/plot_data/topCandidateGenes_forKM.annotated.txt
+#Collect metadata and write to file
+while read gene; do
+  for dummy in 1; do
+    #Print gene symbol
+    echo ${gene}
+    #Get criteria list
+    for set in A B C D E; do
+      if [ $(fgrep -w ${gene} ${TMPDIR}/genes_for_KM/Group${set}.genes.list | wc -l) -gt 0 ]; then
+        echo ${set}
+      fi
+    done | paste -s -d,
+    #Iterate over phenotypes and report significant associations per group
+    while read pheno; do
+      DEL=$( fgrep -w ${gene} ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_DEL_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l )
+      DUP=$( fgrep -w ${gene} ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_DUP_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l )
+      if [ ${DEL} -gt 0 ]; then
+        if [ ${DUP} -gt 0 ]; then
+          echo "BOTH"
+        else
+          echo "DEL"
+        fi
+      else
+        if [ ${DUP} -gt 0 ]; then
+          echo "DUP"
+        else
+          echo "NOT"
+        fi
+      fi
+    done < <( sed '1,2d' ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | cut -f1 )
+    #Constraint
+    fgrep -w ${gene} ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list | wc -l
+    #Other gene sets
+    fgrep -w ${gene} ${WRKDIR}/data/master_annotations/genelists/* | \
+    sed -e 's/\//\t/g' -e 's/\:/\t/g' | awk '{ print $(NF-1) }' | \
+    sed 's/\.genes\.list//g' | paste -s -d,
+  done | paste -s
+done < <( cat ${TMPDIR}/genes_for_KM/GroupA.genes.list \
+              ${TMPDIR}/genes_for_KM/GroupB.genes.list \
+              ${TMPDIR}/genes_for_KM/GroupC.genes.list \
+              ${TMPDIR}/genes_for_KM/GroupD.genes.list \
+              ${TMPDIR}/genes_for_KM/GroupE.genes.list | sort | uniq ) >> \
+${WRKDIR}/data/plot_data/topCandidateGenes_forKM.annotated.txt
 
 
 
