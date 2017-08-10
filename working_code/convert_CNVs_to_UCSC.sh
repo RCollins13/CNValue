@@ -41,7 +41,7 @@ while read pheno; do
   #Iterate over filter combinations
   for CNV in CNV DEL DUP; do
     for VF in E2 E3 E4 N1; do
-      for filt in all exonic haplosufficient noncoding intergenic; do
+      for filt in all coding haplosufficient noncoding intergenic; do
         #CODE (parallelized below):
         # #Write header
         # echo -e "track name=\"${pheno}_${CNV}_${VF}_${filt}\" itemRgb=\"On\"" > \
@@ -75,8 +75,33 @@ while read pheno; do
 done < <( sed '1d' ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           fgrep -v CTRL | cut -f1 )
 
+#####Repeat same process for controls
+for pheno in CTRL; do
+  #Reinitialize directory if exists
+  if [ -e ${WRKDIR}/data/CNV/UCSC_CNV/${pheno} ]; then
+    rm -rf ${WRKDIR}/data/CNV/UCSC_CNV/${pheno}
+  fi
+  mkdir ${WRKDIR}/data/CNV/UCSC_CNV/${pheno}
+  #Iterate over filter combinations
+  for CNV in CNV DEL DUP; do
+    for VF in E2 E3 E4 N1; do
+      for filt in all coding haplosufficient noncoding intergenic; do
+        #Print status
+        echo -e "${pheno} ${CNV} ${VF} ${filt}"
+        #Write header
+        echo -e "track name=\"${pheno}_${CNV}_${VF}_${filt}\" itemRgb=\"On\"" > \
+        ${WRKDIR}/data/CNV/UCSC_CNV/${pheno}/${pheno}.${CNV}.${VF}.${filt}.UCSC_track.txt
+        #Curate everything, including phenotype
+        zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz | \
+        fgrep -v "#" | sed -e 's/DEL/255,0,0/g' -e 's/DUP/0,0,255/g' | awk -v OFS="\t" \
+        '{ print "chr"$1, $2, $3, "Healthy_control", 1000, "+", $2, $3, $5 }' >> \
+        ${WRKDIR}/data/CNV/UCSC_CNV/${pheno}/${pheno}.${CNV}.${VF}.${filt}.UCSC_track.txt
+        #Gzip output
+        gzip ${WRKDIR}/data/CNV/UCSC_CNV/${pheno}/${pheno}.${CNV}.${VF}.${filt}.UCSC_track.txt
+      done
+    done
+  done
+done
 
 
 
-
-          
