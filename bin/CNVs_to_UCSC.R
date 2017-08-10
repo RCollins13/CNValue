@@ -18,38 +18,33 @@
 # -c/--CNV: CNV class (CNV/DEL/DUP)
 # -v/--VF: variant frequency (E2/E3/E4/N1)
 # -f/--filt: context filter (all/coding/haplosufficient/noncoding/intergenic)
-# -g/--gene: query based on gene symbol
+# --gene: query based on gene symbol
 # -G/--Gencode: path to gencode gene coordinate BED file (required for gene-based query)
 # -l/--locus: query based on locus coordinates
 # -b/--buffer: pad query window by ±buffer
 
 #Note: must supply either gene-based query or locus-based query, but not both
 
-#Dev parameters for ERISOne
-CNVDIR <- "/data/talkowski/Samples/rCNVmap/data/CNV/CNV_MASTER/"
-pheno <- "NDD"
-CNV <- "DUP"
-VF <- "E4"
-filt <- "all"
-gene <- "EMB"
-geneCoords <- "/data/talkowski/Samples/rCNVmap/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed"
-buffer <- 50000
+# #Local dev parameters
+# CNVDIR <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/CNV_MASTER/"
+# pheno <- "NDD"
+# CNV <- "DEL"
+# VF <- "E4"
+# filt <- "all"
+# gene <- "NRXN1"
+# geneCoords <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/gencode.v19.gene_boundaries.protein_coding.bed"
+# locus <- NA
+# buffer <- 50000
 
 ###################
 #####Set parameters
 ###################
 options(scipen=1000,stringsAsFactors=F)
 
-######################
-#####Load requirements
-######################
-require("optparse")
-require("rtracklayer")
-
 ##########################################
 #####Helper function to read & filter CNVs
 ##########################################
-importCNVs <- function(pheno,CNV,VF,filt,chr,start,end){
+importCNVs <- function(pheno,CNV,VF,filt,chr,start,end,pad=1000000){
   #Import CNVs
   CNVs <- read.table(paste(CNVDIR,"/",pheno,"/",pheno,".",CNV,".",VF,".GRCh37.",filt,".bed.gz",sep=""))
   names(CNVs)[1:3] <- c("chr","start","end")
@@ -57,8 +52,8 @@ importCNVs <- function(pheno,CNV,VF,filt,chr,start,end){
 
   #Filter CNVs
   CNVs <- CNVs[which(as.character(CNVs$chr) == as.character(chr) &
-                       as.numeric(CNVs$start) <= as.numeric(end) &
-                       as.numeric(CNVs$end) >= as.numeric(start)),]
+                       as.numeric(CNVs$start) <= as.numeric(end+pad) &
+                       as.numeric(CNVs$end) >= as.numeric(start-pad)),]
 
   #Return CNVs
   return(CNVs)
@@ -67,18 +62,27 @@ importCNVs <- function(pheno,CNV,VF,filt,chr,start,end){
 #################################################################
 #####Helper function to convert CNV BED file to UCSC track format
 #################################################################
-formatCNVs <- function(CNVs,color){
+formatCNVs <- function(CNVs,color=NULL){
   #Format CNV BED
   CNVs.bed <- CNVs[,1:3]
   CNVs.bed[,1] <- paste("chr",CNVs.bed[,1],sep="")
   CNVs.bed[,4] <- paste(round((CNVs[,3]-CNVs[,2])/1000,digits=1),"kb",sep="")
-  CNVs.bed[,5] <- 0
+  CNVs.bed[,5] <- 1000
   CNVs.bed[,6] <- "+"
-  CNVs.bed[,7:8] <- CNVs.bed[2:3]
-  CNVs.bed[,9] <- color
-  colnames(CNVs.bed) <- c("chrom","chromStart","chromEnd",
-                          "name","score","strand",
-                          "thickStart","thickEnd","itemRgb")
+  CNVs.bed[,7:8] <- CNVs[,2:3]
+  if(!is.null(color)){
+    CNVs.bed[,9] <- color
+  }else{
+    CNVs.bed[,9] <- sapply(CNVs[,5],function(types){
+      if(as.character(types)=="DEL"){
+        return("red")
+      }else
+        return("blue")
+    })
+  }
+
+  colnames(CNVs.bed) <- c("chr","start","end",
+                          "name","strand","itemRgb")
 
   #Return formatted CNV bed
   return(CNVs.bed)
@@ -89,24 +93,40 @@ formatCNVs <- function(CNVs,color){
 ####################################################################
 viewUCSC <- function(CNV.all){
   #Creates CNV track
-  CNVRanges <- IRanges(CNV.all$chromStart,CNV.all$chromEnd)
-  CNVTrack <- with(CNV.all,
-                   GRangesForUCSCGenome("hg19",chrom,CNVRanges,strand,name,
-                                        score,thickStart,thickEnd,itemRgb))
-
-  #Starts new browser session
-  session <- browserSession("UCSC")
-
-  #Lays track
-  track(session,"CNVs",itemRgb=TRUE) <- CNVTrack
+  CNVTrack <- makeGRangesFromDataFrame(CNV.all,
+                                       ignore.strand=T,
+                                       keep.extra.columns=T,
+                                       seqinfo=SeqinfoForUCSCGenome("hg19"),
+                                       seqnames.field="chr",
+                                       start.field="start",
+                                       end.field="end")
+  # CNVTrack$itemRgb <- apply(t(col2rgb(CNVTrack$itemRgb)),1,paste,collapse=",")
+  print(CNVTrack)
 
   #Sets window
   view.window.df <- data.frame(paste("chr",chr,sep=""),start,end)
   colnames(view.window.df) <- c("chr","start","end")
   view.window <- makeGRangesFromDataFrame(view.window.df,ignore.strand=T)
 
+  # #Starts new browser session
+  session <- browserSession("UCSC")
+
+  #Lays track
+  track(session,name="CNVs",itemRgb=TRUE) <- CNVTrack
+  track(session,name="CNVs") <- CNVTrack
+
   #Generates UCSC view
-  view <- browserView(session,view.window,pack="CNVs")
+  view <- browserView(session,range=view.window,full="CNVs")
+
+  #Forces view update
+  ucscTrackModes(view)["CNVs"] <- "full"
+  range(view) <- view.window
+
+  #Sanity check
+  print(range(view))
+  print(trackNames(view))
+  testTrack <- track(session,"CNVs")
+  print(testTrack)
 
   #Returns UCSC view
   return(view)
@@ -115,6 +135,9 @@ viewUCSC <- function(CNV.all){
 #######################################
 #####Rscript command line functionality
 #######################################
+#Load optparse
+suppressPackageStartupMessages(require("optparse"))
+
 #List of Rscript options
 option_list <- list(
   make_option(c("-p", "--pheno"), type="character", default="GERM",
@@ -129,7 +152,7 @@ option_list <- list(
   make_option(c("-f", "--filter"), type="character", default="all",
               help="genomic context filter [default: all]",
               metavar="character"),
-  make_option(c("-g", "--gene"), type="character", default=NA,
+  make_option(c("--gene"), type="character", default=NA,
               help="query based on gene symbol [default: NA]",
               metavar="character"),
   make_option(c("-G", "--Gencode"), type="character", default=NA,
@@ -159,21 +182,21 @@ if(length(args$args) != 1) {
 }
 
 #Assigns options to named variables
-pheno <- opts$pheno
-CNV <- opts$CNV
-VF <- opts$VF
-filt <- opts$filter
-gene <- opts$gene
-geneCoords <- opts$gencode
-locus <- opts$locus
-buffer <- opts$buffer
+pheno <- as.character(opts$pheno)
+CNV <- as.character(opts$CNV)
+VF <- as.character(opts$VF)
+filt <- as.character(opts$filter)
+gene <- as.character(opts$gene)
+geneCoords <- as.character(opts$Gencode)
+locus <- as.character(opts$locus)
+buffer <- as.character(opts$buffer)
 
 #Checks for either gene-based or locus-based query
 if(is.na(gene) & is.na(locus)){
-  stop("Must supply either query gene [-g] or query locus [-l]")
+  stop("Must supply either query gene [--gene] or query locus [-l]")
 }
 if(!is.na(gene) & !is.na(locus)){
-  stop("Must supply either query gene [-g] or query locus [-l], but not both")
+  stop("Must supply either query gene [--gene] or query locus [-l/--locus], but not both")
 }
 
 #Splits coordinates from locus-based query
@@ -195,17 +218,20 @@ if(!is.na(gene)){
 }
 
 #Pads coordinates with buffer
-window.start <- max(start-buffer,0)
-window.end <- end+buffer
+window.start <- max(as.numeric(start)-as.numeric(buffer),0)
+window.end <- as.numeric(end)+as.numeric(buffer)
 
 #Import & filter CNVs
 CNV.case <- importCNVs(pheno,CNV,VF,filt,chr,start,end)
 CNV.control <- importCNVs("CTRL",CNV,VF,filt,chr,start,end)
 
 #Format CNVs as single UCSC track
-CNV.case <- formatCNVs(CNV.case,"red")
-CNV.control <- formatCNVs(CNV.control,"gray20")
+CNV.case <- formatCNVs(CNV.case)
+CNV.control <- formatCNVs(CNV.control,"#353535")
 CNV.all <- rbind(CNV.case,CNV.control)
+
+#Load Rtracklayer
+suppressPackageStartupMessages(require("rtracklayer"))
 
 #Send to UCSC
 viewUCSC(CNV.all)
