@@ -19,7 +19,7 @@ source ${WRKDIR}/bin/rCNVmap/misc/rCNV_code_parameters.sh
 pheno=$1
 CNV=$2
 VF=$3
-context=$4
+filt=$4
 
 #####Run
 #Write header
