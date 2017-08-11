@@ -94,7 +94,9 @@ for pheno in CTRL; do
         #Curate everything, including phenotype
         zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz | \
         fgrep -v "#" | sed -e 's/DEL/255,0,0/g' -e 's/DUP/0,0,255/g' | awk -v OFS="\t" \
-        '{ print "chr"$1, $2, $3, "Healthy_control", 1000, "+", $2, $3, $5 }' >> \
+        '{ print "chr"$1, $2, $3, "Healthy_control", 1000, "+", $2, $3, $5 }' | \
+        bedtools intersect -f 1 -a - \
+        -b <( awk -v OFS="\t" '{ print "chr"$1, 1, $2 }' /data/talkowski/rlc47/src/GRCh37.genome ) >> \
         ${WRKDIR}/data/CNV/UCSC_CNV/${pheno}/${pheno}.${CNV}.${VF}.${filt}.UCSC_track.txt
         #Gzip output
         gzip ${WRKDIR}/data/CNV/UCSC_CNV/${pheno}/${pheno}.${CNV}.${VF}.${filt}.UCSC_track.txt
