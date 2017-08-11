@@ -15,7 +15,8 @@
 #  A+B: Top cancer-germline pleiotropic genes with opposing DEL/DUP biases
 #  C: NDD urDEL-signifcant genes not in DDD 2017 LOF exome list
 #  D: urDUP-significant genes, not constrained, highly expressed in one tissue and silent in another tissue
-#  F: urDEL-signifcant genes, not constrained, near pheno-matched GWAS hit
+#  E: urDEL- or urDUP-signifcant genes, not constrained, near pheno-matched GWAS hit
+#  F: whole-gene urDUP-significant genes, germline, ranked by Z-score
 
 ####################
 #####Load parameters
@@ -132,24 +133,40 @@ while read pheno; do
 done < <( sed '1,2d' ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | cut -f1 ) | sort | uniq > \
 ${TMPDIR}/genes_for_KM/GroupE.genes.list
 
+################################
+#####Get lists of genes: Group F
+################################
+#Group F: whole-gene urDUP-significant genes, germline, ranked by Z-score
+CNV=DUP
+VF=E4
+sig=Bonferroni
+context=wholegene
+while read pheno; do
+    fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
+    awk -v OFS="\t" -v pheno=${pheno} '{ if ($41>=3) print $1, pheno, $41, $26 }'
+done < <( awk '{ if ($2=="GERM") print $1 }' \
+          ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list ) | \
+  sort -nrk3,3 | cut -f1 | head -n200 | awk '!x[$0]++' | head -n20 > \
+  ${TMPDIR}/genes_for_KM/GroupF.genes.list
+
 ###########################################
 #####Gather metadata for all genes per list
 ###########################################
 VF=E4
-context=exonic
 sig=Bonferroni
+context=exonic
 #Write header to metadata file
 paste <( echo -e "gene\tcriteria" ) \
 <( sed '1,2d' ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | cut -f1 | paste -s ) \
 <( echo -e "constrained\tgeneSets" ) > \
 ${WRKDIR}/data/plot_data/topCandidateGenes_forKM.annotated.txt
-#Collect metadata and write to file
+#Collect metadata and write to file (groups A-E)
 while read gene; do
   for dummy in 1; do
     #Print gene symbol
     echo ${gene}
     #Get criteria list
-    for set in A B C D E; do
+    for set in A B C D E F; do
       if [ $(fgrep -w ${gene} ${TMPDIR}/genes_for_KM/Group${set}.genes.list | wc -l) -gt 0 ]; then
         echo ${set}
       fi
@@ -185,6 +202,46 @@ done < <( cat ${TMPDIR}/genes_for_KM/GroupA.genes.list \
               ${TMPDIR}/genes_for_KM/GroupD.genes.list \
               ${TMPDIR}/genes_for_KM/GroupE.genes.list | sort | uniq ) >> \
 ${WRKDIR}/data/plot_data/topCandidateGenes_forKM.annotated.txt
+#Collect metadata and write to file (group F)
+context=wholegene
+while read gene; do
+  for dummy in 1; do
+    #Print gene symbol
+    echo ${gene}
+    #Get criteria list
+    for set in A B C D E F; do
+      if [ $(fgrep -w ${gene} ${TMPDIR}/genes_for_KM/Group${set}.genes.list | wc -l) -gt 0 ]; then
+        echo ${set}
+      fi
+    done | paste -s -d,
+    #Iterate over phenotypes and report significant associations per group
+    while read pheno; do
+      DEL=$( fgrep -w ${gene} ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_DEL_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l )
+      DUP=$( fgrep -w ${gene} ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_DUP_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l )
+      if [ ${DEL} -gt 0 ]; then
+        if [ ${DUP} -gt 0 ]; then
+          echo "BOTH"
+        else
+          echo "DEL"
+        fi
+      else
+        if [ ${DUP} -gt 0 ]; then
+          echo "DUP"
+        else
+          echo "NOT"
+        fi
+      fi
+    done < <( sed '1,2d' ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | cut -f1 )
+    #Constraint
+    fgrep -w ${gene} ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list | wc -l
+    #Other gene sets
+    fgrep -w ${gene} ${WRKDIR}/data/master_annotations/genelists/* | \
+    sed -e 's/\//\t/g' -e 's/\:/\t/g' | awk '{ print $(NF-1) }' | \
+    sed 's/\.genes\.list//g' | paste -s -d,
+  done | paste -s
+done < ${TMPDIR}/genes_for_KM/GroupF.genes.list >> \
+${WRKDIR}/data/plot_data/topCandidateGenes_forKM.annotated.txt
+
 
 
 
