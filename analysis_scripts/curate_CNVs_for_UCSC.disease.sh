@@ -37,10 +37,12 @@ ${TMPDIR}/${pheno}.${CNV}.${VF}.${filt}.phenos_verbose.txt
 Rscript -e "x <- read.table(\"${TMPDIR}/${pheno}.${CNV}.${VF}.${filt}.phenos_verbose.txt\")[,1];\
             x <- sapply(x,function(phenos){return(paste(sort(unique(unlist(strsplit(unlist(strsplit(as.character(phenos),split=\",\")),split=\";\")))),collapse=\";\"))});\
             write.table(x,\"${TMPDIR}/${pheno}.${CNV}.${VF}.${filt}.partB.txt\",col.names=F,row.names=F,quote=F)"
-#Combine parts A & B
+#Exclude any CNVs that extend beyond the end of any chromosome (required by UCSC)
 paste <( cut -f 1-3 ${TMPDIR}/${pheno}.${CNV}.${VF}.${filt}.partA.txt ) \
 ${TMPDIR}/${pheno}.${CNV}.${VF}.${filt}.partB.txt \
-<( cut -f5- ${TMPDIR}/${pheno}.${CNV}.${VF}.${filt}.partA.txt ) >> \
+<( cut -f5- ${TMPDIR}/${pheno}.${CNV}.${VF}.${filt}.partA.txt ) | \
+bedtools intersect -f 1 -a - \
+-b <( awk -v OFS="\t" '{ print "chr"$1, 1, $2 }' /data/talkowski/rlc47/src/GRCh37.genome ) >> \
 ${WRKDIR}/data/CNV/UCSC_CNV/${pheno}/${pheno}.${CNV}.${VF}.${filt}.UCSC_track.txt
 #Gzip output
 gzip ${WRKDIR}/data/CNV/UCSC_CNV/${pheno}/${pheno}.${CNV}.${VF}.${filt}.UCSC_track.txt
