@@ -18,5 +18,9 @@ library(TBRden)
 args <- commandArgs(trailingOnly=T)
 
 #Run TBRden
-TBRden(args[1],args[2],OUTDIR=args[3],prefix=args[4],
-	adjusted=as.numeric(args[5]),manColor=args[6])
+TBRden(controls=as.character(args[1]),
+	   cases=as.character(args[2]),
+	   OUTDIR=as.character(args[3]),
+	   prefix=as.character(args[4]),
+	   adjusted=as.numeric(args[5]),
+	   manColor=as.character(args[6]))

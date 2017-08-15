@@ -67,13 +67,13 @@ if [ -e ${WRKDIR}/analysis/BIN_CNV_burdens ]; then
 fi
 mkdir ${WRKDIR}/analysis/BIN_CNV_burdens
 #Iterate over all phenotypes
-while read pheno; do
+while read pheno color; do
   if [ -e ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno} ]; then
     rm -rf ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}
   fi
   mkdir ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}
   #Iterate over all CNV classes
-  for CNV in DEL DUP CNV; do
+  for CNV in CNV DEL DUP; do
     for VF in E2 E3 E4 N1; do
       for filt in all coding haplosufficient noncoding intergenic; do
         #Parallelize analyses (LSF)
@@ -84,11 +84,11 @@ while read pheno; do
         ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
         ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
         ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/ \
-        ${pheno}_${CNV}_${VF}_${filt} 0.00000001 green"
+        ${pheno}_${CNV}_${VF}_${filt} 0.00000001 ${color}"
       done
     done
   done
-done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v CTRL | cut -f1 )
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v CTRL | cut -f1,7 )
 
 # #####Get significant urCNV loci from 100kb smoothed pileups, allowing for up to 50kb between bins that are merged
 # for CNV in CNV DEL DUP; do
