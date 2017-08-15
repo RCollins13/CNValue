@@ -201,6 +201,28 @@ for VF in E2 E3 E4 N1; do
     done
   done
 done
+#Get odds ratios
+#NOTE: require CNV to cover >25% of syndromic locus by size
+for VF in E2 E3 E4 N1; do
+  for filt in all coding haplosufficient noncoding intergenic; do
+    for CNV in DEL DUP; do
+      #CODE (parallelized below):
+      while read chr start end; do
+        for dummy in 1; do
+          echo -e "chr${chr}n${start}\n${end}"
+          #iterate over phenos
+          while read pheno nCASE; do
+            #Get counts of case/control CNVs
+            caseCNV=$( bedtools intersect -wb -f 0.25 -a <( echo -e "${chr}\t${start}\t${end}" ) \
+            -b ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz | wc -l )
+            controlCNV=$( bedtools intersect -wb -f 0.25 -a <( echo -e "${chr}\t${start}\t${end}" ) \
+            -b ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz | wc -l )
+
+          done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+            fgrep -v CTRL | cut -f1,8 )
+        done | paste -s
+      done < ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed > \
+      ${WRKDIR}/analysis/large_CNV_segments/assoc_stats/DEL_DUP_union.${VF}_${filt}.signif.filtered.${CNV}_OR.bed
 
 
 
