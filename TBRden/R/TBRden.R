@@ -54,7 +54,7 @@ TBRden <- function(controls,         #Path to TBRden_pileup.sh output for the co
 
   #Perform test according to options specified
   if(Coe==F){
-    #Run Fisher test on TBR vs left and right TADs separately
+    #Run Fisher test on bin vs left and right flanks separately
     fisher.L <- t(apply(ALL[,c(5:6,8:9)],1,function(vals){
       TBR.fisher.test(vals[1],vals[2],vals[3],vals[4])
     }))
