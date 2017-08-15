@@ -56,32 +56,39 @@ while read pheno; do
       done
     done
   done
-done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_pheno_HPO_mappings.list | cut -f1 )
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | cut -f1 )
 
 ###########################################################
 #Run statistical analysis of case vs control pileup burdens
 ###########################################################
+#Initialize directory
+if [ -e ${WRKDIR}/analysis/BIN_CNV_burdens ]; then
+  rm -rf ${WRKDIR}/analysis/BIN_CNV_burdens
+fi
+mkdir ${WRKDIR}/analysis/BIN_CNV_burdens
+#Iterate over all phenotypes
 while read pheno; do
   if [ -e ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno} ]; then
     rm -rf ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}
   fi
   mkdir ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}
-    for CNV in DEL DUP CNV; do
-      for VF in E2 E3 E4 N1; do
+  #Iterate over all CNV classes
+  for CNV in DEL DUP CNV; do
+    for VF in E2 E3 E4 N1; do
       for filt in all coding haplosufficient noncoding intergenic; do
         #Parallelize analyses (LSF)
         bsub -q normal -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_pileup_analysis -u nobody \
         -o ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/${smooth}kb_smoothed/${pheno}_${CNV}_${filter}.out \
         -e ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/${smooth}kb_smoothed/${pheno}_${CNV}_${filter}.err \
         "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
-        ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL/${smooth}kb_smoothed/CTRL.${CNV}.TBRden_binned_pileup.${filter}.bed.gz \
-        ${WRKDIR}/analysis/BIN_CNV_pileups/${pheno}/${smooth}kb_smoothed/${pheno}.${CNV}.TBRden_binned_pileup.${filter}.bed.gz \
-        ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/${smooth}kb_smoothed/ \
-        ${pheno}_${CNV}_${filter} 0.0000003818455 ${color}"
+        ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+        ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+        ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/ \
+        ${pheno}_${CNV}_${VF}_${filt} 0.00000001 green"
       done
     done
   done
-done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_pheno_HPO_mappings.list | fgrep -v "CTRL" )
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v CTRL | cut -f1 )
 
 # #####Get significant urCNV loci from 100kb smoothed pileups, allowing for up to 50kb between bins that are merged
 # for CNV in CNV DEL DUP; do
@@ -96,7 +103,7 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_pheno_HPO_mappings.li
 #         echo "NA"
 #       fi
 #     done
-#   done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_pheno_HPO_mappings.list | \
+#   done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
 #     fgrep -v "CTRL" ) | paste - - - - - -
 # done
 
@@ -126,7 +133,7 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_pheno_HPO_mappings.li
 # #       done
 # #     done
 # #   done
-# # done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_pheno_HPO_mappings.list | fgrep -v "CTRL" )
+# # done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v "CTRL" )
 
 
 

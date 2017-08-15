@@ -11,20 +11,16 @@ cleanManhattan <- function (df,              #three-column data frame of chrom, 
                             adjusted=1E-8    #threshold for adjusted significance (e.g. genome-wide)
 ){
   #Set color theme vectors
-  if(theme=="green"){
-    colors <- c("#3a874c","#3dce56","#f9ff54","#ff5a02")
-  }else if(theme=="blue"){
-    colors <- c("#3d8c84","#7cfff1","#ffe502","#ff02e1")
-  }else if(theme=="red"){
-    colors <- c("#911212","#fc3737","#fff602","#021bff")
-  }else if(theme=="yellow"){
-    colors <- c("#ed6600","#f1a517","#1472e5","#d11ba9")
+  if(theme=="gray"){
+    colors <- c("#6E6F70","#DCDDDF",NA,"black")
   }else if(theme=="purple"){
-    colors <- c("#601d87","#c470f4","#42f1f4","#f9ea0e")
-  }else if(theme=="brown"){
-    colors <- c("#5e522e","#f6e8bf","#ffeb19","#19ff34")
-  }else if(theme=="darkblue"){
-    colors <- c("#01317f","#0278ff","#ffeb19","#19ff34")
+    colors <- c("#7B2AB3","#B07FD1",NA,"black")
+  }else if(theme=="blue"){
+    colors <- c("#00BFF4","#66D9F8",NA,"black")
+  }else if(theme=="pink"){
+    colors <- c("#EC008D","#F466BB",NA,"black")
+  }else if(theme=="yellow"){
+    colors <- c("#FFCB00","#FFE066",NA,"black")
   }
   #Gather list of unique contigs
   contigs <- unique(df[,1])
