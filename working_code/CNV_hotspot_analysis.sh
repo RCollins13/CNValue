@@ -81,14 +81,96 @@ while read pheno color; do
         -o ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/${smooth}kb_smoothed/${pheno}_${CNV}_${filter}.out \
         -e ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/${smooth}kb_smoothed/${pheno}_${CNV}_${filter}.err \
         "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
-        ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
-        ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+        ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL/CTRL.${CNV}.${VF}.${filt}.BIN_CNV_pileup.bed.gz \
+        ${WRKDIR}/analysis/BIN_CNV_pileups/${pheno}/${pheno}.${CNV}.${VF}.${filt}.BIN_CNV_pileup.bed.gz \
         ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/ \
         ${pheno}_${CNV}_${VF}_${filt} 0.00000001 ${color}"
       done
     done
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v CTRL | cut -f1,7 )
+
+#############################################
+#Collect & merge significant loci per disease
+#############################################
+#Set significance threshold
+sig=0.00000001
+#Initialize directory
+if [ -e ${WRKDIR}/analysis/large_CNV_segments ]; then
+  rm -rf ${WRKDIR}/analysis/large_CNV_segments
+fi
+mkdir ${WRKDIR}/analysis/large_CNV_segments
+#Iterate over phenotypes
+while read pheno; do
+  if [ -e ${WRKDIR}/analysis/large_CNV_segments/${pheno} ]; then
+    rm -rf ${WRKDIR}/analysis/large_CNV_segments/${pheno}
+  fi
+  mkdir ${WRKDIR}/analysis/large_CNV_segments/${pheno}
+  #Iterate over all CNV classes
+  for CNV in CNV DEL DUP; do
+    for VF in E2 E3 E4 N1; do
+      for filt in all coding haplosufficient noncoding intergenic; do
+        zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/${pheno}_${CNV}_${VF}_${filt}.TBRden_results.bed.gz | \
+        awk -v sig=${sig} -v OFS="\t" '{ if ($NF<sig) print $1, $2, $3 }' | \
+        bedtools merge -i - > \
+        ${WRKDIR}/analysis/large_CNV_segments/${pheno}/${pheno}_${CNV}_${VF}_${filt}.signif.bed
+      done
+    done
+  done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v CTRL | cut -f1 )
+
+#####################################################
+#Collect & merge significant loci across all diseases
+#####################################################
+#Get master list of all significant loci
+if [ -e ${WRKDIR}/analysis/large_CNV_segments/master_lists ]; then
+  rm -rf ${WRKDIR}/analysis/large_CNV_segments/master_lists
+fi
+mkdir ${WRKDIR}/analysis/large_CNV_segments/master_lists
+for CNV in CNV DEL DUP; do
+  for VF in E2 E3 E4 N1; do
+    for filt in all coding haplosufficient noncoding intergenic; do
+      while read pheno; do
+        cat ${WRKDIR}/analysis/large_CNV_segments/${pheno}/${pheno}_${CNV}_${VF}_${filt}.signif.bed
+      done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+      fgrep -v CTRL | cut -f1 ) | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+      ${WRKDIR}/analysis/large_CNV_segments/master_lists/${CNV}_${VF}_${filt}.signif.bed
+    done
+  done
+done
+
+###############################
+#Filter master significant loci 
+###############################
+#Filters: ≥500kb, ≥4 protein-coding genes, and <30% SD coverage
+minSize=500000
+minGenes=4
+maxSD=0.3
+#Note: combine loci significant for DEL or DUP, but not CNV (DEL+DUP)
+if [ -e ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered ]; then
+  rm -rf ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered
+fi
+mkdir ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered
+for VF in E2 E3 E4 N1; do
+  for filt in all coding haplosufficient noncoding intergenic; do
+    for CNV in DEL DUP; do
+      cat ${WRKDIR}/analysis/large_CNV_segments/master_lists/${CNV}_${VF}_${filt}.signif.bed
+    done | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | \
+    awk -v OFS="\t" -v size=${size} '{ if ($3-$2>=size) print $1, $2, $3 }' | \
+    bedtools intersect -c -a - \
+    -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
+    awk -v minGenes=${minGenes} -v OFS="\t" '{ if ($4>=minGenes) print $1, $2, $3 }' | \
+    bedtools coverage -b - \
+    -a ${WRKDIR}/data/master_annotations/noncoding/SegDups.elements.bed | \
+    awk -v maxSD=${maxSD} -v OFS="\t" '{ if ($NF<maxSD) print $1, $2, $3 }' > \
+    ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed
+  done
+done
+
+
+
+
+
 
 # #####Get significant urCNV loci from 100kb smoothed pileups, allowing for up to 50kb between bins that are merged
 # for CNV in CNV DEL DUP; do

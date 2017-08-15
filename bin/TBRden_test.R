@@ -17,8 +17,6 @@ library(TBRden)
 #Read args
 args <- commandArgs(trailingOnly=T)
 
-print(args)
-
 #Run TBRden
 TBRden(controls=as.character(args[1]),
 	   cases=as.character(args[2]),
