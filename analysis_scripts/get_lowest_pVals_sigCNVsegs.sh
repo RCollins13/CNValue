@@ -35,4 +35,4 @@ while read chr start end; do
       fgrep -v CTRL | cut -f1 )
   done | paste -s
 done < ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed > \
-${WRKDIR}/analysis/large_CNV_segments/DEL_DUP_union.${VF}_${filt}.signif.filtered.${CNV}_pVal.bed 
+${WRKDIR}/analysis/large_CNV_segments/assoc_stats/DEL_DUP_union.${VF}_${filt}.signif.filtered.${CNV}_pVal.bed 
