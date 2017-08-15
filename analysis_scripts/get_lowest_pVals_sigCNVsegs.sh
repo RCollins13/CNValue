@@ -23,7 +23,7 @@ CNV=$3
 #####Run
 while read chr start end; do
   for dummy in 1; do
-    echo -e "chr${chr}n${start}\n${end}"
+    echo -e "chr${chr}\n${start}\n${end}"
     #iterate over phenos
     while read pheno; do
       bedtools intersect -wb -a <( echo -e "${chr}\t${start}\t${end}" ) \
