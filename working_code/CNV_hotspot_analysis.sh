@@ -182,7 +182,7 @@ for VF in E2 E3 E4 N1; do
       #CODE (parallelized below):
       # while read chr start end; do
       #   for dummy in 1; do
-      #     echo -e "chr${chr}n${start}\n${end}"
+      #     echo -e "chr${chr}\n${start}\n${end}"
       #     #iterate over phenos
       #     while read pheno; do
       #       bedtools intersect -wb -a <( echo -e "${chr}\t${start}\t${end}" ) \
@@ -202,22 +202,26 @@ for VF in E2 E3 E4 N1; do
   done
 done
 #Get odds ratios
-#NOTE: require CNV to cover >25% of syndromic locus by size
+#NOTE: require CNV to cover >20% of syndromic locus by size
 for VF in E2 E3 E4 N1; do
   for filt in all coding haplosufficient noncoding intergenic; do
     for CNV in DEL DUP; do
       #CODE (parallelized below):
       while read chr start end; do
         for dummy in 1; do
-          echo -e "chr${chr}n${start}\n${end}"
+          echo -e "chr${chr}\n${start}\n${end}"
           #iterate over phenos
           while read pheno nCASE; do
             #Get counts of case/control CNVs
-            caseCNV=$( bedtools intersect -wb -f 0.25 -a <( echo -e "${chr}\t${start}\t${end}" ) \
+            caseCNV=$( bedtools intersect -wb -f 0.20 -a <( echo -e "${chr}\t${start}\t${end}" ) \
             -b ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz | wc -l )
-            controlCNV=$( bedtools intersect -wb -f 0.25 -a <( echo -e "${chr}\t${start}\t${end}" ) \
+            controlCNV=$( bedtools intersect -wb -f 0.20 -a <( echo -e "${chr}\t${start}\t${end}" ) \
             -b ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz | wc -l )
-
+            caseNoCNV=$( echo "${nCASE}-${caseCNV}" | bc )
+            controlNoCNV=$( echo "38628-${controlCNV}" | bc )
+            #Calcluate odds ratio
+            unset R_HOME
+            Rscript -e "cat(paste((${caseCNV}/${controlCNV})/(${caseNoCNV}/${controlNoCNV})),\"\n\",sep=\"\")"
           done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
             fgrep -v CTRL | cut -f1,8 )
         done | paste -s
