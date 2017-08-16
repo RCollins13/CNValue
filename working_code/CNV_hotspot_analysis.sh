@@ -30,7 +30,7 @@ ${WRKDIR}/data/master_annotations/other/hotspotAnalysis.excluded_loci.bed
 ################
 #Run CNV pileups
 ################
-#250kb bins, 25kb steps
+#25kb bins, 5kb steps, 2.5Mb window, +50kb smoothing
 #Clear directory
 if [ -e ${WRKDIR}/analysis/BIN_CNV_pileups ]; then
   rm -rf ${WRKDIR}/analysis/BIN_CNV_pileups
@@ -48,7 +48,7 @@ while read pheno; do
         mkdir ${WRKDIR}/analysis/BIN_CNV_pileups/${pheno}
         #Parallelize intersections
         bsub -q short -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_binned_pileup \
-        "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 250000 -s 25000 -d 1000000 -r 0 \
+        "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 25000 -s 2500 -d 2500000 -r 2 \
         -o ${WRKDIR}/analysis/BIN_CNV_pileups/${pheno}/${pheno}.${CNV}.${VF}.${filt}.BIN_CNV_pileup.bed \
         -x ${WRKDIR}/data/master_annotations/other/hotspotAnalysis.excluded_loci.bed  \
         ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
@@ -207,33 +207,31 @@ for VF in E2 E3 E4 N1; do
   for filt in all coding haplosufficient noncoding intergenic; do
     for CNV in DEL DUP; do
       #CODE (parallelized below):
-      while read chr start end; do
-        for dummy in 1; do
-          echo -e "chr${chr}\n${start}\n${end}"
-          #iterate over phenos
-          while read pheno nCASE; do
-            #Get counts of case/control CNVs
-            caseCNV=$( bedtools intersect -wb -f 0.20 -a <( echo -e "${chr}\t${start}\t${end}" ) \
-            -b ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz | wc -l )
-            controlCNV=$( bedtools intersect -wb -f 0.20 -a <( echo -e "${chr}\t${start}\t${end}" ) \
-            -b ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz | wc -l )
-            caseNoCNV=$( echo "${nCASE}-${caseCNV}" | bc )
-            controlNoCNV=$( echo "38628-${controlCNV}" | bc )
-            #Calcluate odds ratio
-            unset R_HOME
-            Rscript -e "cat(paste((${caseCNV}/${controlCNV})/(${caseNoCNV}/${controlNoCNV})),\"\n\",sep=\"\")"
-          done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-            fgrep -v CTRL | cut -f1,8 )
-        done | paste -s
-      done < ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed > \
-      ${WRKDIR}/analysis/large_CNV_segments/assoc_stats/DEL_DUP_union.${VF}_${filt}.signif.filtered.${CNV}_OR.bed
-
-
-
-
-
-
-
+      # while read chr start end; do
+      #   for dummy in 1; do
+      #     echo -e "chr${chr}\n${start}\n${end}"
+      #     #iterate over phenos
+      #     while read pheno nCASE; do
+      #       #Get counts of case/control CNVs
+      #       caseCNV=$( bedtools intersect -wb -f 0.20 -a <( echo -e "${chr}\t${start}\t${end}" ) \
+      #       -b ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz | wc -l )
+      #       controlCNV=$( bedtools intersect -wb -f 0.20 -a <( echo -e "${chr}\t${start}\t${end}" ) \
+      #       -b ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz | wc -l )
+      #       caseNoCNV=$( echo "${nCASE}-${caseCNV}" | bc )
+      #       controlNoCNV=$( echo "38628-${controlCNV}" | bc )
+      #       #Calcluate odds ratio
+      #       unset R_HOME
+      #       Rscript -e "cat(paste((${caseCNV}/${controlCNV})/(${caseNoCNV}/${controlNoCNV})),\"\n\",sep=\"\")"
+      #     done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+      #       fgrep -v CTRL | cut -f1,8 )
+      #   done | paste -s
+      # done < ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed > \
+      # ${WRKDIR}/analysis/large_CNV_segments/assoc_stats/DEL_DUP_union.${VF}_${filt}.signif.filtered.${CNV}_OR.bed
+      bsub -q short -sla miket_sc -J DEL_DUP_union.${VF}_${filt}.signif.filtered.${CNV}_OR -u nobody \
+      "${WRKDIR}/bin/rCNVmap/analysis_scripts/get_ORs_sigCNVsegs.sh ${VF} ${filt} ${CNV}"
+    done
+  done
+done
 
 
 
