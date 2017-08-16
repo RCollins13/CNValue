@@ -77,7 +77,7 @@ while read pheno color; do
     for VF in E2 E3 E4 N1; do
       for filt in all coding haplosufficient noncoding intergenic; do
         #Parallelize analyses (LSF)
-        bsub -q normal -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_pileup_analysis -u nobody \
+        bsub -q short -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_pileup_analysis -u nobody \
         -o ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/${smooth}kb_smoothed/${pheno}_${CNV}_${filter}.out \
         -e ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/${smooth}kb_smoothed/${pheno}_${CNV}_${filter}.err \
         "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \

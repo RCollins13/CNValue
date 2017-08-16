@@ -17,6 +17,7 @@
 #  D: urDUP-significant genes, not constrained, highly expressed in one tissue and silent in another tissue
 #  E: urDEL- or urDUP-signifcant genes, not constrained, near pheno-matched GWAS hit
 #  F: whole-gene urDUP-significant genes, germline, ranked by Z-score
+#  G: whole-gene urDUP-significant genes, NEURO or child pheno group, no brain expression
 
 ####################
 #####Load parameters
@@ -148,6 +149,58 @@ done < <( awk '{ if ($2=="GERM") print $1 }' \
           ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list ) | \
   sort -nrk3,3 | cut -f1 | head -n200 | awk '!x[$0]++' | head -n20 > \
   ${TMPDIR}/genes_for_KM/GroupF.genes.list
+
+################################
+#####Get lists of genes: Group G
+################################
+#Group F: whole-gene urDUP-significant genes, NEURO or child, no brain expression,
+# not LoF-constrained, highly expressed in other GTEx tissue, Z-score > 3, <2 control wgDUPs
+CNV=DUP
+VF=E4
+sig=Bonferroni
+context=wholegene
+while read pheno; do
+    fgrep -v "#" \
+    ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | \
+    cut -f1
+done < <( sed -n '4,13p' \
+          ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | cut -f1 ) | \
+  sort | uniq | sed 's/\-/_/g' | fgrep -wvf \
+  <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/BRAIN_MASTER_INTERSECTION.Not_Expressed.genes.list ) | \
+  fgrep -wf <( cat ${WRKDIR}/data/master_annotations/genelists/*.Highly_Expressed.genes.list | \
+               sed 's/\-/_/g' | sort | uniq ) | fgrep -wvf \
+  <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list ) > \
+  ${TMPDIR}/genes_for_KM/GroupG.genes.list.tmp
+# <2 control wgDUPs (VF=E2)
+while read gene; do
+  awk -v gene=${gene} '{ if ($1==gene && $8<=1) print $1 }' \
+  ${WRKDIR}/analysis/perGene_burden/GERM/GERM_DUP_E2_wholegene.geneScore_stats.txt
+done < ${TMPDIR}/genes_for_KM/GroupG.genes.list.tmp > \
+${TMPDIR}/genes_for_KM/GroupG.genes.list.tmp2
+# Not within 1Mb of centromere or telomere and <30% SD coverage
+fgrep -wf ${TMPDIR}/genes_for_KM/GroupG.genes.list.tmp2 \
+${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
+bedtools intersect -v -a - -b <( grep -e 'centromere\|telomere' \
+/data/talkowski/rlc47/src/GRCh37_heterochromatin.bed | \
+awk -v OFS="\t" '{ print $1, $2-1000000, $3+1000000 }' | \
+awk -v OFS="\t" '{ if ($2<0) $2=0; print }' ) | \
+bedtools coverage 
+
+
+
+grep -e 'centromere\|telomere' /data/talkowski/rlc47/src/GRCh37_heterochromatin.bed | \
+awk -v OFS="\t" '{ print $1, $2-1000000, $3+1000000 }' | awk -v OFS="\t" '{ if ($2<0) $2=0; print }' | \
+bedtools intersect -b - -a ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
+cut -f4 | sed 's/\-/_/g' | sort | uniq | fgrep -wvf - 
+# Rank by z-score
+while read pheno; do
+    fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
+    awk -v OFS="\t" -v pheno=${pheno} '{ if ($41>=3) print $1, pheno, $41, $26, $8 }'
+done < <( sed -n '4,13p' \
+          ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | cut -f1 ) | \
+    sed 's/\-/_/g' | fgrep -wf ${TMPDIR}/genes_for_KM/GroupG.genes.list.tmp2 | \
+    sort -nrk3,3 
+
 
 ###########################################
 #####Gather metadata for all genes per list

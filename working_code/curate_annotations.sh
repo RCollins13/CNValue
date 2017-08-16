@@ -207,11 +207,26 @@ while read tissue; do
   readlink -f ${WRKDIR}/data/master_annotations/genelists/GTEx_${tissue}_very_highly_expressed.genes.list
 done < <( l ${SFARI_ANNO}/misc/GTEx_expression/*bed.gz | fgrep -v highExpressor | \
 sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/\./\t/g' | cut -f2 ) | paste - - - -
-#GTEx not expressed genes (RPKM < 1)
+#GTEx lowly expressed genes (RPKM < 1)
 while read tissue; do
   echo ${tissue}
   zcat ${SFARI_ANNO}/misc/GTEx_expression/GTEx_Expression.${tissue}.bed.gz | \
   awk '{ if ($5<1) print $4 }' | sort | uniq > \
+  ${WRKDIR}/data/master_annotations/genelists/GTEx_${tissue}_lowly_expressed.genes.list
+done < <( l ${SFARI_ANNO}/misc/GTEx_expression/*bed.gz | fgrep -v highExpressor | \
+sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/\./\t/g' | cut -f2 )
+while read tissue; do
+  echo "Lowly $( echo ${tissue} | sed 's/_/\ /g' | tr "A-Z" "a-z" )-expressed genes"
+  echo "Genes lowly expressed in $( echo ${tissue} | sed 's/_/\ /g' | tr "A-Z" "a-z" ) from GTEx"
+  cat ${WRKDIR}/data/master_annotations/genelists/GTEx_${tissue}_lowly_expressed.genes.list | wc -l
+  readlink -f ${WRKDIR}/data/master_annotations/genelists/GTEx_${tissue}_lowly_expressed.genes.list
+done < <( l ${SFARI_ANNO}/misc/GTEx_expression/*bed.gz | fgrep -v highExpressor | \
+sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/\./\t/g' | cut -f2 ) | paste - - - -
+#GTEx not expressed genes (RPKM < 0.01)
+while read tissue; do
+  echo ${tissue}
+  zcat ${SFARI_ANNO}/misc/GTEx_expression/GTEx_Expression.${tissue}.bed.gz | \
+  awk '{ if ($5<0.01) print $4 }' | sort | uniq > \
   ${WRKDIR}/data/master_annotations/genelists/GTEx_${tissue}_not_expressed.genes.list
 done < <( l ${SFARI_ANNO}/misc/GTEx_expression/*bed.gz | fgrep -v highExpressor | \
 sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/\./\t/g' | cut -f2 )
