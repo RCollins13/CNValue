@@ -165,8 +165,8 @@ while read pheno; do
     cut -f1
 done < <( sed -n '4,13p' \
           ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | cut -f1 ) | \
-  sort | uniq | sed 's/\-/_/g' | fgrep -wvf \
-  <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/BRAIN_MASTER_INTERSECTION.Not_Expressed.genes.list ) | \
+  sort | uniq | sed 's/\-/_/g' | fgrep -wf \
+  <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/BRAIN_MASTER_INTERSECTION.Lowly_Expressed.genes.list ) | \
   fgrep -wf <( cat ${WRKDIR}/data/master_annotations/genelists/*.Highly_Expressed.genes.list | \
                sed 's/\-/_/g' | sort | uniq ) | fgrep -wvf \
   <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list ) > \
@@ -177,29 +177,24 @@ while read gene; do
   ${WRKDIR}/analysis/perGene_burden/GERM/GERM_DUP_E2_wholegene.geneScore_stats.txt
 done < ${TMPDIR}/genes_for_KM/GroupG.genes.list.tmp > \
 ${TMPDIR}/genes_for_KM/GroupG.genes.list.tmp2
-# Not within 1Mb of centromere or telomere and <30% SD coverage
+# Not within 1Mb of centromere or telomere and <5% SD coverage
 fgrep -wf ${TMPDIR}/genes_for_KM/GroupG.genes.list.tmp2 \
 ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
 bedtools intersect -v -a - -b <( grep -e 'centromere\|telomere' \
 /data/talkowski/rlc47/src/GRCh37_heterochromatin.bed | \
 awk -v OFS="\t" '{ print $1, $2-1000000, $3+1000000 }' | \
 awk -v OFS="\t" '{ if ($2<0) $2=0; print }' ) | \
-bedtools coverage 
-
-
-
-grep -e 'centromere\|telomere' /data/talkowski/rlc47/src/GRCh37_heterochromatin.bed | \
-awk -v OFS="\t" '{ print $1, $2-1000000, $3+1000000 }' | awk -v OFS="\t" '{ if ($2<0) $2=0; print }' | \
-bedtools intersect -b - -a ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
-cut -f4 | sed 's/\-/_/g' | sort | uniq | fgrep -wvf - 
+bedtools coverage -b - \
+-a ${WRKDIR}/data/master_annotations/noncoding/SegDups.elements.bed | \
+awk -v maxSD=${maxSD} -v OFS="\t" '{ if ($NF<0.05) print $4 }' > \
+${TMPDIR}/genes_for_KM/GroupG.genes.list.tmp3
 # Rank by z-score
 while read pheno; do
     fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
     awk -v OFS="\t" -v pheno=${pheno} '{ if ($41>=3) print $1, pheno, $41, $26, $8 }'
 done < <( sed -n '4,13p' \
           ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | cut -f1 ) | \
-    sed 's/\-/_/g' | fgrep -wf ${TMPDIR}/genes_for_KM/GroupG.genes.list.tmp2 | \
-    sort -nrk3,3 
+  sed 's/\-/_/g' | fgrep -wf ${TMPDIR}/genes_for_KM/GroupG.genes.list.tmp3 | sort -nrk3,3 
 
 
 ###########################################

@@ -222,11 +222,11 @@ while read tissue; do
   readlink -f ${WRKDIR}/data/master_annotations/genelists/GTEx_${tissue}_lowly_expressed.genes.list
 done < <( l ${SFARI_ANNO}/misc/GTEx_expression/*bed.gz | fgrep -v highExpressor | \
 sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/\./\t/g' | cut -f2 ) | paste - - - -
-#GTEx not expressed genes (RPKM < 0.01)
+#GTEx not expressed genes (median RPKM=0)
 while read tissue; do
   echo ${tissue}
   zcat ${SFARI_ANNO}/misc/GTEx_expression/GTEx_Expression.${tissue}.bed.gz | \
-  awk '{ if ($5<0.01) print $4 }' | sort | uniq > \
+  awk '{ if ($5==0) print $4 }' | sort | uniq > \
   ${WRKDIR}/data/master_annotations/genelists/GTEx_${tissue}_not_expressed.genes.list
 done < <( l ${SFARI_ANNO}/misc/GTEx_expression/*bed.gz | fgrep -v highExpressor | \
 sed 's/\//\t/g' | awk '{ print $NF }' | sed 's/\./\t/g' | cut -f2 )
@@ -466,6 +466,7 @@ while read tissue; do
           <( sed 's/\-/_/g' ${TMPDIR}/geneset_intersection.tmp ) | sed 's/_/\-/g' > \
           ${TMPDIR}/geneset_intersection.tmp2
           mv ${TMPDIR}/geneset_intersection.tmp2 ${TMPDIR}/geneset_intersection.tmp
+          wc -l ${TMPDIR}/geneset_intersection.tmp
         done < <( awk -v tissue=${tissue} -v geneset=${geneset} \
         '{ if ($1==tissue && $2==geneset) print $3 }' \
         ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_GeneSet_Linkers.list | sed '1d' )
@@ -524,7 +525,7 @@ while read list; do
   <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed ) | \
   grep -e '^[0-9]' | cut -f4 | sort | uniq | wc -l
 done < <( l ${WRKDIR}/data/master_annotations/genelists/*genes.list | \
-  awk '{ print $9 }' | fgrep GO_ | fgrep _merged_all.genes.list ) | paste - - -
+  awk '{ print $9 }' | fgrep MASTER ) | paste - - -
 
 
 
