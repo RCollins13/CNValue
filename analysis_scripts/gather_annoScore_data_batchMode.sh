@@ -22,12 +22,6 @@ VF=$3
 filt=$4
 list=$5
 
-#####Creates directory if needed
-if [ -e ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt} ]; then
-	rm -rf ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}
-fi
-mkdir ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}
-
 #####Iterates over elements list and collects data
 while read class path; do
   ${WRKDIR}/bin/rCNVmap/bin/gather_annoScore_data.sh \
