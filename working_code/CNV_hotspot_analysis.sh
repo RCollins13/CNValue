@@ -93,10 +93,8 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
 #############################################
 #Collect & merge significant loci per disease
 #############################################
-#Set significance threshold (Bonferroni for # unique 25kb bins considered)
-sig=$( zcat ${WRKDIR}/analysis/BIN_CNV_pileups/${pheno}/${pheno}.${CNV}.${VF}.${filt}.BIN_CNV_pileup.bed.gz | \
-       fgrep -v "#" | awk -v OFS="\t" '{ if ($3>=$2) print $1, $2, $3 }' | \
-       sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | awk '{ sum+=$3-$2 }END{ printf "%.20f\n", 0.05/( sum/25000 ) }' )
+#Set significance threshold
+sig=0.00000001
 #Initialize directory
 if [ -e ${WRKDIR}/analysis/large_CNV_segments ]; then
   rm -rf ${WRKDIR}/analysis/large_CNV_segments
