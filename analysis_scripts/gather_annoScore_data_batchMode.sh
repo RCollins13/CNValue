@@ -31,4 +31,4 @@ while read class path; do
   ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
   ${path} \
   ${h37}
-done
+done < ${list}
