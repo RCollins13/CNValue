@@ -15,7 +15,7 @@
 usage(){
 cat <<EOF
 usage: TBRden_binned_pileup.sh [-h] [-w WINDOW] [-s STEP] [-d DIST] [-r SMOOTH]
-                        [-x EXCLUDE] [-o OUTFILE] [-z] CNVs genome
+                               [-I OVERLAP] [-x EXCLUDE] [-o OUTFILE] [-z] CNVs genome
 
 Runs intersection of a CNV dataset versus a binned genome of sliding windows
 
@@ -31,7 +31,8 @@ Optional arguments:
   -s  STEP          Size of step, in bp (default: 5,000 bp)
   -d  DIST          Distance padded between window and left/right flanking
                     windows, in bp (default: 1,000,000 bp)
-  -r  SMOOTH        Number of bins to pad to each bin for smoothing (default: 0) 
+  -r  SMOOTH        Number of bins to pad to each bin for smoothing (default: 0)
+  -I  OVERLAP       Minimum overlap of bin required by each CNV, as pct (default: 0)
   -x  EXCLUDE       Regions to exclude from calculations
   -o  OUTFILE       Output file (default: stdout)
 EOF
@@ -45,7 +46,8 @@ WINDOW=5000
 STEP=5000
 DIST=1000000
 SMOOTH=0
-while getopts ":o:w:s:d:r:x:zh" opt; do
+OVERLAP=0
+while getopts ":o:w:s:d:r:I:x:zh" opt; do
   case "$opt" in
     h)
       usage
@@ -65,6 +67,9 @@ while getopts ":o:w:s:d:r:x:zh" opt; do
       ;;
     r)
       SMOOTH=${OPTARG}
+      ;;
+    I)
+      OVERLAP=${OPTARG}
       ;;
     x)
       EXCLUDE=${OPTARG}
@@ -118,7 +123,7 @@ fi
 
 #Run overlap of master interval file vs CNVs
 COUNTS=`mktemp`
-bedtools intersect -c -a ${INTS} -b ${CNVs} > ${COUNTS}
+bedtools intersect -c -f ${OVERLAP} -a ${INTS} -b ${CNVs} > ${COUNTS}
 
 #Get left flanking medians
 LEFT=`mktemp`

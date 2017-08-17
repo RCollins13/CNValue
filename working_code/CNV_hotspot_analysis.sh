@@ -30,7 +30,7 @@ ${WRKDIR}/data/master_annotations/other/hotspotAnalysis.excluded_loci.bed
 ################
 #Run CNV pileups
 ################
-#25kb bins, 5kb steps, 2.5Mb window, +50kb smoothing
+#500kb bins, 10kb steps, 2.5Mb window, no smoothing, CNVs with 50% overlap only
 #Clear directory
 if [ -e ${WRKDIR}/analysis/BIN_CNV_pileups ]; then
   rm -rf ${WRKDIR}/analysis/BIN_CNV_pileups
