@@ -28,7 +28,8 @@ while read chr start end; do
     while read pheno; do
       bedtools intersect -wb -a <( echo -e "${chr}\t${start}\t${end}" ) \
       -b <( zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/${pheno}_${CNV}_${VF}_${filt}.TBRden_results.bed.gz | \
-      sed '1d' ) | awk '{ print $NF }' > ${TMPDIR}/${pheno}_${CNV}_${VF}_${filt}_chr${chr}_${start}_${end}.pvals.tmp
+      awk -v chr=${chr} '{ if ($1==chr && $3>=$2) print $0 }' | sed '1d' ) | \
+      awk '{ print $NF }' > ${TMPDIR}/${pheno}_${CNV}_${VF}_${filt}_chr${chr}_${start}_${end}.pvals.tmp
       unset R_HOME
       Rscript -e "cat(paste(format(min(read.table(\"${TMPDIR}/${pheno}_${CNV}_${VF}_${filt}_chr${chr}_${start}_${end}.pvals.tmp\",header=F)[,1]),scientific=T),\"\n\",sep=\"\"))"
     done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
