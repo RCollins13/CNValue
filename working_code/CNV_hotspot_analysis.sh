@@ -93,8 +93,10 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
 #############################################
 #Collect & merge significant loci per disease
 #############################################
-#Set significance threshold
-sig=0.00000001
+#Set significance threshold (Bonferroni for # unique 25kb bins considered)
+sig=$( zcat ${WRKDIR}/analysis/BIN_CNV_pileups/${pheno}/${pheno}.${CNV}.${VF}.${filt}.BIN_CNV_pileup.bed.gz | \
+       fgrep -v "#" | awk -v OFS="\t" '{ if ($3>=$2) print $1, $2, $3 }' | \
+       sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | awk '{ sum+=$3-$2 }END{ printf "%.20f\n", 0.05/( sum/25000 ) }' )
 #Initialize directory
 if [ -e ${WRKDIR}/analysis/large_CNV_segments ]; then
   rm -rf ${WRKDIR}/analysis/large_CNV_segments
@@ -142,10 +144,11 @@ done
 ###############################
 #Filter master significant loci 
 ###############################
-#Filters: ≥500kb, ≥4 protein-coding genes, and <30% SD coverage
+#Filters: ≥500kb, 50kb merge distance, ≥4 protein-coding genes, and <30% SD coverage
 minSize=500000
 minGenes=4
 maxSD=0.3
+maxDist=50000
 #Note: combine loci significant for DEL or DUP, but not CNV (DEL+DUP)
 if [ -e ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered ]; then
   rm -rf ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered
@@ -155,8 +158,8 @@ for VF in E2 E3 E4 N1; do
   for filt in all coding haplosufficient noncoding intergenic; do
     for CNV in DEL DUP; do
       cat ${WRKDIR}/analysis/large_CNV_segments/master_lists/${CNV}_${VF}_${filt}.signif.bed
-    done | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | \
-    awk -v OFS="\t" -v size=${size} '{ if ($3-$2>=size) print $1, $2, $3 }' | \
+    done | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - -d ${maxDist} | \
+    awk -v OFS="\t" -v minSize=${minSize} '{ if ($3-$2>=minSize) print $1, $2, $3 }' | \
     bedtools intersect -c -a - \
     -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
     awk -v minGenes=${minGenes} -v OFS="\t" '{ if ($4>=minGenes) print $1, $2, $3 }' | \
@@ -202,7 +205,7 @@ for VF in E2 E3 E4 N1; do
   done
 done
 #Get odds ratios
-#NOTE: require CNV to cover >20% of syndromic locus by size
+#NOTE: require CNV to cover >25% of syndromic locus by size
 for VF in E2 E3 E4 N1; do
   for filt in all coding haplosufficient noncoding intergenic; do
     for CNV in DEL DUP; do
@@ -213,9 +216,9 @@ for VF in E2 E3 E4 N1; do
       #     #iterate over phenos
       #     while read pheno nCASE; do
       #       #Get counts of case/control CNVs
-      #       caseCNV=$( bedtools intersect -wb -f 0.20 -a <( echo -e "${chr}\t${start}\t${end}" ) \
+      #       caseCNV=$( bedtools intersect -wb -f 0.25 -a <( echo -e "${chr}\t${start}\t${end}" ) \
       #       -b ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz | wc -l )
-      #       controlCNV=$( bedtools intersect -wb -f 0.20 -a <( echo -e "${chr}\t${start}\t${end}" ) \
+      #       controlCNV=$( bedtools intersect -wb -f 0.25 -a <( echo -e "${chr}\t${start}\t${end}" ) \
       #       -b ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz | wc -l )
       #       caseNoCNV=$( echo "${nCASE}-${caseCNV}" | bc )
       #       controlNoCNV=$( echo "38628-${controlCNV}" | bc )

@@ -17,7 +17,6 @@ source ${WRKDIR}/bin/rCNVmap/misc/rCNV_code_parameters.sh
 mkdir ${WRKDIR}/data/master_annotations
 mkdir ${WRKDIR}/data/master_annotations/genelists
 
-
 ##########################
 ##########################
 #         GENCODE        #
