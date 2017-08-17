@@ -48,7 +48,7 @@ while read pheno; do
         mkdir ${WRKDIR}/analysis/BIN_CNV_pileups/${pheno}
         #Parallelize intersections
         bsub -q short -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_binned_pileup \
-        "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 25000 -s 2500 -d 2500000 -r 2 \
+        "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 500000 -s 10000 -d 2500000 -r 0 -I 0.5 \
         -o ${WRKDIR}/analysis/BIN_CNV_pileups/${pheno}/${pheno}.${CNV}.${VF}.${filt}.BIN_CNV_pileup.bed \
         -x ${WRKDIR}/data/master_annotations/other/hotspotAnalysis.excluded_loci.bed  \
         ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
