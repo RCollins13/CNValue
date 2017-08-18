@@ -146,7 +146,7 @@ done
 minSize=250000
 minGenes=4
 maxSD=0.5
-maxDist=100000
+maxDist=250000
 #Note: combine loci significant for DEL or DUP, but not CNV (DEL+DUP)
 if [ -e ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered ]; then
   rm -rf ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered
@@ -158,12 +158,12 @@ for VF in E2 E3 E4 N1; do
       cat ${WRKDIR}/analysis/large_CNV_segments/master_lists/${CNV}_${VF}_${filt}.signif.bed
     done | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - -d ${maxDist} | \
     awk -v OFS="\t" -v minSize=${minSize} '{ if ($3-$2>=minSize) print $1, $2, $3 }' | \
-    bedtools intersect -c -a - \
-    -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
-    awk -v minGenes=${minGenes} -v OFS="\t" '{ if ($4>=minGenes) print $1, $2, $3 }' | \
-    bedtools coverage -b - \
-    -a ${WRKDIR}/data/master_annotations/noncoding/SegDups.elements.bed | \
-    awk -v maxSD=${maxSD} -v OFS="\t" '{ if ($NF<maxSD) print $1, $2, $3 }' | \
+    # bedtools intersect -c -a - \
+    # -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
+    # awk -v minGenes=${minGenes} -v OFS="\t" '{ if ($4>=minGenes) print $1, $2, $3 }' | \
+    # bedtools coverage -b - \
+    # -a ${WRKDIR}/data/master_annotations/noncoding/SegDups.elements.bed | \
+    # awk -v maxSD=${maxSD} -v OFS="\t" '{ if ($NF<maxSD) print $1, $2, $3 }' | \
     sort -Vk1,1 -k2,2n -k3,3n > \
     ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed
   done
@@ -233,6 +233,47 @@ for VF in E2 E3 E4 N1; do
     done
   done
 done
+
+############################################################
+#####Count significant loci per germline & cancer phenotypes
+############################################################
+VF=E2
+filt=all
+#Get count (any pheno)
+cat ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed | wc -l
+#Get count significant in any germline pheno
+while read pheno; do
+  for CNV in DEL DUP; do
+    bedtools intersect -wa -u \
+    -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
+    -b ${WRKDIR}/analysis/large_CNV_segments/${pheno}/${pheno}_${CNV}_${VF}_${filt}.signif.bed
+  done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+      fgrep -v CTRL | awk '{ if ($2=="GERM") print $1 }' ) | \
+  sort -Vk1,1 -k2,2n -k3,3n | uniq > ${TMPDIR}/GERM.sig.loci.bed
+cat ${TMPDIR}/GERM.sig.loci.bed | wc -l
+#Get count significant in any cancer pheno
+while read pheno; do
+  for CNV in DEL DUP; do
+    bedtools intersect -wa -u \
+    -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
+    -b ${WRKDIR}/analysis/large_CNV_segments/${pheno}/${pheno}_${CNV}_${VF}_${filt}.signif.bed
+  done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+      fgrep -v CTRL | awk '{ if ($2=="CNCR") print $1 }' ) | \
+  sort -Vk1,1 -k2,2n -k3,3n | uniq > ${TMPDIR}/CNCR.sig.loci.bed
+cat ${TMPDIR}/CNCR.sig.loci.bed | wc -l
+#Get overlap between germline & cancer significant loci
+bedtools intersect \
+-a ${TMPDIR}/GERM.sig.loci.bed \
+-b ${TMPDIR}/CNCR.sig.loci.bed | wc -l
+
+
+bedtools intersect -u -a ${TMPDIR}/GERM.sig.loci.bed \
+-b ${WRKDIR}/data/master_annotations/noncoding/syndromic_CNVs.elements.bed | wc -l
+
+bedtools intersect -u -a  ${TMPDIR}/CNCR.sig.loci.bed \
+-b ${WRKDIR}/data/master_annotations/noncoding/cancer_CNVs.elements.bed | wc -l
 
 
 

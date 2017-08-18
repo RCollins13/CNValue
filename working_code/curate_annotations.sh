@@ -1327,6 +1327,8 @@ done < <( zcat ${WRKDIR}/data/misc/wgEncodeRegTfbsClusteredV3.bed.gz | \
   awk '{ if ($6>2) print $4 }' | sort | uniq ) | sort -Vk1,1 -k2,2n -k3,3n | \
   bedtools merge -i - > \
   ${WRKDIR}/data/master_annotations/noncoding/StrongTFBS_union.elements.bed
+#Cancer CNV loci (Zack et al, 2013)
+##NOTE: manually curated cancer CNV loci from Zack supplement
 
 #Get count of elements per noncoding set (all)
 while read list; do
@@ -1351,7 +1353,7 @@ while read list; do
     fgrep -v WARNING
   done | paste -s
 done < <( l ${WRKDIR}/data/master_annotations/noncoding/*elements.bed | \
-  awk '{ print $9 }' | fgrep DHS | fgrep onserved )
+  awk '{ print $9 }' | fgrep cancer )
 #Get count of elements per noncoding set (ChromHMM, ordered by state)
 while read code state; do
   while read list; do

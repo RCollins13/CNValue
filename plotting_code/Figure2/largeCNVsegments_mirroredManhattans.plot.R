@@ -89,7 +89,7 @@ mirrorManhattan <- function (df,adjusted=1E-8,ymax=NULL,col.even,col.odd,yaxis=T
 
   #Prepare plotting window
   par(mar=c(0.2,2,0.2,0.2))
-  plot(x=c(0,max(indexes[,4])),y=c(-1.05*(ymax+boxht),1.05*(ymax+boxht)),
+  plot(x=c(0,max(indexes[,4])),y=c(-1.1*(ymax+boxht),1.1*(ymax+boxht)),
        type="n",xaxs="i",yaxs="i",xaxt="n",yaxt="n",xlab="",ylab="")
 
   #Add background shading
