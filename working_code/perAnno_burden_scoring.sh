@@ -31,7 +31,6 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
           cut -f1 | fgrep -v CTRL )
 
 #####Submit burden data collection for all phenotypes
-#Germline
 while read pheno; do
   for CNV in CNV DEL DUP; do
     if [ -e ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV} ]; then
@@ -48,7 +47,7 @@ while read pheno; do
           rm -rf ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}
         fi
         mkdir ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}
-        bsub -q short -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_perAnno_burden_dataCollection_exonic \
+        bsub -q short -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_perAnno_burden_dataCollection_${filt} \
         "${WRKDIR}/bin/rCNVmap/analysis_scripts/gather_annoScore_data_batchMode.sh \
         ${pheno} ${CNV} ${VF} ${filt} ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.list"
       done

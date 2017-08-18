@@ -30,3 +30,15 @@ for CNV in DEL DUP; do
     ${WRKDIR}/data/plot_data/figure2/
   done
 done
+
+#####Gather data for manhattan plots
+VF=E2
+filt=all
+for pheno in GERM NEURO NDD PSYCH SOMA CNCR; do
+  paste \
+  <( zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/${pheno}_DEL_${VF}_${filt}.TBRden_results.bed.gz | \
+     sed '1d' | awk -v OFS="\t" '{ print $1, $2, $3, $NF }' ) \
+  <( zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/${pheno}_DUP_${VF}_${filt}.TBRden_results.bed.gz | \
+     sed '1d' | awk -v OFS="\t" '{ print $NF }' ) > \
+  ${WRKDIR}/data/plot_data/figure2/${pheno}.${VF}.${filt}.manhattan_pvals.bed
+done

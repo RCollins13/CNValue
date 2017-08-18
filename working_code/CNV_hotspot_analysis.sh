@@ -30,7 +30,7 @@ ${WRKDIR}/data/master_annotations/other/hotspotAnalysis.excluded_loci.bed
 ################
 #Run CNV pileups
 ################
-#500kb bins, 10kb steps, 2.5Mb window, no smoothing, CNVs with 50% overlap only
+#100kb bins, 10kb steps, 2.5Mb window, ±200kb smoothing, CNVs with 100% overlap only
 #Clear directory
 if [ -e ${WRKDIR}/analysis/BIN_CNV_pileups ]; then
   rm -rf ${WRKDIR}/analysis/BIN_CNV_pileups
@@ -48,7 +48,7 @@ while read pheno; do
         mkdir ${WRKDIR}/analysis/BIN_CNV_pileups/${pheno}
         #Parallelize intersections
         bsub -q short -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_binned_pileup \
-        "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 500000 -s 10000 -d 2500000 -r 0 -I 0.5 \
+        "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 100000 -s 10000 -d 2500000 -r 2 -I 1 \
         -o ${WRKDIR}/analysis/BIN_CNV_pileups/${pheno}/${pheno}.${CNV}.${VF}.${filt}.BIN_CNV_pileup.bed \
         -x ${WRKDIR}/data/master_annotations/other/hotspotAnalysis.excluded_loci.bed  \
         ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
@@ -142,11 +142,11 @@ done
 ###############################
 #Filter master significant loci 
 ###############################
-#Filters: ≥500kb, 50kb merge distance, ≥4 protein-coding genes, and <30% SD coverage
-minSize=500000
+#Filters: ≥250kb, 100kb merge distance, ≥4 protein-coding genes, and <50% SD coverage
+minSize=250000
 minGenes=4
-maxSD=0.3
-maxDist=50000
+maxSD=0.5
+maxDist=100000
 #Note: combine loci significant for DEL or DUP, but not CNV (DEL+DUP)
 if [ -e ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered ]; then
   rm -rf ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered

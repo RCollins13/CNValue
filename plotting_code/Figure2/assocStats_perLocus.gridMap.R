@@ -56,11 +56,11 @@ DUP.OR <- read.table(paste(WRKDIR,"plot_data/figure2/DEL_DUP_union.E2_all.signif
 colnames(DUP.OR) <- c("chr","start","end",phenos)
 DUP.OR <- DUP.OR[c(1:3,phenos.reorder+3)]
 
-#Dev: take top 20 sites for test plot
-DEL.p <- head(DEL.p,20)
-DEL.OR <- head(DEL.OR,20)
-DUP.p <- head(DUP.p,20)
-DUP.OR <- head(DUP.OR,20)
+# #Dev: take top 20 sites for test plot
+# DEL.p <- head(DEL.p,20)
+# DEL.OR <- head(DEL.OR,20)
+# DUP.p <- head(DUP.p,20)
+# DUP.OR <- head(DUP.OR,20)
 
 #################################################
 #####Helper function to plot vertical semicircles
