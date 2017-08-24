@@ -28,7 +28,7 @@
 #Usage statement
 usage(){
 cat <<EOF
-usage: gather_geneScore_data.sh [-h] [-p PREFIX] [-W WHOLE] [-A ALLOSOMES]
+usage: gather_geneScore_data.sh [-h] [-p PREFIX] [-W WHOLE] [-A ALLOSOMES] [-z]
                                 [-o OUTFILE] [-q QUIET] CONTROLS CASES GTF REF
 
 Collects data required for modeling per-element rCNV burden scores
@@ -47,6 +47,7 @@ Optional arguments:
   -W  WHOLE ELEMENT Restrict analysis to CNVs that span the entire element
                     (default: count any overlap)
   -A  ALLOSOMES     Include allosomes in analyses (default: false)
+  -z  GZIP          Gzip output file (default: false)
   -o  OUTFILE       Output file (default: /dev/stdout)
   -q  QUIET         Suppresses (some) standard output
 EOF
@@ -57,8 +58,9 @@ PREFIX="ELEMENT"
 OUTFILE=/dev/stdout
 WHOLE=0
 ALLO=0
+GZIP=0
 QUIET=0
-while getopts ":p:WAo:qh" opt; do
+while getopts ":p:WAzo:qh" opt; do
   case "$opt" in
     h)
       usage
@@ -72,6 +74,9 @@ while getopts ":p:WAo:qh" opt; do
       ;;
     A)
       ALLO=1
+      ;;
+    z)
+      GZIP=1
       ;;
     o)
       OUTFILE=${OPTARG}
@@ -223,6 +228,11 @@ while read chr start end element; do
     echo "${ctrlCNVweighted}"
   done | paste -s
 done < ${ELEMENTS} >> ${OUTFILE}
+
+#Gzip, if optioned
+if [ ${GZIP} -eq 1 ]; then
+  gzip -f ${OUTFILE}
+fi
 
 #Clean up
 rm -rf ${TMPDIR}

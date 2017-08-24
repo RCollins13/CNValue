@@ -24,8 +24,10 @@ list=$5
 
 #####Iterates over elements list and collects data
 while read class path; do
-  if ! [ -e ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed ] || \
-     ! [ -s ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed ]; then
+  if ! [ -e ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed.gz ] || \
+     ! [ -s ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed.gz ] || \
+       [ $( zcat ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed.gz | wc -l ) \
+         -lt $( zcat ${path} | wc -l ) ]; then
     ${WRKDIR}/bin/rCNVmap/bin/gather_annoScore_data.sh \
     -p ${class} \
     -o ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed \
@@ -34,6 +36,6 @@ while read class path; do
     ${path} \
     ${h37}
   else
-    echo "OUTPUT FOR ${pheno} ${CNV} ${VF} ${filt} vs ${list} ALREADY EXISTS. SKIPPING..."
+    echo "OUTPUT FOR ${pheno} ${CNV} ${VF} ${filt} vs ${path} ALREADY EXISTS. SKIPPING..."
   fi
 done < ${list}
