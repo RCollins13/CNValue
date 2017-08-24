@@ -28,7 +28,7 @@ while read class path; do
      ! [ -s ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed.gz ] || \
        [ $( zcat ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed.gz | wc -l ) \
          -lt $( zcat ${path} | wc -l ) ]; then
-    ${WRKDIR}/bin/rCNVmap/bin/gather_annoScore_data.sh \
+    ${WRKDIR}/bin/rCNVmap/bin/gather_annoScore_data.sh -z \
     -p ${class} \
     -o ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed \
     ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
