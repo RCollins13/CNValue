@@ -15,11 +15,15 @@
 export WRKDIR=/data/talkowski/Samples/rCNVmap
 source ${WRKDIR}/bin/rCNVmap/misc/rCNV_code_parameters.sh
 
-#####Reinitialize directory if exists
+#####Reinitialize directories if exists
 if [ -e ${WRKDIR}/data/perAnno_burden ]; then
   rm -rf ${WRKDIR}/data/perAnno_burden
 fi
 mkdir ${WRKDIR}/data/perAnno_burden
+if [ -e ${WRKDIR}/analysis/perAnno_burden ]; then
+  rm -rf ${WRKDIR}/analysis/perAnno_burden
+fi
+mkdir ${WRKDIR}/analysis/perAnno_burden
 
 #####Create subdirectories
 while read pheno; do
@@ -27,6 +31,10 @@ while read pheno; do
     rm -rf ${WRKDIR}/data/perAnno_burden/${pheno}
   fi
   mkdir ${WRKDIR}/data/perAnno_burden/${pheno}
+  if [ -e ${WRKDIR}/analysis/perAnno_burden/${pheno} ]; then
+    rm -rf ${WRKDIR}/analysis/perAnno_burden/${pheno}
+  fi
+  mkdir ${WRKDIR}/analysis/perAnno_burden/${pheno}
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
 
@@ -55,3 +63,32 @@ while read pheno; do
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
+
+#####Submit annoScore model for all phenotypes
+while read pheno; do
+  #Get number of subjects in group
+  nCASE=$( awk -v pheno=${pheno} '{ if ($1==pheno) print $4 }' \
+           ${WRKDIR}/data/plot_data/figure1/sample_counts_by_group.txt )
+  for CNV in CNV DEL DUP; do
+    if [ -e ${WRKDIR}/analysis/perAnno_burden/${pheno}/${CNV} ]; then
+      rm -rf ${WRKDIR}/analysis/perAnno_burden/${pheno}/${CNV}
+    fi
+    mkdir ${WRKDIR}/analysis/perAnno_burden/${pheno}/${CNV}
+    for VF in E4; do
+      if [ -e ${WRKDIR}/analysis/perAnno_burden/${pheno}/${CNV}/${VF} ]; then
+        rm -rf ${WRKDIR}/analysis/perAnno_burden/${pheno}/${CNV}/${VF}
+      fi
+      mkdir ${WRKDIR}/analysis/perAnno_burden/${pheno}/${CNV}/${VF}
+      for filt in haplosufficient noncoding; do
+        if [ -e ${WRKDIR}/analysis/perAnno_burden/${pheno}/${CNV}/${VF}/${filt} ]; then
+          rm -rf ${WRKDIR}/analysis/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}
+        fi
+        mkdir ${WRKDIR}/analysis/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}
+        #Launch model in batch mode across all annotations
+        #ADD COMMAND HERE
+      done
+    done
+  done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          cut -f1 | fgrep -v CTRL )
+
