@@ -339,7 +339,18 @@ for CNV in CNV DEL DUP; do
     done
   done
 done
-  
+
+#####Get count of germline pheno groups significant per gene (>0)
+VF=E4
+context=exonic
+sig=Bonferroni
+while read pheno; do
+  for CNV in DEL DUP; do
+    cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list
+  done | sort | uniq
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          awk '{ if ($2=="GERM") print $1 }' ) | \
+sort | uniq -c | awk -v OFS="\t" '{ print $2, $1 }' | sort -nrk2,2
 
 
 
