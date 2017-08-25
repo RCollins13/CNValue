@@ -82,9 +82,9 @@ CTRL <- as.character(args$args[2])
 OUTDIR <- as.character(args$args[3])
 
 #Checks for appropriate positional arguments
-if(length(args$args) != 3) {
+if(length(args$args) != 4) {
   print_help(parser)
-  stop("Must provide three positional arguments")
+  stop("Must provide four positional arguments")
 }
 
 #Read list of IDs and convert to vector
