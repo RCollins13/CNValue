@@ -18,6 +18,7 @@
 # OUTFILE=${TMPDIR}/annoset_test.out
 # WHOLE=0
 # ALLO=0
+# GZIP=1
 # QUIET=0
 # CONTROLS=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DEL.E4.GRCh37.haplosufficient.bed.gz
 # CASES=${WRKDIR}/data/CNV/CNV_MASTER/NDD/NDD.DEL.E4.GRCh37.haplosufficient.bed.gz
@@ -178,13 +179,18 @@ else
   uniq > ${CNV_ELEMENT_PAIRS_CTRL}
 fi
 
+#Cut list of all element IDs
+ELEMENT_IDs=`mktemp`
+cut -f4 ${ELEMENTS} > ${ELEMENT_IDs}
+
 #Calculate baseline dCNV & dElement info
 if [ ${QUIET} -eq 0 ]; then
   echo -e "STATUS::$(date)::RUNNING CNV WEIGHTING MODEL..."
 fi
-${BIN}/gather_geneScore_data.helper.R \
+${BIN}/gather_annoScore_data.helper.R \
 ${CNV_ELEMENT_PAIRS_CASE} \
 ${CNV_ELEMENT_PAIRS_CTRL} \
+${ELEMENT_IDs} \
 ${TMPDIR}/
 
 #Write header to output file
