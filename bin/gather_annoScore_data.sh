@@ -71,7 +71,7 @@ while getopts ":p:WAzo:qh" opt; do
       WHOLE=1
       ;;
     p)
-      PREFIX=1
+      PREFIX=${OPTARG}
       ;;
     A)
       ALLO=1
