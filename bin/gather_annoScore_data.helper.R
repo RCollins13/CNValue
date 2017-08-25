@@ -17,11 +17,11 @@
 # IDs: path to list of all element IDs
 # OUTDIR: path to output directory
 
-##Local dev testing parameters
-CASE <- "~/scratch/tmp.qmLhWlBisx/tmp.BP1Oqq7UV1"
-CTRL <- "~/scratch/tmp.qmLhWlBisx/tmp.IRjLHfdNbB"
-IDs <- "~/scratch/tmp.qmLhWlBisx/tmp.D8Fqduq2r9"
-OUTDIR <- "~/scratch/tmp.qmLhWlBisx/"
+# ##Local dev testing parameters
+# CASE <- "~/scratch/tmp.qmLhWlBisx/tmp.BP1Oqq7UV1"
+# CTRL <- "~/scratch/tmp.qmLhWlBisx/tmp.IRjLHfdNbB"
+# IDs <- "~/scratch/tmp.qmLhWlBisx/tmp.D8Fqduq2r9"
+# OUTDIR <- "~/scratch/tmp.qmLhWlBisx/"
 
 #####Set params
 options(scipen=1000,stringsAsFactors=F)
