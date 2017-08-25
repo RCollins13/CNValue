@@ -79,7 +79,8 @@ opts <- args$options
 #Assigns positional arguments to named variables
 CASE <- as.character(args$args[1])
 CTRL <- as.character(args$args[2])
-OUTDIR <- as.character(args$args[3])
+IDs <- as.character(args$args[3])
+OUTDIR <- as.character(args$args[4])
 
 #Checks for appropriate positional arguments
 if(length(args$args) != 4) {
