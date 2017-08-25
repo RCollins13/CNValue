@@ -35,6 +35,9 @@ while read class path; do
     ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
     ${path} \
     ${h37}
+    if [ -e ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed ]; then
+      gzip -f ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed
+    fi
   else
     echo "OUTPUT FOR ${pheno} ${CNV} ${VF} ${filt} vs ${path} ALREADY EXISTS. SKIPPING..."
   fi
