@@ -29,7 +29,7 @@
 #Usage statement
 usage(){
 cat <<EOF
-usage: gather_geneScore_data.sh [-h] [-p PREFIX] [-W WHOLE] [-A ALLOSOMES] [-z]
+usage: gather_annoScore_data.sh [-h] [-p PREFIX] [-W WHOLE] [-A ALLOSOMES] [-z]
                                 [-o OUTFILE] [-q QUIET] CONTROLS CASES GTF REF
 
 Collects data required for modeling per-element rCNV burden scores
@@ -160,11 +160,11 @@ if [ ${QUIET} -eq 0 ]; then
   echo -e "STATUS::$(date)::OVERLAPPING CNVS AND ELEMENTS..."
 fi
 if [ ${WHOLE} -eq 1 ]; then
-  #Case, whole-gene CNVs
+  #Case, whole-anno CNVs
   bedtools intersect -f 1.0 -wa -wb -a ${ELEMENTS} -b ${CASE} | \
   awk -v OFS="\t" '{ print $8, $4 }' | \
   sort -k1,1 -k2,2 | uniq > ${CNV_ELEMENT_PAIRS_CASE}
-  #Control, whole-gene CNVs
+  #Control, whole-anno CNVs
   bedtools intersect -f 1.0 -wa -wb -a ${ELEMENTS} -b ${CTRL} | \
   awk -v OFS="\t" '{ print $8, $4 }' | \
   sort -k1,1 -k2,2 | uniq > ${CNV_ELEMENT_PAIRS_CTRL}
@@ -196,44 +196,28 @@ ${TMPDIR}/
 #Write header to output file
 echo -e "#chr\tstart\tend\telement_ID\telement_size\tGC\tcase_CNV\tcontrol_CNV\tcase_CNV_weighted\tcontrol_CNV_weighted" > ${OUTFILE}
 
-#Compute element size and GC per element
+#Collect final output
 if [ ${QUIET} -eq 0 ]; then
   echo -e "STATUS::$(date)::SUMMARIZING RESULTS PER ELEMENT..."
 fi
-while read chr start end element; do
-  for dummy in 1; do
-    #Print basic element info
-    echo -e "${chr}\t${start}\t${end}\t${element}"
-    #Element size
-    echo "${end}-${start}" | bc
-    #GC content
-    awk -v element=${element} '{ if ($1==element) print $2 }' ${GC_PROFILES}
-    #Case CNVs
-    caseCNV=$( awk -v element=${element} '{ if ($1==element) print $2 }' ${TMPDIR}/CASE.CNVsPerGene.txt )
-    if [ -z ${caseCNV} ]; then
-      caseCNV=0
-    fi
-    echo "${caseCNV}"
-    #Control CNVs
-    ctrlCNV=$( awk -v element=${element} '{ if ($1==element) print $2 }' ${TMPDIR}/CTRL.CNVsPerGene.txt )
-    if [ -z ${ctrlCNV} ]; then
-      ctrlCNV=0
-    fi
-    echo "${ctrlCNV}"
-    #Case CNVs (weighted)
-    caseCNVweighted=$( awk -v element=${element} '{ if ($1==element) print $2 }' ${TMPDIR}/CASE.weightedCNVsPerGene.txt )
-    if [ -z ${caseCNVweighted} ]; then
-      caseCNVweighted=0
-    fi
-    echo "${caseCNVweighted}"
-    #Control CNVs (weighted)
-    ctrlCNVweighted=$( awk -v element=${element} '{ if ($1==element) print $2 }' ${TMPDIR}/CTRL.weightedCNVsPerGene.txt )
-    if [ -z ${ctrlCNVweighted} ]; then
-      ctrlCNVweighted=0
-    fi
-    echo "${ctrlCNVweighted}"
-  done | paste -s
-done < ${ELEMENTS} >> ${OUTFILE}
+nElements=$( cat ${ELEMENTS} | wc -l )
+if [ $( cat ${GC_PROFILES} | wc -l ) -eq ${nElements} ] && \
+   [ $( cat ${TMPDIR}/CASE.CNVsPerAnno.txt | wc -l ) -eq ${nElements} ] && \
+   [ $( cat ${TMPDIR}/CTRL.CNVsPerAnno.txt | wc -l ) -eq ${nElements} ] && \
+   [ $( cat ${TMPDIR}/CASE.weightedCNVsPerAnno.txt | wc -l ) -eq ${nElements} ] && \
+   [ $( cat ${TMPDIR}/CTRL.weightedCNVsPerAnno.txt | wc -l ) -eq ${nElements} ]; then
+  paste <( awk -v OFS="\t" '{ print $1, $2, $3, $4, $3-$2 }' ${ELEMENTS} ) \
+    <( cut -f2 ${GC_PROFILES} ) \
+    <( cut -f2 ${TMPDIR}/CASE.CNVsPerAnno.txt ) \
+    <( cut -f2 ${TMPDIR}/CTRL.CNVsPerAnno.txt ) \
+    <( cut -f2 ${TMPDIR}/CASE.weightedCNVsPerAnno.txt ) \
+    <( cut -f2 ${TMPDIR}/CTRL.weightedCNVsPerAnno.txt ) >> \
+    ${OUTFILE}
+  else
+    echo "ERROR: some elements missing from pre-output files! Exiting..."
+    exit 0
+  fi
+fi
 
 #Gzip, if optioned
 if [ ${GZIP} -eq 1 ]; then
