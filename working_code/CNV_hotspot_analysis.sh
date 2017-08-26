@@ -208,7 +208,7 @@ for VF in E2 E3 E4 N1; do
   done
 done
 #Get odds ratios
-#NOTE: require CNV to cover >25% of syndromic locus by size
+#NOTE: require CNV to cover >50% of syndromic locus by size
 for VF in E2 E3 E4 N1; do
   for filt in all coding haplosufficient noncoding intergenic; do
     for CNV in DEL DUP; do
@@ -219,9 +219,9 @@ for VF in E2 E3 E4 N1; do
       #     #iterate over phenos
       #     while read pheno nCASE; do
       #       #Get counts of case/control CNVs
-      #       caseCNV=$( bedtools intersect -wb -f 0.25 -a <( echo -e "${chr}\t${start}\t${end}" ) \
+      #       caseCNV=$( bedtools intersect -wb -f 0.5 -a <( echo -e "${chr}\t${start}\t${end}" ) \
       #       -b ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz | wc -l )
-      #       controlCNV=$( bedtools intersect -wb -f 0.25 -a <( echo -e "${chr}\t${start}\t${end}" ) \
+      #       controlCNV=$( bedtools intersect -wb -f 0.5 -a <( echo -e "${chr}\t${start}\t${end}" ) \
       #       -b ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz | wc -l )
       #       controlCNV=$( echo -e "${controlCNV}+1" | bc )
       #       caseNoCNV=$( echo "${nCASE}-${caseCNV}" | bc )

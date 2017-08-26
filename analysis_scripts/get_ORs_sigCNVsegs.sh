@@ -27,9 +27,9 @@ while read chr start end; do
     #iterate over phenos
     while read pheno nCASE; do
       #Get counts of case/control CNVs
-      caseCNV=$( bedtools intersect -wb -f 0.25 -a <( echo -e "${chr}\t${start}\t${end}" ) \
+      caseCNV=$( bedtools intersect -wb -f 0.50 -a <( echo -e "${chr}\t${start}\t${end}" ) \
       -b ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz | wc -l )
-      controlCNV=$( bedtools intersect -wb -f 0.25 -a <( echo -e "${chr}\t${start}\t${end}" ) \
+      controlCNV=$( bedtools intersect -wb -f 0.50 -a <( echo -e "${chr}\t${start}\t${end}" ) \
       -b ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz | wc -l )
       caseNoCNV=$( echo "${nCASE}-${caseCNV}" | bc )
       controlNoCNV=$( echo "38628-${controlCNV}" | bc )
