@@ -168,6 +168,11 @@ for VF in E2 E3 E4 N1; do
     ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed
   done
 done
+#Get median size of merged loci loci
+VF=E2
+filt=all
+awk '{ print $3-$2 }' ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed | \
+sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
 
 ########################################################################
 #Get association statistics per phenotype per significant filtered locus
@@ -263,17 +268,69 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
       fgrep -v CTRL | awk '{ if ($2=="CNCR") print $1 }' ) | \
   sort -Vk1,1 -k2,2n -k3,3n | uniq > ${TMPDIR}/CNCR.sig.loci.bed
 cat ${TMPDIR}/CNCR.sig.loci.bed | wc -l
+
+########################################
+#####Locus overlaps vs positive controls
+########################################
 #Get overlap between germline & cancer significant loci
 bedtools intersect \
 -a ${TMPDIR}/GERM.sig.loci.bed \
 -b ${TMPDIR}/CNCR.sig.loci.bed | wc -l
-
-
+#Get overlap of germline significant loci & known loci
 bedtools intersect -u -a ${TMPDIR}/GERM.sig.loci.bed \
 -b ${WRKDIR}/data/master_annotations/noncoding/syndromic_CNVs.elements.bed | wc -l
-
-bedtools intersect -u -a  ${TMPDIR}/CNCR.sig.loci.bed \
+#Get overlap of cancer significant loci & known loci
+bedtools intersect -u -a ${TMPDIR}/CNCR.sig.loci.bed \
 -b ${WRKDIR}/data/master_annotations/noncoding/cancer_CNVs.elements.bed | wc -l
+#Overlap each pan CNCR-significant locus w/COSMIC genes
+VF=E2
+filt=all
+for CNV in DEL DUP; do
+  while read chr start end; do
+    for dummy in 1; do
+      echo -e "${chr}\t${start}\t${end}"
+      TS=$( bedtools intersect -wb -a <( echo -e "${chr}\t${start}\t${end}" ) \
+        -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
+        awk '{ print $NF }' | fgrep -wf ${WRKDIR}/data/master_annotations/genelists/COSMIC_tumor_suppressor.genes.list | \
+        paste -s -d, )
+      if [ -z ${TS} ]; then
+        echo "."
+      else
+        echo "${TS}"
+      fi
+      ONCO=$( bedtools intersect -wb -a <( echo -e "${chr}\t${start}\t${end}" ) \
+        -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
+        awk '{ print $NF }' | fgrep -wf ${WRKDIR}/data/master_annotations/genelists/COSMIC_oncogene.genes.list | \
+        paste -s -d, )
+      if [ -z ${ONCO} ]; then
+        echo "."
+      else
+        echo "${ONCO}"
+      fi
+    done | paste -s
+  done < <( bedtools intersect -wa -u \
+    -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
+    -b ${WRKDIR}/analysis/large_CNV_segments/CNCR/CNCR_${CNV}_${VF}_${filt}.signif.bed )
+done
+
+##################################################
+#####Overlap of genes hit versus constrained genes
+##################################################
+#Get median count of protein-coding genes per significant locus
+VF=E2
+filt=all
+bedtools intersect -c \
+-a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
+-b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
+cut -f4 | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
+#Calculate fraction of constrained genes per locus
+bedtools intersect -c \
+-a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
+-b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
+cut -f4 | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
+
+
+
 
 
 

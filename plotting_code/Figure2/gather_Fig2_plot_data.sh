@@ -42,3 +42,4 @@ for pheno in GERM NEURO NDD PSYCH SOMA CNCR; do
      sed '1d' | awk -v OFS="\t" '{ print $NF }' ) > \
   ${WRKDIR}/data/plot_data/figure2/${pheno}.${VF}.${filt}.manhattan_pvals.bed
 done
+

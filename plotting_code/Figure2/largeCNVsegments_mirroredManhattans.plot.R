@@ -139,8 +139,10 @@ mirrorManhattan <- function (df,adjusted=1E-8,ymax=NULL,col.even,col.odd,yaxis=T
       text(x=mean(c(indexes[i,4]-indexes[i,3],xright=indexes[i,4])),y=0,
            labels=contigs[i],font=4,cex=0.45,srt=90)
     }
-
   })
+
+  # #Add dashed lines at ymax
+  # abline(h=c(ymax+boxht,-(ymax+boxht)),lty=2)
 
   #Add cleanup box
   rect(xleft=par("usr")[1],xright=par("usr")[2],
