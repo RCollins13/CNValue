@@ -41,23 +41,24 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
 #####Submit burden data collection for all phenotypes
 while read pheno; do
   for CNV in CNV DEL DUP; do
-    if [ -e ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV} ]; then
-      rm -rf ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}
-    fi
-    mkdir ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}
+    # if [ -e ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV} ]; then
+    #   rm -rf ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}
+    # fi
+    # mkdir ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}
     for VF in E4; do
-      if [ -e ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF} ]; then
-        rm -rf ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}
-      fi
-      mkdir ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}
+      # if [ -e ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF} ]; then
+      #   rm -rf ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}
+      # fi
+      # mkdir ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}
       for filt in haplosufficient noncoding; do
-        if [ -e ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt} ]; then
-          rm -rf ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}
-        fi
-        mkdir ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}
+        # if [ -e ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt} ]; then
+        #   rm -rf ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}
+        # fi
+        # mkdir ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}
         bsub -q short -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_perAnno_burden_dataCollection_${filt} \
         "${WRKDIR}/bin/rCNVmap/analysis_scripts/gather_annoScore_data_batchMode.sh \
-        ${pheno} ${CNV} ${VF} ${filt} ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.list"
+        ${pheno} ${CNV} ${VF} ${filt} \
+        ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prioritized_for_annoScore_modeling.list"
       done
     done
   done
