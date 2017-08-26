@@ -213,10 +213,9 @@ if [ $( cat ${GC_PROFILES} | wc -l ) -eq ${nElements} ] && \
     <( cut -f2 ${TMPDIR}/CASE.weightedCNVsPerAnno.txt ) \
     <( cut -f2 ${TMPDIR}/CTRL.weightedCNVsPerAnno.txt ) >> \
     ${OUTFILE}
-  else
-    echo "ERROR: some elements missing from pre-output files! Exiting..."
-    exit 0
-  fi
+else
+  echo "ERROR: some elements missing from pre-output files! Exiting..."
+  exit 0
 fi
 
 #Gzip, if optioned
