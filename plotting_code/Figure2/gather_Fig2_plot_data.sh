@@ -43,3 +43,6 @@ for pheno in GERM NEURO NDD PSYCH SOMA CNCR; do
   ${WRKDIR}/data/plot_data/figure2/${pheno}.${VF}.${filt}.manhattan_pvals.bed
 done
 
+#####Gather data for constrained gene enrichment analysis
+cp -r ${WRKDIR}/analysis/large_CNV_segments/constrained_enrichments \
+${WRKDIR}/data/plot_data/figure2/

@@ -29,7 +29,7 @@ cols.CNCR <- c("#FFCB00","#FFCB00","#FFE066","#FFF5CC")
 ##################
 #Open device
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure2/CNVsegments_vs_knownSites.barplots.pdf",sep=""),
-    height=3,width=2.5)
+    height=3.6,width=2.5)
 #Prepare plot area
 par(mar=c(0.5,3.1,0.5,0.1),bty="n")
 plot(x=c(0,2),y=c(0,1),

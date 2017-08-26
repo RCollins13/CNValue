@@ -323,11 +323,45 @@ bedtools intersect -c \
 -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
 -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
 cut -f4 | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
-#Calculate fraction of constrained genes per locus
-bedtools intersect -c \
--a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
--b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
-cut -f4 | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
+#Get lists of significant loci per phenotype/CNV combo
+for CNV in DEL DUP; do
+  #All phenos
+  while read pheno; do
+    bedtools intersect -wa -u \
+    -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
+    -b ${WRKDIR}/analysis/large_CNV_segments/${pheno}/${pheno}_${CNV}_${VF}_${filt}.signif.bed
+  done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+            fgrep -v CTRL | cut -f1 ) | sort -Vk1,1 -k2,2n -k3,3n | uniq > \
+  ${TMPDIR}/ALL_PHENOS.${CNV}.sig.loci.bed
+  #CNCR or GERM only
+  for group in CNCR GERM; do
+    while read pheno; do
+      bedtools intersect -wa -u \
+      -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
+      -b ${WRKDIR}/analysis/large_CNV_segments/${pheno}/${pheno}_${CNV}_${VF}_${filt}.signif.bed
+    done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+              fgrep -v CTRL | awk -v group=${group} '{ if ($2==group) print $1 }' ) | \
+              sort -Vk1,1 -k2,2n -k3,3n | uniq > \
+    ${TMPDIR}/${group}.${CNV}.sig.loci.bed
+  done
+done
+#Get counts of constrained genes per phenotype/CNV combo
+if ! [ -e ${WRKDIR}/analysis/large_CNV_segments/constrained_enrichments ]; then
+  mkdir ${WRKDIR}/analysis/large_CNV_segments/constrained_enrichments
+fi
+for CNV in DEL DUP; do
+  for group in ALL_PHENOS GERM CNCR; do
+    paste <( fgrep -wf ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list \
+      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed |
+      bedtools intersect -c -b - -a ${TMPDIR}/${group}.${CNV}.sig.loci.bed ) \
+      <( bedtools intersect -c -a ${TMPDIR}/${group}.${CNV}.sig.loci.bed \
+      -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed ) | \
+    awk -v OFS="\t" '{ print $4, $8 }' > \
+    ${WRKDIR}/analysis/large_CNV_segments/constrained_enrichments/${group}.${CNV}.constrained_genes_count.txt
+  done
+done 
+
+
 
 
 

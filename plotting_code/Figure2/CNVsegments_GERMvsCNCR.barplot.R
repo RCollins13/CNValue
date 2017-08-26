@@ -32,7 +32,7 @@ cols.CNCR <- c("#FFCB00","#FFCB00","#FFE066","#FFF5CC")
 ##################
 #Open device
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure2/CNVsegments_GERM_VS_CNCR.barplot.pdf",sep=""),
-    height=3,width=1.6)
+    height=3.6,width=1.6)
 #Prepare plot area
 par(mar=c(0.5,3.1,0.5,0.1),bty="n")
 plot(x=c(0,1),y=c(0,sum(BOTH,GERM,CNCR)),
@@ -65,11 +65,17 @@ rect(xleft=c(par("usr")[1],0.8),
      ybottom=par("usr")[3],ytop=par("usr")[4],
      border=NA,col="white")
 segments(x0=c(rep(par("usr")[1],times=length(seq(0,100,5))),
-              rep(0.8,times=length(seq(0,100,5))))
+              rep(0.8,times=length(seq(0,100,5)))),
          x1=c(rep(0.2,times=length(seq(0,100,5))),
               rep(par("usr")[2],times=length(seq(0,100,5)))),
          y0=rep(seq(0,100,5),2),y1=rep(seq(0,100,5),2),
          col=cols.CTRL[4])
+segments(x0=c(rep(par("usr")[1],times=length(seq(0,100,10))),
+              rep(0.8,times=length(seq(0,100,10)))),
+         x1=c(rep(0.2,times=length(seq(0,100,10))),
+              rep(par("usr")[2],times=length(seq(0,100,10)))),
+         y0=rep(seq(0,100,10),2),y1=rep(seq(0,100,10),2),
+         col=cols.CTRL[3])
 
 #Add axes
 axis(1,at=0:1,labels=NA,tck=0)
