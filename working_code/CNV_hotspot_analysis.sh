@@ -223,11 +223,12 @@ for VF in E2 E3 E4 N1; do
       #       -b ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz | wc -l )
       #       controlCNV=$( bedtools intersect -wb -f 0.25 -a <( echo -e "${chr}\t${start}\t${end}" ) \
       #       -b ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz | wc -l )
+      #       controlCNV=$( echo -e "${controlCNV}+1" | bc )
       #       caseNoCNV=$( echo "${nCASE}-${caseCNV}" | bc )
-      #       controlNoCNV=$( echo "38628-${controlCNV}" | bc )
+      #       controlNoCNV=$( echo "38628+1-${controlCNV}" | bc )
       #       #Calcluate odds ratio
       #       unset R_HOME
-      #       Rscript -e "cat(paste((${caseCNV}/${controlCNV})/(${caseNoCNV}/${controlNoCNV})),\"\n\",sep=\"\")"
+      #       Rscript -e "cat(paste((${caseCNV}/(${controlCNV}+1))/(${caseNoCNV}/(${controlNoCNV}+1))),\"\n\",sep=\"\")"
       #     done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
       #       fgrep -v CTRL | cut -f1,8 )
       #   done | paste -s

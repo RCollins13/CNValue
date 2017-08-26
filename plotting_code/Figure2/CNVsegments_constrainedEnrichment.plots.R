@@ -100,10 +100,10 @@ plotFracConst <- function(DEL.sim,DEL.obs,DUP.sim,DUP.obs){
 
   #Add axes
   axis(1,at=c(0,2,4),labels=NA)
-  axis(2,at=seq(0,1,0.1),col=cols.CTRL[1],tck=-0.01,labels=NA)
-  axis(2,at=seq(0,1,0.2),tck=-0.02,labels=NA)
-  axis(2,at=seq(0,1,0.2),tick=F,las=2,line=-0.6,cex.axis=1.1,
-       labels=paste(seq(0,100,20),"%",sep=""))
+  axis(2,at=seq(0,1,0.125),col=cols.CTRL[1],tck=-0.01,labels=NA)
+  axis(2,at=seq(0,1,0.25),tck=-0.02,labels=NA)
+  axis(2,at=seq(0,1,0.25),tick=F,las=2,line=-0.6,cex.axis=1.1,
+       labels=paste(seq(0,100,25),"%",sep=""))
 
   #Plot violins of simulated nulls
   vioplot(DEL.sim$frac,at=0.5,col=cols.CTRL[1],add=T,pchMed=18,h=0.05)
@@ -120,14 +120,14 @@ plotFracConst <- function(DEL.sim,DEL.obs,DUP.sim,DUP.obs){
            y0=mean(c(DEL.obs$frac,DUP.obs$frac)),
            y1=mean(c(DEL.obs$frac,DUP.obs$frac)),
            lwd=4)
+  # segments(x0=c(1.2,3.2),x1=c(1.8,3.8),
+  #          y0=mean(c(DEL.obs$frac,DUP.obs$frac)),
+  #          y1=mean(c(DEL.obs$frac,DUP.obs$frac)),
+  #          lwd=1,col=c("red","blue"))
   segments(x0=c(1.2,3.2),x1=c(1.8,3.8),
            y0=mean(c(DEL.obs$frac,DUP.obs$frac)),
            y1=mean(c(DEL.obs$frac,DUP.obs$frac)),
-           lwd=1,col=c("red","blue"))
-  segments(x0=c(1.2,3.2),x1=c(1.8,3.8),
-           y0=mean(c(DEL.obs$frac,DUP.obs$frac)),
-           y1=mean(c(DEL.obs$frac,DUP.obs$frac)),
-           lwd=1,lty=2,col="white")
+           lwd=1,col="white")
 
   # segments(x0=c(1.2,3.2),x1=c(1.8,3.8),
   #          y0=median(c(DEL.obs$frac,DUP.obs$frac)),
@@ -141,6 +141,69 @@ plotFracConst <- function(DEL.sim,DEL.obs,DUP.sim,DUP.obs){
   # #Add legend
   # legend("topright",legend=c("Mean","Median"),
   #        lty=c(1,3),lwd=2,bty="n")
+}
+
+##################################################
+#####Helper function: plot # constrained genes hit
+##################################################
+plotConstCount <- function(DEL.sim,DEL.obs,DUP.sim,DUP.obs){
+  #Get counts of 0, 1, 2, and >2 constrained genes
+  counts <- as.data.frame(matrix(unlist(lapply(list(DEL.sim$const,DEL.obs$const,
+              DUP.sim$const,DUP.obs$const),
+         function(counts){
+           return(c(length(which(counts==0))/length(counts),
+             length(which(counts==1))/length(counts),
+             length(which(counts==2))/length(counts),
+             length(which(counts>2))/length(counts)))
+         })),ncol=4,byrow=F))
+  colnames(counts) <- c("DEL.sim","DEL.obs","DUP.sim","DUP.obs")
+  rownames(counts) <- c("0","1","2","gt2")
+
+  #Prepare plot area
+  par(mar=c(0.5,3,0.5,0.2),bty="n")
+  plot(x=c(0,9),y=c(0,0.5),type="n",
+       xaxs="i",xaxt="n",yaxt="n",xlab="",ylab="")
+
+  #Draw gridlines
+  abline(h=seq(0,1,0.05),col=cols.CTRL[4])
+  abline(h=seq(0,1,0.1),col=cols.CTRL[3])
+
+  #Add axes
+  axis(1,at=0:4,labels=NA)
+  axis(1,at=5:9,labels=NA)
+  # axis(1,at=0.5:3.5,labels=c(0,1,2,">2"),tick=F,line=-0.8)
+  # axis(1,at=5.5:8.5,labels=c(0,1,2,">2"),tick=F,line=-0.8)
+  axis(2,at=seq(0,1,0.05),col=cols.CTRL[1],tck=-0.01,labels=NA)
+  axis(2,at=seq(0,1,0.1),tck=-0.02,labels=NA)
+  axis(2,at=seq(0,1,0.1),tick=F,las=2,line=-0.6,cex.axis=1.1,
+       labels=paste(seq(0,100,10),"%",sep=""))
+
+  #Plot bars
+  rect(xleft=c(0.25:3.25,0.5:3.5,
+               5.25:8.25,5.5:8.5),
+       xright=c(0.5:3.5,0.75:3.75,
+                5.5:8.5,5.75:8.75),
+       ybottom=par("usr")[3],
+       ytop=c(counts$DEL.sim,counts$DEL.obs,
+              counts$DUP.sim,counts$DUP.obs),
+       col=c(rep(cols.CTRL[1],4),rep("red",4),
+             rep(cols.CTRL[1],4),rep("blue",4)))
+
+  #Run binomial tests to compute p-values
+  DEL.p <- apply(counts[,1:2],1,function(vals){
+    vals <- as.numeric(vals)
+    binom.test(x=vals[2]*nrow(DEL.obs),
+               n=nrow(DEL.obs),
+               p=vals[1])$p.value
+  })
+  DUP.p <- apply(counts[,3:4],1,function(vals){
+    vals <- as.numeric(vals)
+    binom.test(x=vals[2]*nrow(DUP.obs),
+               n=nrow(DUP.obs),
+               p=vals[1])$p.value
+  })
+  print(DEL.p)
+  print(DUP.p)
 }
 
 #######################
@@ -160,7 +223,19 @@ pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure2/CNVsegments_constrainedEnrichme
 plotFracConst(GERM.DEL.sim,GERM.DEL,GERM.DUP.sim,GERM.DUP)
 dev.off()
 
-
+#Barplots of count of constrained genes
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure2/CNVsegments_constrainedCount.ALL.bars.pdf",sep=""),
+    height=1.5,width=3)
+plotConstCount(ALL.DEL.sim,ALL.DEL,ALL.DUP.sim,ALL.DUP)
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure2/CNVsegments_constrainedCount.CNCR.bars.pdf",sep=""),
+    height=1.5,width=3)
+plotConstCount(CNCR.DEL.sim,CNCR.DEL,CNCR.DUP.sim,CNCR.DUP)
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure2/CNVsegments_constrainedCount.GERM.bars.pdf",sep=""),
+    height=1.5,width=3)
+plotConstCount(GERM.DEL.sim,GERM.DEL,GERM.DUP.sim,GERM.DUP)
+dev.off()
 
 
 
