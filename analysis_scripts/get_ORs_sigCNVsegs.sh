@@ -35,7 +35,7 @@ while read chr start end; do
       controlNoCNV=$( echo "38628-${controlCNV}" | bc )
       #Calcluate odds ratio
       unset R_HOME
-      Rscript -e "cat(paste((${caseCNV}/(${controlCNV}+1))/(${caseNoCNV}/(${controlNoCNV}+1))),\"\n\",sep=\"\")"
+      Rscript -e "cat(paste(((${caseCNV}+(${nCASE}/38628))/(${controlCNV}+1))/((${caseNoCNV}+(${nCASE}/38628))/(${controlNoCNV}+1))),\"\n\",sep=\"\")"
     done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
       fgrep -v CTRL | cut -f1,8 )
   done | paste -s

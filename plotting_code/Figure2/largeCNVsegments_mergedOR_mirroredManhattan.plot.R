@@ -37,6 +37,19 @@ cols.allPhenos <- c(cols.GERM[1],
                     rep(cols.SOMA[1],10),
                     rep(cols.CNCR[1],13))
 
+###################################################
+#####Helper function to read regular manhattan data
+###################################################
+readData <- function(pheno,VF,filt){
+  df <- read.table(paste(WRKDIR,"plot_data/figure2/",pheno,".",
+                         VF,".",filt,".manhattan_pvals.bed",sep=""),header=F)
+  names(df) <- c("chr","start","end","pDEL","pDUP")
+  df$pDEL <- -log10(df$pDEL)
+  df$pDUP <- -log10(df$pDUP)
+  df$pos <- apply(df[,2:3],1,mean)
+  return(df[,c(1,6,4:5)])
+}
+
 ##############
 #####Read data
 ##############
@@ -54,19 +67,8 @@ DEL.OR <- DEL.OR[,c(1:3,phenos.reorder+3)]
 DUP.OR <- read.table(paste(WRKDIR,"plot_data/figure2/DEL_DUP_union.E2_all.signif.filtered.DUP_OR.bed",sep=""),header=F)
 colnames(DUP.OR) <- c("chr","start","end",phenos)
 DUP.OR <- DUP.OR[,c(1:3,phenos.reorder+3)]
-
-###################################################
-#####Helper function to read regular manhattan data
-###################################################
-readData <- function(pheno,VF,filt){
-  df <- read.table(paste(WRKDIR,"plot_data/figure2/",pheno,".",
-                         VF,".",filt,".manhattan_pvals.bed",sep=""),header=F)
-  names(df) <- c("chr","start","end","pDEL","pDUP")
-  df$pDEL <- -log10(df$pDEL)
-  df$pDUP <- -log10(df$pDUP)
-  df$pos <- apply(df[,2:3],1,mean)
-  return(df[,c(1,6,4:5)])
-}
+#Manhattan base
+manhat.base <- readData("NEURO","E2","all")
 
 ################################################
 ######Helper function to plot mirrored manhattan
@@ -75,112 +77,131 @@ mirrorManhattan <- function (DEL.OR,DUP.OR,
                              manhat.base,
                              maxOR=128,infOR=256){
   #Gather list of unique contigs
-  contigs <- unique(df[,1])
+  contigs <- unique(manhat.base[,1])
   contigs <- contigs[which(!(is.na(contigs)))]
 
   #Create index data frame
   indexes <- as.data.frame(t(sapply(contigs,function(chr){
-    return(c(chr,0,max(df[which(df[,1]==chr),2])))
+    return(c(chr,0,max(manhat.base[which(manhat.base[,1]==chr),2])))
   })))
   indexes$sum <- cumsum(indexes[,3])
-  indexes$bg <- rep(c(col.even,col.odd),ceiling(nrow(indexes)/2))[1:nrow(indexes)]
 
-  #Create new plotting df with modified coordinates & color assignments
-  df.plot <- as.data.frame(t(apply(df,1,function(row){
-    #Determine del/dup colors
-    if(as.numeric(row[3]>-log10(adjusted))){
-      delCol <- "red"
-    }else{
-      delCol <- indexes[as.numeric(row[1]),5]
-    }
-    if(as.numeric(row[4]>-log10(adjusted))){
-      dupCol <- "blue"
-    }else{
-      dupCol <- indexes[as.numeric(row[1]),5]
-    }
-    #Return vector
-    return(c(row[1],
-             as.numeric(row[2]+indexes[as.numeric(row[1]),4]-indexes[as.numeric(row[1]),3]),
-             as.numeric(row[3]),
-             as.numeric(row[4]),
-             delCol,dupCol))
-  })))
-  df.plot[,2] <- as.numeric(as.character(df.plot[,2]))
-  df.plot[,3] <- as.numeric(as.character(df.plot[,3]))
-  df.plot[,4] <- as.numeric(as.character(df.plot[,4]))
+  #Create new plotting dfs with modified coordinates & formatted values
+  DEL.plot <- t(apply(DEL.OR,1,function(vals){
+    #Quick fix to values
+    vals <- as.vector(vals)
+    vals[1] <- gsub("chr","",vals[1])
+    vals[-1] <- as.numeric(vals[-1])
 
-  #Round values to ymax (if optioned)
-  if(is.null(ymax)){
-    ymax <- max(df.plot[,3:4],na.rm=T)
-  }else{
-    df.plot[which(df.plot[,3]>ymax),3] <- ymax
-    df.plot[which(df.plot[,4]>ymax),4] <- ymax
-  }
+    #Get nearest plotting coordinate
+    avgCoord <- mean(as.numeric(vals[2:3]))
+    deltaCoords <- avgCoord-manhat.base[which(manhat.base$chr==as.character(vals[1])),]$pos
+    nearestCoordIdx <- head(which(abs(deltaCoords)==min(abs(deltaCoords))),1)
+    nearestCoord <- manhat.base[which(manhat.base$chr==as.character(vals[1])),]$pos[nearestCoordIdx]
+    plottingCoord <- indexes[which(indexes[,1]==as.character(vals[1])),]$sum-indexes[which(indexes[,1]==as.character(vals[1])),3]+nearestCoord
+
+    #Format ORs
+    ORs <- as.numeric(as.vector(vals[-c(1:3)]))
+    ORs[which(!is.infinite(ORs) & ORs>maxOR)] <- maxOR
+    ORs[which(is.infinite(ORs) & ORs>0)] <- infOR
+    ORs[which(is.na(ORs))] <- 0
+    ORs <- log2(ORs)
+    ORs[which(is.infinite(ORs) & ORs<0)] <- 0
+    ORs[which(ORs<0)] <- 0
+
+    #Return formatted values for plotting
+    return(as.numeric(c(plottingCoord,ORs)))
+  }))
+  DUP.plot <- t(apply(DUP.OR,1,function(vals){
+    #Quick fix to values
+    vals <- as.vector(vals)
+    vals[1] <- gsub("chr","",vals[1])
+    vals[-1] <- as.numeric(vals[-1])
+
+    #Get nearest plotting coordinate
+    avgCoord <- mean(as.numeric(vals[2:3]))
+    deltaCoords <- avgCoord-manhat.base[which(manhat.base$chr==as.character(vals[1])),]$pos
+    nearestCoordIdx <- head(which(abs(deltaCoords)==min(abs(deltaCoords))),1)
+    nearestCoord <- manhat.base[which(manhat.base$chr==as.character(vals[1])),]$pos[nearestCoordIdx]
+    plottingCoord <- indexes[which(indexes[,1]==as.character(vals[1])),]$sum-indexes[which(indexes[,1]==as.character(vals[1])),3]+nearestCoord
+
+    #Format ORs
+    ORs <- as.numeric(as.vector(vals[-c(1:3)]))
+    ORs[which(!is.infinite(ORs) & ORs>maxOR)] <- maxOR
+    ORs[which(is.infinite(ORs) & ORs>0)] <- infOR
+    ORs[which(is.na(ORs))] <- 0
+    ORs <- log2(ORs)
+    ORs[which(is.infinite(ORs) & ORs<0)] <- 0
+    ORs[which(ORs<0)] <- 0
+
+    #Return formatted values for plotting
+    return(as.numeric(c(plottingCoord,ORs)))
+  }))
 
   #Set height of contig boxes
-  boxht <- 0.05*ymax
+  ymax <- log2(infOR)
+  boxht <- 0.06*ymax
 
   #Prepare plotting window
-  par(mar=c(0.2,2,0.2,0.2))
-  plot(x=c(0,max(indexes[,4])),y=c(-1.1*(ymax+boxht),1.1*(ymax+boxht)),
+  par(mar=c(0.2,2,0.2,0.2),bty="n")
+  plot(x=c(-0.01*max(indexes[,4]),1.01*max(indexes[,4])),y=c(-1.1*(ymax+boxht),1.1*(ymax+boxht)),
        type="n",xaxs="i",yaxs="i",xaxt="n",yaxt="n",xlab="",ylab="")
 
-  #Add background shading
-  rect(xleft=rep(par("usr")[1],3),xright=rep(par("usr")[2],3),
-       ybottom=c(par("usr")[3],log10(adjusted)-boxht,log10(0.05)-boxht),
-       ytop=c(par("usr")[4],-log10(adjusted)+boxht,-log10(0.05)+boxht),
-       border=NA,col=cols.CTRL[4:2])
+  #Add background shading & gridlines
+  rect(xleft=indexes[,4]-indexes[,3],xright=indexes[,4],
+       ybottom=par("usr")[3],ytop=par("usr")[4],
+       col=cols.CTRL[4:3],border=NA)
   rect(xleft=par("usr")[1],xright=par("usr")[2],
-       ybottom=-boxht,ytop=boxht,col="white")
+       ybottom=-boxht,ytop=boxht,col="white",border=NA)
+  abline(h=c((1:log2(maxOR))+boxht,(-1:-log2(maxOR))-boxht),col=cols.CTRL[2])
+  rect(xleft=par("usr")[1],xright=par("usr")[2],
+       ybottom=c(par("usr")[3],(log2(infOR)+boxht)+0.5*boxht),
+       ytop=c((-log2(infOR)-boxht)-0.5*boxht,par("usr")[4]),
+       border=NA,col="white")
+  abline(h=c(ymax+boxht-0.5*boxht,ymax+boxht+0.5*boxht,-ymax-boxht-0.5*boxht,-ymax-boxht+0.5*boxht))
+  rect(xleft=c(par("usr")[1],max(indexes[,4])),xright=c(0,par("usr")[2]),
+       ybottom=par("usr")[3],ytop=par("usr")[4],
+       col="white",border=NA)
 
   #Add y-axis
-  if(yaxis==T){
-    y.at <- seq(0,2*ceiling(par("usr")[4]),by=10)
+    y.at <- 1:log2(maxOR)
     #Top y-axis
     axis(2,at=y.at+boxht,labels=NA)
-    axis(2,at=y.at[-1]+boxht,tick=F,line=-0.3,labels=y.at[-1],las=2)
+    axis(2,at=y.at+boxht,tick=F,line=-0.3,labels=2^y.at,las=2)
+    axis(2,at=ymax+boxht,labels=NA)
+    axis(2,at=ymax+boxht,tick=F,line=-0.3,labels="Inf",las=2)
     #Bottom y-axis
     axis(2,at=-(y.at+boxht),labels=NA)
-    axis(2,at=-(y.at[-1]+boxht),tick=F,line=-0.3,labels=y.at[-1],las=2)
-  }
+    axis(2,at=-(y.at+boxht),tick=F,line=-0.3,labels=2^y.at,las=2)
+    axis(2,at=-ymax-boxht,labels=NA)
+    axis(2,at=-ymax-boxht,tick=F,line=-0.3,labels="Inf",las=2)
 
-  #Add horizontal gridlines
-  abline(v=indexes[,4],col="white",lwd=2)
-  abline(h=c(-seq(0,ymax+10,10)-boxht,seq(0,ymax+10,10)+boxht),
-         col=cols.CTRL[3],lwd=0.8)
-  abline(h=c(log10(adjusted)-boxht,-log10(adjusted)+boxht),
-         col=adjustcolor(c("blue","red"),alpha=0.5),lty=3)
+    #Adds chromosome labels
+    sapply(1:length(contigs),function(i){
+      #Rectangle
+      rect(xleft=indexes[i,4]-indexes[i,3],xright=indexes[i,4],
+           ybottom=-boxht,ytop=boxht,col="white")
+      if(i<=13){
+        text(x=mean(c(indexes[i,4]-indexes[i,3],xright=indexes[i,4])),y=0,
+             labels=contigs[i],font=4,cex=0.85)
+      }else if(i<=18){
+        text(x=mean(c(indexes[i,4]-indexes[i,3],xright=indexes[i,4])),y=0,
+             labels=contigs[i],font=4,cex=0.6,srt=90)
+      }else{
+        text(x=mean(c(indexes[i,4]-indexes[i,3],xright=indexes[i,4])),y=0,
+             labels=contigs[i],font=4,cex=0.45,srt=90)
+      }
+    })
 
   #Plots points
-  points(df.plot[,2],df.plot[,3]+boxht,
-         cex=0.5,pch=19,col=as.character(df.plot[,5]))
-  points(df.plot[,2],-(df.plot[,4]+boxht),
-         cex=0.5,pch=19,col=as.character(df.plot[,6]))
-
-  #Adds chromosome labels
-  sapply(1:length(contigs),function(i){
-    #Rectangle
-    rect(xleft=indexes[i,4]-indexes[i,3],xright=indexes[i,4],
-         ybottom=-boxht,ytop=boxht,col="white")
-    if(i<=13){
-      text(x=mean(c(indexes[i,4]-indexes[i,3],xright=indexes[i,4])),y=0,
-           labels=contigs[i],font=4,cex=0.85)
-    }else if(i<=18){
-      text(x=mean(c(indexes[i,4]-indexes[i,3],xright=indexes[i,4])),y=0,
-           labels=contigs[i],font=4,cex=0.6,srt=90)
-    }else{
-      text(x=mean(c(indexes[i,4]-indexes[i,3],xright=indexes[i,4])),y=0,
-           labels=contigs[i],font=4,cex=0.45,srt=90)
-    }
+  apply(DEL.plot,1,function(vals){
+    points(x=rep(vals[1],times=length(vals)-1),y=vals[-1]+boxht,
+           pch=21,bg=cols.allPhenos[phenos.reorder])
   })
-
-  # #Add dashed lines at ymax
-  # abline(h=c(ymax+boxht,-(ymax+boxht)),lty=2)
-
-  #Add cleanup box
-  rect(xleft=par("usr")[1],xright=par("usr")[2],
-       ybottom=par("usr")[3],ytop=par("usr")[4],
-       col=NA,border="black",lwd=2)
+  apply(DUP.plot,1,function(vals){
+    points(x=rep(vals[1],times=length(vals)-1),y=-vals[-1]-boxht,
+           pch=21,bg=cols.allPhenos[phenos.reorder])
+  })
 }
 
 ########################################
