@@ -9,7 +9,7 @@
 # Contact: Ryan L. Collins <rlcollins@g.harvard.edu>
 # Code development credits availble on GitHub
 
-#Code to gather all data required for all plots used in figure 4
+#Code to gather all data required for all plots used in figure 2
 
 #####Set parameters
 export WRKDIR=/data/talkowski/Samples/rCNVmap
@@ -45,4 +45,8 @@ done
 
 #####Gather data for constrained gene enrichment analysis
 cp -r ${WRKDIR}/analysis/large_CNV_segments/constrained_enrichments \
+${WRKDIR}/data/plot_data/figure2/
+
+#####Gather germline prevalance data
+cp -r ${WRKDIR}/analysis/large_CNV_segments/prevalance \
 ${WRKDIR}/data/plot_data/figure2/

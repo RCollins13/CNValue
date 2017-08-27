@@ -374,6 +374,36 @@ for CNV in DEL DUP; do
   done
 done 
 
+####################################################################################
+#####Get count of cases carrying at least one DEL or DUP at a significant GERM locus
+####################################################################################
+VF=E2
+filt=all
+group=GERM
+if ! [ -e ${WRKDIR}/${WRKDIR}/analysis/large_CNV_segments/prevalance ]; then
+  mkdir ${WRKDIR}/analysis/large_CNV_segments/prevalance
+fi
+#Iterate over phenotypes & count CNVs (≥25% overlap)
+for CNV in DEL DUP; do
+  while read pheno nSamp; do
+    for dummy in 1; do
+      echo "${pheno}"
+      bedtools intersect -f 0.25 -wb -a ${TMPDIR}/${group}.${CNV}.sig.loci.bed \
+      -b ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz | \
+      cut -f7 | sort | uniq | wc -l
+      echo "${nSamp}"
+    done | paste -s
+  done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+            sed -n '1,23p' | awk -v OFS="\t" '{ print $1, $NF }' ) > \
+  ${WRKDIR}/analysis/large_CNV_segments/prevalance/GERM_${CNV}.prevalance.txt
+done
+
+
+
+
+
+
+
 
 
 

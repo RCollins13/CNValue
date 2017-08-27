@@ -369,4 +369,46 @@ pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure2/CNVsegment_meanORs.DUP.pdf",sep
 plotMedianORs(DUP.OR,DUP.p,manhat.base)
 dev.off()
 
+#######################################
+#####Calculate mean ORs for GERM & CNCR
+#######################################
+#Mini helper function to determine which segments are significant
+whichSig <- function(OR,p,cols){
+  sig <- apply(p,1,function(pvals){
+    if(any(as.numeric(pvals[cols])<10^-8)){
+      return(1)
+    }else{
+      return(0)
+    }
+  })
+  return(which(sig>0))
+}
+#Mini helper function to get mean ORs for a subset of phenotypes
+meanORs <- function(OR,cols){
+  apply(OR,1,function(vals){
+    return(mean(as.numeric(vals[cols])))
+  })
+}
+#GERM
+GERM.DEL.sig <- whichSig(DEL.OR,DEL.p,4:25)
+GERM.DEL.sig.OR <- log2(meanORs(DEL.OR[GERM.DEL.sig,],4:25))
+GERM.DUP.sig <- whichSig(DUP.OR,DUP.p,4:25)
+GERM.DUP.sig.OR <- log2(meanORs(DUP.OR[GERM.DUP.sig,],4:25))
+GERM.sig.OR <- c(GERM.DEL.sig.OR,GERM.DUP.sig.OR)
+error <- qt(0.975,df=length(GERM.sig.OR)-1)*sd(GERM.sig.OR)/sqrt(length(GERM.sig.OR))
+print(paste("GERM 95% CI: ",round(2^(mean(GERM.sig.OR)-error),2),
+            " - ",round(2^(mean(GERM.sig.OR)+error),2),sep=""))
+#CNCR
+CNCR.DEL.sig <- whichSig(DEL.OR,DEL.p,26:38)
+CNCR.DEL.sig.OR <- log2(meanORs(DEL.OR[CNCR.DEL.sig,],26:38))
+CNCR.DUP.sig <- whichSig(DUP.OR,DUP.p,26:38)
+CNCR.DUP.sig.OR <- log2(meanORs(DUP.OR[CNCR.DUP.sig,],26:38))
+CNCR.sig.OR <- c(CNCR.DEL.sig.OR,CNCR.DUP.sig.OR)
+error <- qt(0.975,df=length(CNCR.sig.OR)-1)*sd(CNCR.sig.OR)/sqrt(length(CNCR.sig.OR))
+print(paste("CNCR 95% CI: ",round(2^(mean(CNCR.sig.OR)-error),2),
+            " - ",round(2^(mean(CNCR.sig.OR)+error),2),sep=""))
+
+
+
+
 

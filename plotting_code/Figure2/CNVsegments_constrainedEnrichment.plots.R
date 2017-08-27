@@ -107,8 +107,8 @@ plotFracConst <- function(DEL.sim,DEL.obs,DUP.sim,DUP.obs){
        xaxs="i",xaxt="n",yaxt="n",xlab="",ylab="")
 
   #Draw gridlines
-  abline(h=seq(0,1,0.1),col=cols.CTRL[4])
-  abline(h=seq(0,1,0.2),col=cols.CTRL[3])
+  abline(h=seq(0,1,0.125),col=cols.CTRL[4])
+  abline(h=seq(0,1,0.25),col=cols.CTRL[3])
 
   #Add axes
   axis(1,at=c(0,2,4),labels=NA)
