@@ -246,6 +246,10 @@ ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list
 awk '{ if ($20<0.1 && $20!="NA") print $2 }' \
 ${WRKDIR}/data/misc/fordist_cleaned_nonpsych_z_pli_rec_null_data.txt | sort | uniq > \
 ${WRKDIR}/data/master_annotations/genelists/ExAC_haplosufficient.genes.list
+#Missense constrained genes (misZ >= 3.09)
+awk '{ if ($18>=3.09 && $18!="NA") print $2 }' \
+${WRKDIR}/data/misc/fordist_cleaned_nonpsych_z_pli_rec_null_data.txt | sed '1d' | \
+sort | uniq > ${WRKDIR}/data/master_annotations/genelists/ExAC_missense_constrained.genes.list
 #Not haplosufficient genes (pLI > 0.1)
 awk '{ if ($20>=0.1 && $20!="NA") print $2 }' \
 ${WRKDIR}/data/misc/fordist_cleaned_nonpsych_z_pli_rec_null_data.txt | sort | uniq > \
@@ -524,7 +528,7 @@ while read list; do
   <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed ) | \
   grep -e '^[0-9]' | cut -f4 | sort | uniq | wc -l
 done < <( l ${WRKDIR}/data/master_annotations/genelists/*genes.list | \
-  awk '{ print $9 }' | fgrep MASTER ) | paste - - -
+  awk '{ print $9 }' | fgrep missense ) | paste - - -
 
 
 

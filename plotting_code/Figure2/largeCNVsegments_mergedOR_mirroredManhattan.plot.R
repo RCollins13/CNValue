@@ -75,7 +75,7 @@ manhat.base <- readData("NEURO","E2","all")
 ################################################
 mirrorManhattan <- function (DEL.OR,DUP.OR,
                              manhat.base,
-                             maxOR=128,infOR=256){
+                             maxOR=256,infOR=512){
   #Gather list of unique contigs
   contigs <- unique(manhat.base[,1])
   contigs <- contigs[which(!(is.na(contigs)))]
@@ -164,65 +164,56 @@ mirrorManhattan <- function (DEL.OR,DUP.OR,
        col="white",border=NA)
 
   #Add y-axis
-    y.at <- 1:log2(maxOR)
-    #Top y-axis
-    axis(2,at=y.at+boxht,labels=NA)
-    axis(2,at=y.at+boxht,tick=F,line=-0.3,labels=2^y.at,las=2)
-    axis(2,at=ymax+boxht,labels=NA)
-    axis(2,at=ymax+boxht,tick=F,line=-0.3,labels="Inf",las=2)
-    #Bottom y-axis
-    axis(2,at=-(y.at+boxht),labels=NA)
-    axis(2,at=-(y.at+boxht),tick=F,line=-0.3,labels=2^y.at,las=2)
-    axis(2,at=-ymax-boxht,labels=NA)
-    axis(2,at=-ymax-boxht,tick=F,line=-0.3,labels="Inf",las=2)
-
-    #Adds chromosome labels
-    sapply(1:length(contigs),function(i){
-      #Rectangle
-      rect(xleft=indexes[i,4]-indexes[i,3],xright=indexes[i,4],
-           ybottom=-boxht,ytop=boxht,col="white")
-      if(i<=13){
-        text(x=mean(c(indexes[i,4]-indexes[i,3],xright=indexes[i,4])),y=0,
-             labels=contigs[i],font=4,cex=0.85)
-      }else if(i<=18){
-        text(x=mean(c(indexes[i,4]-indexes[i,3],xright=indexes[i,4])),y=0,
-             labels=contigs[i],font=4,cex=0.6,srt=90)
-      }else{
-        text(x=mean(c(indexes[i,4]-indexes[i,3],xright=indexes[i,4])),y=0,
-             labels=contigs[i],font=4,cex=0.45,srt=90)
-      }
-    })
+  y.at <- 1:log2(maxOR)
+  #Top y-axis
+  axis(2,at=y.at+boxht,labels=NA)
+  axis(2,at=y.at+boxht,tick=F,line=-0.3,labels=2^y.at,las=2)
+  axis(2,at=ymax+boxht,labels=NA)
+  axis(2,at=ymax+boxht,tick=F,line=-0.3,labels="Inf",las=2)
+  #Bottom y-axis
+  axis(2,at=-(y.at+boxht),labels=NA)
+  axis(2,at=-(y.at+boxht),tick=F,line=-0.3,labels=2^y.at,las=2)
+  axis(2,at=-ymax-boxht,labels=NA)
+  axis(2,at=-ymax-boxht,tick=F,line=-0.3,labels="Inf",las=2)
 
   #Plots points
   apply(DEL.plot,1,function(vals){
     points(x=rep(vals[1],times=length(vals)-1),y=vals[-1]+boxht,
-           pch=21,bg=cols.allPhenos[phenos.reorder])
+           pch=21,bg=cols.allPhenos[phenos.reorder],cex=0.5)
   })
   apply(DUP.plot,1,function(vals){
     points(x=rep(vals[1],times=length(vals)-1),y=-vals[-1]-boxht,
-           pch=21,bg=cols.allPhenos[phenos.reorder])
+           pch=21,bg=cols.allPhenos[phenos.reorder],cex=0.5)
   })
+
+  #Adds chromosome labels
+  sapply(1:length(contigs),function(i){
+    #Rectangle
+    rect(xleft=indexes[i,4]-indexes[i,3],xright=indexes[i,4],
+         ybottom=-boxht,ytop=boxht,col="white")
+    if(i<=13){
+      text(x=mean(c(indexes[i,4]-indexes[i,3],xright=indexes[i,4])),y=0,
+           labels=contigs[i],font=4,cex=0.85)
+    }else if(i<=18){
+      text(x=mean(c(indexes[i,4]-indexes[i,3],xright=indexes[i,4])),y=0,
+           labels=contigs[i],font=4,cex=0.6,srt=90)
+    }else{
+      text(x=mean(c(indexes[i,4]-indexes[i,3],xright=indexes[i,4])),y=0,
+           labels=contigs[i],font=4,cex=0.45,srt=90)
+    }
+  })
+
+  #Add ticks where there's a significant
 }
 
 ########################################
-#####Generate manhattan plots for figure
+#####Generate manhattan plot for figure
 ########################################
-#Make plotting values list
-plotVals <- list(c("GERM",cols.GERM[1],cols.GERM[3],T),
-                 c("NEURO",cols.NEURO[1],cols.NEURO[3],F),
-                 c("NDD",cols.NEURO[1],cols.NEURO[3],F),
-                 c("PSYCH",cols.NEURO[1],cols.NEURO[3],F),
-                 c("SOMA",cols.SOMA[1],cols.SOMA[3],F),
-                 c("CNCR",cols.CNCR[1],cols.CNCR[3],F))
-#Iterate and plot
-lapply(plotVals,function(vals){
-  df <- readData(vals[1],"E2","all")
-  png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure2/",
-            as.character(vals[1]),"_E2_all.mirrorManhattan.png",sep=""),
-      height=1200,width=1500,res=300)
-  mirrorManhattan(df,col.even=vals[2],col.odd=vals[3],ymax=40,yaxis=vals[4])
-  dev.off()
-})
+#Plot
+png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure2/CNVsegment_ORs.mirrorManhattan.png",sep=""),
+    height=1200,width=1500,res=300)
+mirrorManhattan(DEL.OR,DUP.OR,manhat.base)
+dev.off()
 
 
 

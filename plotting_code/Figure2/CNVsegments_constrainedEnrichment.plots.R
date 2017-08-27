@@ -29,9 +29,9 @@ cols.CNCR <- c("#FFCB00","#FFCB00","#FFE066","#FFF5CC")
 ##########################################
 #####Helper function to read & format data
 ##########################################
-readData <- function(pheno,CNV){
+readData <- function(pheno,CNV,tag){
   dat <- read.table(paste(WRKDIR,"/plot_data/figure2/constrained_enrichments/",
-                          pheno,".",CNV,".constrained_genes_count.txt",sep=""),header=F)
+                          pheno,".",CNV,".",tag,"_genes_count.txt",sep=""),header=F)
   colnames(dat) <- c("const","all")
   dat$frac <- dat$const/dat$all
   dat$frac[which(dat$all==0)] <- 0
@@ -71,19 +71,31 @@ simNull <- function(dat,const=3264,all=19346,n=1000){
 #####Prep all data & simulations
 ################################
 #Read data
-ALL.DEL <- readData("ALL_PHENOS","DEL")
-ALL.DUP <- readData("ALL_PHENOS","DUP")
-GERM.DEL <- readData("GERM","DEL")
-GERM.DUP <- readData("GERM","DUP")
-CNCR.DEL <- readData("CNCR","DEL")
-CNCR.DUP <- readData("CNCR","DUP")
+ALL.DEL <- readData("ALL_PHENOS","DEL","constrained")
+ALL.DUP <- readData("ALL_PHENOS","DUP","constrained")
+GERM.DEL <- readData("GERM","DEL","constrained")
+GERM.DUP <- readData("GERM","DUP","constrained")
+CNCR.DEL <- readData("CNCR","DEL","constrained")
+CNCR.DUP <- readData("CNCR","DUP","constrained")
+ALL.DEL.mis <- readData("ALL_PHENOS","DEL","missense_constrained")
+ALL.DUP.mis <- readData("ALL_PHENOS","DUP","missense_constrained")
+GERM.DEL.mis <- readData("GERM","DEL","missense_constrained")
+GERM.DUP.mis <- readData("GERM","DUP","missense_constrained")
+CNCR.DEL.mis <- readData("CNCR","DEL","missense_constrained")
+CNCR.DUP.mis <- readData("CNCR","DUP","missense_constrained")
 #Simulate nulls
-ALL.DEL.sim <- simNull(ALL.DEL)
-ALL.DUP.sim <- simNull(ALL.DUP)
-GERM.DEL.sim <- simNull(GERM.DEL)
-GERM.DUP.sim <- simNull(GERM.DUP)
-CNCR.DEL.sim <- simNull(CNCR.DEL)
-CNCR.DUP.sim <- simNull(CNCR.DUP)
+ALL.DEL.sim <- simNull(ALL.DEL,const=3264)
+ALL.DUP.sim <- simNull(ALL.DUP,const=3264)
+GERM.DEL.sim <- simNull(GERM.DEL,const=3264)
+GERM.DUP.sim <- simNull(GERM.DUP,const=3264)
+CNCR.DEL.sim <- simNull(CNCR.DEL,const=3264)
+CNCR.DUP.sim <- simNull(CNCR.DUP,const=3264)
+ALL.DEL.mis.sim <- simNull(ALL.DEL.mis,const=1655)
+ALL.DUP.mis.sim <- simNull(ALL.DUP.mis,const=1655)
+GERM.DEL.mis.sim <- simNull(GERM.DEL.mis,const=1655)
+GERM.DUP.mis.sim <- simNull(GERM.DUP.mis,const=1655)
+CNCR.DEL.mis.sim <- simNull(CNCR.DEL.mis,const=1655)
+CNCR.DUP.mis.sim <- simNull(CNCR.DUP.mis,const=1655)
 
 ###########################################
 #####Helper function: plot violins & swarms
@@ -206,9 +218,9 @@ plotConstCount <- function(DEL.sim,DEL.obs,DUP.sim,DUP.obs){
   print(DUP.p)
 }
 
-#######################
-#####Generate all plots
-#######################
+########################################
+#####Generate all plots - LoF constraint
+########################################
 #Violin plots of constrained fractions
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure2/CNVsegments_constrainedEnrichment.ALL.violins.pdf",sep=""),
     height=1.5,width=3)
@@ -235,6 +247,38 @@ dev.off()
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure2/CNVsegments_constrainedCount.GERM.bars.pdf",sep=""),
     height=1.5,width=3)
 plotConstCount(GERM.DEL.sim,GERM.DEL,GERM.DUP.sim,GERM.DUP)
+dev.off()
+
+
+########################################
+#####Generate all plots - LoF constraint
+########################################
+#Violin plots of constrained fractions
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure2/CNVsegments_missenseConstrainedEnrichment.ALL.violins.pdf",sep=""),
+    height=1.5,width=3)
+plotFracConst(ALL.DEL.mis.sim,ALL.DEL.mis,ALL.DUP.mis.sim,ALL.DUP.mis)
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure2/CNVsegments_missenseConstrainedEnrichment.CNCR.violins.pdf",sep=""),
+    height=1.5,width=3)
+plotFracConst(CNCR.DEL.mis.sim,CNCR.DEL.mis,CNCR.DUP.mis.sim,CNCR.DUP.mis)
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure2/CNVsegments_missenseConstrainedEnrichment.GERM.violins.pdf",sep=""),
+    height=1.5,width=3)
+plotFracConst(GERM.DEL.mis.sim,GERM.DEL.mis,GERM.DUP.mis.sim,GERM.DUP.mis)
+dev.off()
+
+#Barplots of count of constrained genes
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure2/CNVsegments_missenseConstrainedCount.ALL.bars.pdf",sep=""),
+    height=1.5,width=3)
+plotConstCount(ALL.DEL.mis.sim,ALL.DEL.mis,ALL.DUP.mis.sim,ALL.DUP.mis)
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure2/CNVsegments_missenseConstrainedCount.CNCR.bars.pdf",sep=""),
+    height=1.5,width=3)
+plotConstCount(CNCR.DEL.mis.sim,CNCR.DEL.mis,CNCR.DUP.mis.sim,CNCR.DUP.mis)
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure2/CNVsegments_missenseConstrainedCount.GERM.bars.pdf",sep=""),
+    height=1.5,width=3)
+plotConstCount(GERM.DEL.mis.sim,GERM.DEL.mis,GERM.DUP.mis.sim,GERM.DUP.mis)
 dev.off()
 
 

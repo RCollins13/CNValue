@@ -361,6 +361,18 @@ for CNV in DEL DUP; do
     ${WRKDIR}/analysis/large_CNV_segments/constrained_enrichments/${group}.${CNV}.constrained_genes_count.txt
   done
 done 
+#Get counts of missense-constrained genes per phenotype/CNV combo
+for CNV in DEL DUP; do
+  for group in ALL_PHENOS GERM CNCR; do
+    paste <( fgrep -wf ${WRKDIR}/data/master_annotations/genelists/ExAC_missense_constrained.genes.list \
+      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed |
+      bedtools intersect -c -b - -a ${TMPDIR}/${group}.${CNV}.sig.loci.bed ) \
+      <( bedtools intersect -c -a ${TMPDIR}/${group}.${CNV}.sig.loci.bed \
+      -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed ) | \
+    awk -v OFS="\t" '{ print $4, $8 }' > \
+    ${WRKDIR}/analysis/large_CNV_segments/constrained_enrichments/${group}.${CNV}.missense_constrained_genes_count.txt
+  done
+done 
 
 
 
