@@ -46,6 +46,7 @@ lapply(list(GERM.mean,NEURO.mean,SOMA.mean,CNCR.mean),function(set){
 options(scipen=1000)
 
 #####Simulate expected gene set if normally distributed around OR=1
+set.seed(1)
 EXP.mean <- rnorm(mean=0,sd=sd(ALL.mean,na.rm=T),n=length(ALL.mean))
 
 #####Prepare plotting area

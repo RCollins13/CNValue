@@ -86,7 +86,10 @@ while read pheno; do
         fi
         mkdir ${WRKDIR}/analysis/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}
         #Launch model in batch mode across all annotations
-        #ADD COMMAND HERE
+        bsub -q normal -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_annoScoreModel \
+        "${WRKDIR}/bin/rCNVmap/analysis_scripts/run_annoScore_model_batchMode.sh \
+        ${pheno} ${CNV} ${VF} ${filt} \
+        ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prioritized_for_annoScore_modeling.list"
       done
     done
   done

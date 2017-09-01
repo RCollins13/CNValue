@@ -149,10 +149,10 @@ mirrorManhattan <- function (DEL.OR,DUP.OR,
        type="n",xaxs="i",yaxs="i",xaxt="n",yaxt="n",xlab="",ylab="")
 
   #Add background shading & gridlines
-  rect(xleft=par("usr")[1],xright=par("usr")[2],
-       ybottom=par("usr")[3],ytop=par("usr")[4],
+  rect(xleft=0,xright=max(indexes[,4]),
+       ybottom=-(ymax+boxht),ytop=ymax+boxht,
        col=cols.CTRL[4])
-  abline(v=indexes[,4],col="white",lwd=2)
+  abline(v=c(0,indexes[,4]),col="white",lwd=2)
   rect(xleft=par("usr")[1],xright=par("usr")[2],
        ybottom=-boxht,ytop=boxht,col="white",border=NA)
   abline(h=c((1:log2(maxOR))+boxht,(-1:-log2(maxOR))-boxht),col=cols.CTRL[3])
@@ -166,7 +166,7 @@ mirrorManhattan <- function (DEL.OR,DUP.OR,
        col="white",border=NA)
   rect(xleft=par("usr")[1],xright=par("usr")[2],
        ybottom=par("usr")[3],ytop=par("usr")[4],
-       col=NA,border="white",lwd=2)
+       col=NA,border="white",lwd=3)
 
   #Add y-axis
   y.at <- 1:ymax
