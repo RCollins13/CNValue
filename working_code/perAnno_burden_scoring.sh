@@ -96,3 +96,8 @@ while read pheno; do
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
 
+#####Collect significant elements per track per phenotype
+
+
+
+
