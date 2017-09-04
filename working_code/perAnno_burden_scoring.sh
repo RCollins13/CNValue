@@ -86,7 +86,7 @@ while read pheno; do
         fi
         mkdir ${WRKDIR}/analysis/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}
         #Launch model in batch mode across all annotations
-        bsub -q normal -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_annoScoreModel \
+        bsub -q normal -u nobody -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_annoScoreModel \
         "${WRKDIR}/bin/rCNVmap/analysis_scripts/run_annoScore_model_batchMode.sh \
         ${pheno} ${CNV} ${VF} ${filt} \
         ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prioritized_for_annoScore_modeling.list"
@@ -97,6 +97,33 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
           cut -f1 | fgrep -v CTRL )
 
 #####Collect significant elements per track per phenotype
+while read pheno; do
+  #Make output directories (if necessary)
+  if ! [ -e ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno} ]; then
+    mkdir ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}
+  fi
+  if ! [ -e ${WRKDIR}/analysis/perAnno_burden/signif_elements/CTRL ]; then
+    mkdir ${WRKDIR}/analysis/perAnno_burden/signif_elements/CTRL
+  fi
+  for CNV in CNV DEL DUP; do
+    for VF in E4; do
+      for filt in haplosufficient noncoding; do
+        #Launch collection script for all annotations
+        bsub -q normal -u nobody -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_annoScoreModel \
+        "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_significant_elements_perClass_perPheno_annoScore.sh \
+        ${pheno} ${CNV} ${VF} ${filt} \
+        ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prioritized_for_annoScore_modeling.list"
+      done
+    done
+  done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          cut -f1 | fgrep -v CTRL )
+
+
+
+
+
+
 
 
 
