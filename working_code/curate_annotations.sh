@@ -517,6 +517,10 @@ uniq | sed 's/\-/_/g' | fgrep -wvf \
    sed 's/\-/_/g' | sort | uniq ) | \
 sort | uniq | sed 's/\_/\-/g' > \
 ${WRKDIR}/data/master_annotations/genelists/Constrained_NOT_Highly_Expressed.genes.list
+#extTADA genes with q<0.05 from Nguyen et al., bioRxiv 2017 (Stahl/Sullivan labs)
+#Note: Supplementary excel sheet downloaded from bioRxiv:
+#  http://www.biorxiv.org/content/early/2017/08/25/135293
+#Genes filtered on q<0.05 in excel for each phenotype and saved as gene lists on cluster
 
 #Get count of all genes and autosomal genes per gene list
 while read list; do
