@@ -25,10 +25,10 @@ options(scipen=1000,stringsAsFactors=F)
 require("optparse")
 
 ##Local dev testing parameters
-# infile <- "~/scratch/NDD.DEL.E4.haplosufficient.Conserved_Enhancers.annoScoreData.bed.gz"
-# outfile <- "~/scratch/annoScore.test.output.txt"
-# nCTRL <- 38628
-# nCASE <- 35693
+infile <- "~/scratch/NDD.DEL.E4.haplosufficient.Conserved_Enhancers.annoScoreData.bed.gz"
+outfile <- "~/scratch/annoScore.test.output.txt"
+nCTRL <- 38628
+nCASE <- 35693
 #
 # #Test run
 # dat <- readAnnoScores(infile)
@@ -248,6 +248,9 @@ calcRatioStats <- function(df,nCTRL,nCASE){
 option_list <- list(
   make_option(c("-o", "--outfile"), type="character", default="/dev/stdout",
               help="write output to file [default stdout]",
+              metavar="character"),
+  make_option(c("-F", "--onlyfisher"), type="store_true", default=FALSE,
+              help="just run Fisher's exact test [default FALSE]",
               metavar="character")
 )
 
@@ -261,6 +264,7 @@ opts <- args$options
 infile <- args$args[1]
 nCTRL <- as.numeric(args$args[2])
 nCASE <- as.numeric(args$args[3])
+onlyFisher <- opts[2]
 
 #Checks for appropriate positional arguments
 if(length(args$args) != 3) {
@@ -271,17 +275,65 @@ if(length(args$args) != 3) {
 #Reads data
 df <- readAnnoScores(infile)
 
-#Adjusts CNV counts
-df.adj <- adjustCounts(df)
+#Run routine if full model is optioned
+if(onlyFisher==FALSE){
+  #Adjusts CNV counts
+  df.adj <- adjustCounts(df)
 
-#Runs Fisher tests
-fisher.results <- calcFisherStats(df.adj,nCTRL,nCASE)
+  #Runs Fisher tests
+  fisher.results <- calcFisherStats(df.adj,nCTRL,nCASE)
 
-#Runs ratio tests
-ratio.results <- calcRatioStats(df.adj,nCTRL,nCASE)
+  #Runs ratio tests
+  ratio.results <- calcRatioStats(df.adj,nCTRL,nCASE)
 
-#Combines Fisher & ratio test statistics
-all.results <- cbind(fisher.results,ratio.results[,-c(1:26)])
+  #Combines Fisher & ratio test statistics
+  all.results <- cbind(fisher.results,ratio.results[,-c(1:26)])
+}else{
+  #Cleans df without CNV adjustment
+  df.adj <- df
+  names(df.adj) <- c("chr","start","end","anno","element_size","GC",
+                     "case_raw_CNV","control_raw_CNV",
+                     "case_weighted_CNV","control_weighted_CNV",
+                     "total_raw_CNV","total_weighted_CNV")
+  df.adj$GC_Z <- NA
+  df.adj$element_size_Z <- NA
+  df.adj$control_raw_CNV_adjusted <- df.adj$control_raw_CNV
+  df.adj$control_raw_CNV_adjusted_rounded <- df.adj$control_raw_CNV
+  df.adj$control_weighted_CNV_adjusted <- df.adj$control_weighted_CNV
+  df.adj$control_weighted_CNV_adjusted_rounded <- df.adj$control_weighted_CNV
+  df.adj$case_raw_CNV_adjusted <- df.adj$case_raw_CNV
+  df.adj$case_raw_CNV_adjusted_rounded <- df.adj$case_raw_CNV
+  df.adj$case_weighted_CNV_adjusted <- df.adj$case_weighted_CNV
+  df.adj$case_weighted_CNV_adjusted_rounded <- df.adj$case_weighted_CNV
+  df.adj$total_raw_CNV_adjusted <- df.adj$total_raw_CNV
+  df.adj$total_raw_CNV_adjusted_rounded <- df.adj$total_raw_CNV
+  df.adj$total_weighted_CNV_adjusted <- df.adj$total_weighted_CNV
+  df.adj$total_weighted_CNV_adjusted_rounded <- df.adj$total_weighted_CNV
+  df.adj <- df.adj[,c(1,2,3,4,5,14,6,13,
+                  8,15,16,10,17,18,
+                  7,19,20,9,21,22,
+                  11,23,24,12,25,26)]
+
+  #Runs Fisher tests
+  fisher.results <- calcFisherStats(df.adj,nCTRL,nCASE)
+
+  #Instantiates fake df from ratio test
+  ratio.results <- data.frame(df.adj,
+                              "control_ratio"=NA,
+                    "case_ratio"=NA,
+                    "theta"=NA,
+                    "theta_Zscore"=NA,
+                    "theta_centile"=NA,
+                    "case_gt_control_ratio_uncorrected_p"=NA,
+                    "case_gt_control_ratio_FDR_q"=NA,
+                    "case_gt_control_ratio_Bonferroni_p"=NA,
+                    "control_gt_case_ratio_uncorrected_p"=NA,
+                    "control_gt_case_ratio_FDR_q"=NA,
+                    "control_gt_case_ratio_Bonferroni_p"=NA)
+
+  #Combines Fisher & ratio test statistics
+  all.results <- cbind(fisher.results,ratio.results[,-c(1:26)])
+}
 
 #Fix header
 colnames(all.results)[1] <- "#anno"

@@ -57,7 +57,7 @@ Rscript -e "x <- read.table(\"${sigSites_intervals}\",header=F); \
             write.table(x[which(x[,4]>=cutoff),1:3],\"${sigBins}\",\
             col.names=F,row.names=F,quote=F,sep=\"\\t\")"
 sigBins_merged=`mktemp`
-bedtools merge -i ${sigBins} -d ${dist} > ${sigBins_merged}
+bedtools merge -i ${sigBins} > ${sigBins_merged}
 
 #####Retest merged significant bins and keep those passing a nominal p-value threshold
 sigBins_merged_data=`mktemp`
@@ -74,62 +74,21 @@ nCASE=$( awk -v pheno=${pheno} '{ if ($1==pheno) print $4 }' \
          ${WRKDIR}/data/plot_data/figure1/sample_counts_by_group.txt )
 nCTRL=38628
 #Runs model
+sigBins_merged_retested=`mktemp`
 ${WRKDIR}/bin/rCNVmap/bin/run_annoScore_model.R \
 -o ${sigBins_merged_retested} \
-${annoScoreData} \
+${sigBins_merged_data}.gz \
 ${nCTRL} \
 ${nCASE}
-    #Compress output
-    if [ -e ${OUTFILE} ]; then
-      gzip -f ${OUTFILE}
-    fi
-  else
-    echo "OUTPUT FOR ${pheno} ${CNV} ${VF} ${filt} vs ${path} IS MISSING. SKIPPING..."
-  fi
-done < ${list}
+#Collects significant loci
+awk -v OFS="\t" '{ if ($44<0.05) print $1, $2, $3 }' ${sigBins_merged_retested}
 
+###########################################
+###########################################
+#####TODO: SPLIT THESE LOCI INTO 1kb bins and rerun test, then isolate 1kb bins most significant and merge those (smaller merge dist?)
+###########################################
+###########################################
 
-
-
-
-
-#####Iterates over elements list and runs model
-while read class path; do
-  if ! [ -e ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/${class} ]; then
-    mkdir ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/${class}
-  fi
-  if ! [ -e ${WRKDIR}/analysis/perAnno_burden/signif_elements/CTRL/${class} ]; then
-    mkdir ${WRKDIR}/analysis/perAnno_burden/signif_elements/CTRL/${class}
-  fi
-  STATS=${WRKDIR}/analysis/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScore_stats.bed.gz
-  if [ -e ${STATS} ]; then
-    #Nominally significant in cases
-    zcat ${STATS} | fgrep -v "#" | awk -v OFS="\t" '{ if ($44<0.05) print $1, $2, $3, $4 }' > \
-    ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/${class}/${pheno}.${CNV}.${VF}.${filt}.${class}.nom_sig_elements.bed
-    #BH-corrected significant in cases
-    zcat ${STATS} | fgrep -v "#" | awk -v OFS="\t" '{ if ($45<0.05) print $1, $2, $3, $4 }' > \
-    ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/${class}/${pheno}.${CNV}.${VF}.${filt}.${class}.BH_sig_elements.bed
-    #Bonferroni-corrected significant in cases
-    zcat ${STATS} | fgrep -v "#" | awk -v OFS="\t" '{ if ($46<0.05) print $1, $2, $3, $4 }' > \
-    ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/${class}/${pheno}.${CNV}.${VF}.${filt}.${class}.bonf_sig_elements.bed
-    #Gzip all
-    gzip -f ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/${class}/${pheno}.${CNV}.${VF}.${filt}.${class}.*_sig_elements.bed*
-
-    #Nominally significant in controls
-    zcat ${STATS} | fgrep -v "#" | awk -v OFS="\t" '{ if ($47<0.05) print $1, $2, $3, $4 }' > \
-    ${WRKDIR}/analysis/perAnno_burden/signif_elements/CTRL/${class}/${pheno}_vs_CTRL.${CNV}.${VF}.${filt}.${class}.nom_sig_elements.bed
-    #BH-corrected significant in controls
-    zcat ${STATS} | fgrep -v "#" | awk -v OFS="\t" '{ if ($48<0.05) print $1, $2, $3, $4 }' > \
-    ${WRKDIR}/analysis/perAnno_burden/signif_elements/CTRL/${class}/${pheno}_vs_CTRL.${CNV}.${VF}.${filt}.${class}.BH_sig_elements.bed
-    #Bonferroni-corrected significant in controls
-    zcat ${STATS} | fgrep -v "#" | awk -v OFS="\t" '{ if ($49<0.05) print $1, $2, $3, $4 }' > \
-    ${WRKDIR}/analysis/perAnno_burden/signif_elements/CTRL/${class}/${pheno}_vs_CTRL.${CNV}.${VF}.${filt}.${class}.bonf_sig_elements.bed
-    #Gzip all
-    gzip -f ${WRKDIR}/analysis/perAnno_burden/signif_elements/CTRL/${class}/${pheno}_vs_CTRL.${CNV}.${VF}.${filt}.${class}.*_sig_elements.bed*
-  else
-    echo "OUTPUT FOR ${pheno} ${CNV} ${VF} ${filt} vs ${path} IS MISSING. SKIPPING..."
-  fi
-done < ${list}
 
 
 #####Clean up
