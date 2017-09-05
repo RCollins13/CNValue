@@ -22,6 +22,7 @@ VF=$3
 filt=$4
 list=$5
 sig=$6
+OUTFILE=$7
 
 #####Prep new tmpdir
 TMPDIR=`mktemp -d`
@@ -84,16 +85,34 @@ ${WRKDIR}/bin/rCNVmap/bin/run_annoScore_model.R \
 ${sigBins_data}.gz \
 ${nCTRL} \
 ${nCASE}
-#Collects significant loci
-awk -v OFS="\t" '{ if ($44<0.05) print $1, $2, $3 }' ${sigBins_merged_retested}
+#Collects bins passing a nominal threshold from a Fisher's exact test
+sigBins_retested_filtered=`mktemp`
+awk -v OFS="\t" '{ if ($30<0.05) print $1, $2, $3 }' ${sigBins_retested} > \
+${sigBins_retested_filtered}
 
-###########################################
-###########################################
-#####TODO: SPLIT THESE LOCI INTO 1kb bins and rerun test, then isolate 1kb bins most significant and merge those (smaller merge dist?)
-###########################################
-###########################################
+#####Retest significant bins for all common CNVs and keep those passing a nominal p-value threshold from Fisher's test
+sigBins_common_data=`mktemp`
+#Gathers data for test
+${WRKDIR}/bin/rCNVmap/bin/gather_annoScore_data.sh -z \
+-p sigBins \
+-o ${sigBins_common_data} \
+${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.E2.GRCh37.all.bed.gz \
+${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.E2.GRCh37.all.bed.gz \
+${sigBins_retested_filtered} \
+${h37}
+#Runs model from common data
+sigBins_common_retested=`mktemp`
+${WRKDIR}/bin/rCNVmap/bin/run_annoScore_model.R \
+--onlyfisher \
+-o ${sigBins_common_retested} \
+${sigBins_common_data}.gz \
+${nCTRL} \
+${nCASE}
 
-
+#Collects significant loci from both original and common tests & merges w/25kb buffer
+echo -e "#chr\tstart\tend" > ${OUTFILE}
+awk -v OFS="\t" '{ if ($30<0.05) print $1, $2, $3 }' ${sigBins_common_retested} | \
+bedtools merge -d 25000 -i - >> ${OUTFILE}
 
 #####Clean up
 rm -rf ${TMPDIR}
