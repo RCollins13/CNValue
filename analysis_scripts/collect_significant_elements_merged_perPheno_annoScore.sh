@@ -79,6 +79,7 @@ nCTRL=38628
 #Runs model
 sigBins_retested=`mktemp`
 ${WRKDIR}/bin/rCNVmap/bin/run_annoScore_model.R \
+--onlyfisher \
 -o ${sigBins_retested} \
 ${sigBins_data}.gz \
 ${nCTRL} \

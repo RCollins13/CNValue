@@ -249,7 +249,7 @@ option_list <- list(
   make_option(c("-o", "--outfile"), type="character", default="/dev/stdout",
               help="write output to file [default stdout]",
               metavar="character"),
-  make_option(c("-F", "--onlyfisher"), type="store_true", default=FALSE,
+  make_option(c("-F", "--onlyfisher"), action="store_true", default=FALSE,
               help="just run Fisher's exact test [default FALSE]")
 )
 
