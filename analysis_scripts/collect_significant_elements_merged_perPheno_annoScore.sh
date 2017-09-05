@@ -23,6 +23,9 @@ filt=$4
 list=$5
 sig=$6
 
+#####Prep new tmpdir
+TMPDIR=`mktemp -d`
+
 #####Iterates over classes and merges into single master BED file with significant sites
 #Allow 50kb distance between significant elements
 dist=50000
@@ -33,7 +36,7 @@ while read class path; do
   if [ -e ${sigSites} ]; then
     zcat ${sigSites}
   fi
-done < ${list} | sort -Vk1,1 -k2,2n -k3,3n | cut -f1-3 > ${sigSites_all} 
+done < ${list} | sort -Vk1,1 -k2,2n -k3,3n | cut -f1-3 > ${sigSites_all}
 bedtools merge -i ${sigSites_all} -d ${dist} > ${sigSites_master}
 #Rounds master significant sites to floor & ceiling kbs
 sigSites_master_round=`mktemp`
@@ -56,28 +59,28 @@ Rscript -e "x <- read.table(\"${sigSites_intervals}\",header=F); \
             lambda <- mean(x[,4]); cutoff <- qpois(0.05,lambda,lower.tail=F); \
             write.table(x[which(x[,4]>=cutoff),1:3],\"${sigBins}\",\
             col.names=F,row.names=F,quote=F,sep=\"\\t\")"
-sigBins_merged=`mktemp`
-bedtools merge -i ${sigBins} > ${sigBins_merged}
+# sigBins_merged=`mktemp`
+# bedtools merge -i ${sigBins} > ${sigBins_merged}
 
-#####Retest merged significant bins and keep those passing a nominal p-value threshold
-sigBins_merged_data=`mktemp`
+#####Retest significant bins and keep those passing a nominal p-value threshold from Fisher's test
+sigBins_data=`mktemp`
 #Gathers data for test
 ${WRKDIR}/bin/rCNVmap/bin/gather_annoScore_data.sh -z \
--p sigBins_merged \
--o ${sigBins_merged_data} \
+-p sigBins \
+-o ${sigBins_data} \
 ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
 ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
-${sigBins_merged} \
+${sigBins} \
 ${h37}
 #Get number of cases & controls
 nCASE=$( awk -v pheno=${pheno} '{ if ($1==pheno) print $4 }' \
          ${WRKDIR}/data/plot_data/figure1/sample_counts_by_group.txt )
 nCTRL=38628
 #Runs model
-sigBins_merged_retested=`mktemp`
+sigBins_retested=`mktemp`
 ${WRKDIR}/bin/rCNVmap/bin/run_annoScore_model.R \
--o ${sigBins_merged_retested} \
-${sigBins_merged_data}.gz \
+-o ${sigBins_retested} \
+${sigBins_data}.gz \
 ${nCTRL} \
 ${nCASE}
 #Collects significant loci
@@ -92,4 +95,4 @@ awk -v OFS="\t" '{ if ($44<0.05) print $1, $2, $3 }' ${sigBins_merged_retested}
 
 
 #####Clean up
-rm ${sigSites_master}
+rm -rf ${TMPDIR}

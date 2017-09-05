@@ -250,8 +250,7 @@ option_list <- list(
               help="write output to file [default stdout]",
               metavar="character"),
   make_option(c("-F", "--onlyfisher"), type="store_true", default=FALSE,
-              help="just run Fisher's exact test [default FALSE]",
-              metavar="character")
+              help="just run Fisher's exact test [default FALSE]")
 )
 
 #Get command-line arguments & options
