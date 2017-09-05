@@ -119,6 +119,57 @@ while read pheno; do
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
 
+#####Collect significant elements across all tracks per phenotype
+#Make lists of tissue-defined elements
+while read tissue; do
+  fgrep ${tissue} ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.alternative_sort.list > \
+  ${WRKDIR}/lists/all_${tissue}_genome_annotations.list
+done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
+          sort | uniq )
+#Make list of tissue-agnostic annotations
+cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
+sort | uniq | fgrep -vf - \
+${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.alternative_sort.list > \
+${WRKDIR}/lists/tissue_agnostic_genome_annotations.list
+#Iterate over phenotypes
+while read pheno; do
+  #Make output directories (if necessary)
+  if ! [ -e ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged ]; then
+    mkdir ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged
+  fi
+  for CNV in CNV DEL DUP; do
+    for VF in E4; do
+      for filt in haplosufficient noncoding; do
+        #Launch merge & filtering script across all annotations
+        bsub -q normal -u nobody -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_mergeSignificantElements_all \
+        "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_significant_elements_merged_perPheno_annoScore.sh \
+        ${pheno} ${CNV} ${VF} ${filt} \
+        ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prioritized_for_annoScore_modeling.list \
+        bonf \
+        ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.${CNV}.${VF}.${filt}.bonf_sig_elements_merged.all_classes.bed"
+        #Launch merge & filtering script for tissue-agnostic annotations
+        bsub -q normal -u nobody -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_mergeSignificantElements_tissueAgnostic \
+        "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_significant_elements_merged_perPheno_annoScore.sh \
+        ${pheno} ${CNV} ${VF} ${filt} \
+        ${WRKDIR}/lists/tissue_agnostic_genome_annotations.list \
+        bonf \
+        ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.${CNV}.${VF}.${filt}.bonf_sig_elements_merged.tissue_agnostic.bed"
+        #Iterate over tissues and launch merge & filtering script for tissue-dependent annotations
+        while read tissue; do
+          bsub -q short -u nobody -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_mergeSignificantElements_${tissue} \
+          "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_significant_elements_merged_perPheno_annoScore.sh \
+          ${pheno} ${CNV} ${VF} ${filt} \
+          ${WRKDIR}/lists/all_${tissue}_genome_annotations.list \
+          bonf \
+          ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.${CNV}.${VF}.${filt}.bonf_sig_elements_merged.${tissue}.bed"
+        done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
+                  sort | uniq )
+      done
+    done
+  done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          cut -f1 | fgrep -v CTRL )
+
 
 
 
