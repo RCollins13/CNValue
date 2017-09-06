@@ -60,8 +60,6 @@ Rscript -e "x <- read.table(\"${sigSites_intervals}\",header=F); \
             lambda <- mean(x[,4]); cutoff <- qpois(0.05,lambda,lower.tail=F); \
             write.table(x[which(x[,4]>=cutoff),1:3],\"${sigBins}\",\
             col.names=F,row.names=F,quote=F,sep=\"\\t\")"
-# sigBins_merged=`mktemp`
-# bedtools merge -i ${sigBins} > ${sigBins_merged}
 
 #####Retest significant bins and keep those passing a nominal p-value threshold from Fisher's test
 sigBins_data=`mktemp`

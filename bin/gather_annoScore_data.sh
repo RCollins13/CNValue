@@ -18,6 +18,7 @@
 # OUTFILE=${TMPDIR}/annoset_test.out
 # WHOLE=0
 # ALLO=0
+# WEIGHT=1
 # GZIP=1
 # QUIET=0
 # CONTROLS=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.DEL.E4.GRCh37.haplosufficient.bed.gz
@@ -29,8 +30,8 @@
 #Usage statement
 usage(){
 cat <<EOF
-usage: gather_annoScore_data.sh [-h] [-p PREFIX] [-W WHOLE] [-A ALLOSOMES] [-z]
-                                [-o OUTFILE] [-q QUIET] CONTROLS CASES GTF REF
+usage: gather_annoScore_data.sh [-h] [-p PREFIX] [-W WHOLE] [-A ALLOSOMES] [-N NO WEIGHTS] 
+                                [-z] [-o OUTFILE] [-q QUIET] CONTROLS CASES GTF REF
 
 Collects data required for modeling per-element rCNV burden scores
 
@@ -48,6 +49,7 @@ Optional arguments:
   -W  WHOLE ELEMENT Restrict analysis to CNVs that span the entire element
                     (default: count any overlap)
   -A  ALLOSOMES     Include allosomes in analyses (default: false)
+  -N  NO WEIGHTS    Skip running CNV weighting model (default: false)
   -z  GZIP          Gzip output file (default: false)
   -o  OUTFILE       Output file (default: /dev/stdout)
   -q  QUIET         Suppresses (some) standard output
@@ -59,9 +61,10 @@ PREFIX="ELEMENT"
 OUTFILE=/dev/stdout
 WHOLE=0
 ALLO=0
+WEIGHT=1
 GZIP=0
 QUIET=0
-while getopts ":p:WAzo:qh" opt; do
+while getopts ":p:WANzo:qh" opt; do
   case "$opt" in
     h)
       usage
@@ -75,6 +78,9 @@ while getopts ":p:WAzo:qh" opt; do
       ;;
     A)
       ALLO=1
+      ;;
+    N)
+      WEIGHT=0
       ;;
     z)
       GZIP=1
@@ -152,46 +158,67 @@ fi
 GC_PROFILES=`mktemp`
 bedtools nuc -fi ${REF} -bed ${ELEMENTS} | fgrep -v "#" | cut -f4,6 | \
 sort -k1,1 > ${GC_PROFILES}
-
-#Isolate unique CNV-element pairs
-CNV_ELEMENT_PAIRS_CASE=`mktemp`
-CNV_ELEMENT_PAIRS_CTRL=`mktemp`
-if [ ${QUIET} -eq 0 ]; then
-  echo -e "STATUS::$(date)::OVERLAPPING CNVS AND ELEMENTS..."
-fi
-if [ ${WHOLE} -eq 1 ]; then
-  #Case, whole-anno CNVs
-  bedtools intersect -f 1.0 -wa -wb -a ${ELEMENTS} -b ${CASE} | \
-  awk -v OFS="\t" '{ print $8, $4 }' | \
-  sort -k1,1 -k2,2 | uniq > ${CNV_ELEMENT_PAIRS_CASE}
-  #Control, whole-anno CNVs
-  bedtools intersect -f 1.0 -wa -wb -a ${ELEMENTS} -b ${CTRL} | \
-  awk -v OFS="\t" '{ print $8, $4 }' | \
-  sort -k1,1 -k2,2 | uniq > ${CNV_ELEMENT_PAIRS_CTRL}
-else
-  #Case, exonic CNVs
-  bedtools intersect -wa -wb -a ${CASE} -b ${ELEMENTS} | \
-  awk -v OFS="\t" '{ print $4, $NF }' | sort -k1,1 -k2,2 | \
-  uniq > ${CNV_ELEMENT_PAIRS_CASE}
-  #Control, exonic CNVs
-  bedtools intersect -wa -wb -a ${CTRL} -b ${ELEMENTS} | \
-  awk -v OFS="\t" '{ print $4, $NF }' | sort -k1,1 -k2,2 | \
-  uniq > ${CNV_ELEMENT_PAIRS_CTRL}
-fi
+cat ${GC_PROFILES} \
+<( cut -f4 ${ELEMENTS} | fgrep -wvf <( cut -f1 ${GC_PROFILES} ) | \
+awk -v OFS="\t" '{ print $1, "NA" }' ) | sort -Vk1,1 > ${GC_PROFILES}2
+mv ${GC_PROFILES}2 ${GC_PROFILES}
 
 #Cut list of all element IDs
 ELEMENT_IDs=`mktemp`
 cut -f4 ${ELEMENTS} > ${ELEMENT_IDs}
 
-#Calculate baseline dCNV & dElement info
-if [ ${QUIET} -eq 0 ]; then
-  echo -e "STATUS::$(date)::RUNNING CNV WEIGHTING MODEL..."
+#Perform weighting routine if weighting is optioned
+if [ ${WEIGHT} -eq 1 ]; then
+  #Print option
+  if [ ${QUIET} -eq 0 ]; then
+    echo -e "STATUS::$(date)::RUNNING CNV WEIGHTING MODEL..."
+  fi
+  #Isolate unique CNV-element pairs
+  CNV_ELEMENT_PAIRS_CASE=`mktemp`
+  CNV_ELEMENT_PAIRS_CTRL=`mktemp`
+  if [ ${QUIET} -eq 0 ]; then
+    echo -e "STATUS::$(date)::OVERLAPPING CNVS AND ELEMENTS..."
+  fi
+  if [ ${WHOLE} -eq 1 ]; then
+    #Case, whole-anno CNVs
+    bedtools intersect -f 1.0 -wa -wb -a ${ELEMENTS} -b ${CASE} | \
+    awk -v OFS="\t" '{ print $8, $4 }' | \
+    sort -k1,1 -k2,2 | uniq > ${CNV_ELEMENT_PAIRS_CASE}
+    #Control, whole-anno CNVs
+    bedtools intersect -f 1.0 -wa -wb -a ${ELEMENTS} -b ${CTRL} | \
+    awk -v OFS="\t" '{ print $8, $4 }' | \
+    sort -k1,1 -k2,2 | uniq > ${CNV_ELEMENT_PAIRS_CTRL}
+  else
+    #Case, exonic CNVs
+    bedtools intersect -wa -wb -a ${CASE} -b ${ELEMENTS} | \
+    awk -v OFS="\t" '{ print $4, $NF }' | sort -k1,1 -k2,2 | \
+    uniq > ${CNV_ELEMENT_PAIRS_CASE}
+    #Control, exonic CNVs
+    bedtools intersect -wa -wb -a ${CTRL} -b ${ELEMENTS} | \
+    awk -v OFS="\t" '{ print $4, $NF }' | sort -k1,1 -k2,2 | \
+    uniq > ${CNV_ELEMENT_PAIRS_CTRL}
+  fi
+  #Run weighting model
+  ${BIN}/gather_annoScore_data.helper.R \
+  ${CNV_ELEMENT_PAIRS_CASE} \
+  ${CNV_ELEMENT_PAIRS_CTRL} \
+  ${ELEMENT_IDs} \
+  ${TMPDIR}/
+else
+  if [ ${WHOLE} -eq 1 ]; then
+    ovr="-f 1.0"
+  else
+    ovr=""
+  fi
+  #Case, whole-anno CNVs
+  bedtools intersect ${ovr} -c -a ${ELEMENTS} -b ${CASE} | cut -f4,5 | \
+  sort -Vk1,1 > ${TMPDIR}/CASE.CNVsPerAnno.txt
+  cp ${TMPDIR}/CASE.CNVsPerAnno.txt ${TMPDIR}/CASE.weightedCNVsPerAnno.txt
+  #Control, whole-anno CNVs
+  bedtools intersect ${ovr} -c -a ${ELEMENTS} -b ${CTRL} | cut -f4,5 | \
+  sort -Vk1,1 > ${TMPDIR}/CTRL.CNVsPerAnno.txt
+  cp ${TMPDIR}/CTRL.CNVsPerAnno.txt ${TMPDIR}/CTRL.weightedCNVsPerAnno.txt
 fi
-${BIN}/gather_annoScore_data.helper.R \
-${CNV_ELEMENT_PAIRS_CASE} \
-${CNV_ELEMENT_PAIRS_CTRL} \
-${ELEMENT_IDs} \
-${TMPDIR}/
 
 #Write header to output file
 echo -e "#chr\tstart\tend\telement_ID\telement_size\tGC\tcase_CNV\tcontrol_CNV\tcase_CNV_weighted\tcontrol_CNV_weighted" > ${OUTFILE}
