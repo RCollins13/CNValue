@@ -15,6 +15,17 @@
 export WRKDIR=/data/talkowski/Samples/rCNVmap
 source ${WRKDIR}/bin/rCNVmap/misc/rCNV_code_parameters.sh
 
+#####Read options
+FORCE=0
+while getopts ":F" opt; do
+  case "$opt" in
+    F)
+      FORCE=1
+      ;;
+  esac
+done
+shift $((${OPTIND} - 1))
+
 #####Reads arguments
 pheno=$1
 CNV=$2
@@ -22,12 +33,10 @@ VF=$3
 filt=$4
 list=$5
 
+
 #####Iterates over elements list and collects data
 while read class path; do
-  if ! [ -e ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed.gz ] || \
-     ! [ -s ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed.gz ] || \
-       [ $( zcat ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed.gz | wc -l ) \
-         -lt $( zcat ${path} | wc -l ) ]; then
+  if [ ${FORCE} -eq 1 ]; then
     ${WRKDIR}/bin/rCNVmap/bin/gather_annoScore_data.sh -z \
     -p ${class} \
     -o ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed \
@@ -39,6 +48,22 @@ while read class path; do
       gzip -f ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed
     fi
   else
-    echo "OUTPUT FOR ${pheno} ${CNV} ${VF} ${filt} vs ${path} ALREADY EXISTS. SKIPPING..."
+    if ! [ -e ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed.gz ] || \
+       ! [ -s ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed.gz ] || \
+         [ $( zcat ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed.gz | wc -l ) \
+           -lt $( zcat ${path} | wc -l ) ]; then
+      ${WRKDIR}/bin/rCNVmap/bin/gather_annoScore_data.sh -z \
+      -p ${class} \
+      -o ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed \
+      ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+      ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+      ${path} \
+      ${h37}
+      if [ -e ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed ]; then
+        gzip -f ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed
+      fi
+    else
+      echo "OUTPUT FOR ${pheno} ${CNV} ${VF} ${filt} vs ${path} ALREADY EXISTS. SKIPPING..."
+    fi
   fi
 done < ${list}
