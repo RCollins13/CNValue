@@ -64,7 +64,7 @@ Rscript -e "x <- read.table(\"${sigSites_intervals}\",header=F); \
 #####Retest significant bins and keep those passing a nominal p-value threshold from Fisher's test
 sigBins_data=`mktemp`
 #Gathers data for test
-${WRKDIR}/bin/rCNVmap/bin/gather_annoScore_data.sh -z \
+${WRKDIR}/bin/rCNVmap/bin/gather_annoScore_data.sh -z -N \
 -p sigBins \
 -o ${sigBins_data} \
 ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
@@ -91,7 +91,7 @@ ${sigBins_retested_filtered}
 #####Retest significant bins for all common CNVs and keep those passing a nominal p-value threshold from Fisher's test
 sigBins_common_data=`mktemp`
 #Gathers data for test
-${WRKDIR}/bin/rCNVmap/bin/gather_annoScore_data.sh -z \
+${WRKDIR}/bin/rCNVmap/bin/gather_annoScore_data.sh -z -N \
 -p sigBins \
 -o ${sigBins_common_data} \
 ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.E2.GRCh37.all.bed.gz \
