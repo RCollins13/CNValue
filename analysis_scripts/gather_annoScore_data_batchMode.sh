@@ -33,7 +33,6 @@ VF=$3
 filt=$4
 list=$5
 
-
 #####Iterates over elements list and collects data
 while read class path; do
   if [ ${FORCE} -eq 1 ]; then

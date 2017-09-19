@@ -38,6 +38,14 @@ while read pheno; do
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
 
+#####Reorder noncoding annotations based on number of elements in group
+while read class path; do
+  nElements=$( cat ${path} | wc -l )
+  echo -e "${class}\t${path}\t${nElements}"
+done < ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.list | \
+sort -nk3,3 | cut -f1-2 > \
+${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prioritized_for_annoScore_modeling.list
+
 #####Submit burden data collection for all phenotypes
 while read pheno; do
   for CNV in CNV DEL DUP; do
@@ -56,7 +64,7 @@ while read pheno; do
         # fi
         # mkdir ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}
         bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_perAnno_burden_dataCollection_${filt} \
-        "${WRKDIR}/bin/rCNVmap/analysis_scripts/gather_annoScore_data_batchMode.sh \
+        "${WRKDIR}/bin/rCNVmap/analysis_scripts/gather_annoScore_data_batchMode.sh -F \
         ${pheno} ${CNV} ${VF} ${filt} \
         ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prioritized_for_annoScore_modeling.list"
       done
