@@ -14,7 +14,7 @@ WRKDIR <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/"
 options(scipen=1000,stringsAsFactors=F)
 
 #####Read data
-df <- read.table(paste(WRKDIR,"plot_data/figure1/phenotypes_per_sample_hist.txt",sep=""))
+df <- read.table(paste(WRKDIR,"plot_data/rCNVdbSummaryFigure/phenotypes_per_sample_hist.txt",sep=""))
 df[9,2] <- sum(df[9:nrow(df),2])
 df <- df[1:9,]
 

@@ -16,10 +16,10 @@ export WRKDIR=/data/talkowski/Samples/rCNVmap
 source ${WRKDIR}/bin/rCNVmap/misc/rCNV_code_parameters.sh
 
 #####Reinitialize directory if exists
-if [ -e ${WRKDIR}/data/plot_data/figure1 ]; then
-  rm -rf ${WRKDIR}/data/plot_data/figure1
+if [ -e ${WRKDIR}/data/plot_data/rCNVdbSummaryFigure ]; then
+  rm -rf ${WRKDIR}/data/plot_data/rCNVdbSummaryFigure
 fi
-mkdir ${WRKDIR}/data/plot_data/figure1
+mkdir ${WRKDIR}/data/plot_data/rCNVdbSummaryFigure
 
 #####Get counts of patients per analysis group
 for dummy in 1; do
@@ -122,12 +122,12 @@ for dummy in 1; do
     fi
     echo -e "${description}"
   done < <( fgrep CNCR ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list ) | paste - - - | sort -nrk4,4
-done > ${WRKDIR}/data/plot_data/figure1/sample_counts_by_group.txt
+done > ${WRKDIR}/data/plot_data/rCNVdbSummaryFigure/sample_counts_by_group.txt
 
 ####Get number of phenotypic group assignments per patient
 cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list | \
 sed 's/,/\t/g' | awk '{ print NF }' | sort | uniq -c | awk -v OFS="\t" '{ print $2, $1 }' | \
-sort -nk1,1 > ${WRKDIR}/data/plot_data/figure1/phenotypes_per_sample_hist.txt
+sort -nk1,1 > ${WRKDIR}/data/plot_data/rCNVdbSummaryFigure/phenotypes_per_sample_hist.txt
 
 ####Get count of patients with a NEURO and/or a SOMA HPO assignment
 #Both
@@ -182,7 +182,43 @@ Seizures\nHypotonia\nBehavioral_abnormality_other\nIntellectual_disability\n\
 Nonneurological_defect\nHead_or_neck_defect\nGrowth_defect\nCardiac_defect\n\
 Skeletal_defect\nDigestive_respiratory_or_urinary_defect\nMuscular_defect\n\
 Eye_or_ear_defect\nIntegument_defect\nEndocrine_metabolic_or_immune_defect" ) > \
-${WRKDIR}/data/plot_data/figure1/germline_case_overlap.matrix.txt
+${WRKDIR}/data/plot_data/rCNVdbSummaryFigure/germline_case_overlap.matrix.txt
+
+#####Get matrix of jaccard index per phenotype group pairs
+while read dA; do
+  while read groupA etiA tierA descriptionA includeA excludeA colorA nA; do
+    echo ${groupA}
+    while read dB; do
+      while read groupB etiB tierB descriptionB includeB excludeB colorB nB; do
+        if [ ${groupA} == ${groupB} ]; then
+          echo ${nA}
+        else
+          if [ ${etiA} != ${etiB} ]; then
+            echo 0
+          else
+            cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list | \
+            fgrep -wf <( echo ${includeA} | sed 's/\;/\n/g' ) | \
+            fgrep -wvf <( echo ${excludeA} | sed 's/\;/\n/g' ) | \
+            fgrep -wf <( echo ${includeB} | sed 's/\;/\n/g' ) | \
+            fgrep -wvf <( echo ${excludeB} | sed 's/\;/\n/g' ) | wc -l
+          fi
+        fi
+      done < <( fgrep -w ${dB} ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list )
+    done < <( echo -e "Neurological_defect\nNeurodevelopmental_disorder\n\
+Developmental_delay\nNeuropsychiatric_disorder\nSchizophrenia\nAutism_spectrum_disorder\n\
+Seizures\nHypotonia\nBehavioral_abnormality_other\nIntellectual_disability\n\
+Nonneurological_defect\nHead_or_neck_defect\nGrowth_defect\nCardiac_defect\n\
+Skeletal_defect\nDigestive_respiratory_or_urinary_defect\nMuscular_defect\n\
+Eye_or_ear_defect\nIntegument_defect\nEndocrine_metabolic_or_immune_defect" ) 
+  done < <( fgrep -w "${dA}" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list ) | paste -s
+done < <( echo -e "Neurological_defect\nNeurodevelopmental_disorder\n\
+Developmental_delay\nNeuropsychiatric_disorder\nSchizophrenia\nAutism_spectrum_disorder\n\
+Seizures\nHypotonia\nBehavioral_abnormality_other\nIntellectual_disability\n\
+Nonneurological_defect\nHead_or_neck_defect\nGrowth_defect\nCardiac_defect\n\
+Skeletal_defect\nDigestive_respiratory_or_urinary_defect\nMuscular_defect\n\
+Eye_or_ear_defect\nIntegument_defect\nEndocrine_metabolic_or_immune_defect" ) > \
+${WRKDIR}/data/plot_data/rCNVdbSummaryFigure/germline_case_overlap.matrix.txt
+
 
 #####Get sizes of all CNVs and all filters per CNV class and tier 2 phenotype group
 while read group; do
@@ -191,7 +227,7 @@ while read group; do
       for CNV in CNV DEL DUP; do
         zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.${CNV}.noMaxSize.${VF}.GRCh37.${filt}.bed.gz | \
         fgrep -v "#" | awk '{ print $3-$2 }' > \
-        ${WRKDIR}/data/plot_data/figure1/${CNV}_size.${group}.noMaxSize.${VF}.${filt}.txt
+        ${WRKDIR}/data/plot_data/rCNVdbSummaryFigure/${CNV}_size.${group}.noMaxSize.${VF}.${filt}.txt
       done
     done
   done
@@ -207,7 +243,7 @@ while read group; do
         echo ${CNV}
         zcat ${WRKDIR}/data/CNV/CNV_MASTER/${group}/${group}.${CNV}.noMaxSize.${VF}.GRCh37.${filt}.bed.gz | \
         fgrep -v "#" | awk '{ print $3-$2 }' > \
-        ${WRKDIR}/data/plot_data/figure1/${CNV}_size.${group}.noMaxSize.${VF}.${filt}.txt
+        ${WRKDIR}/data/plot_data/rCNVdbSummaryFigure/${CNV}_size.${group}.noMaxSize.${VF}.${filt}.txt
       done
     done
   done
@@ -224,7 +260,7 @@ for group in CTRL NEURO NDD PSYCH SOMA; do
         fgrep -v "#" | cut -f4 ) | cut -f4 | fgrep -wf - \
         ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.merged.bed | \
         awk -v OFS="\t" '{ print $3-$2, $7 }' | sort -nk1,1 -k2,2 | uniq > \
-        ${WRKDIR}/data/plot_data/figure1/${CNV}_size.${group}.noMaxSize.${max}_${min}.all.byVariant.txt
+        ${WRKDIR}/data/plot_data/rCNVdbSummaryFigure/${CNV}_size.${group}.noMaxSize.${max}_${min}.all.byVariant.txt
       done
     done
     #N1
@@ -232,14 +268,14 @@ for group in CTRL NEURO NDD PSYCH SOMA; do
     fgrep -v "#" | cut -f4 | fgrep -wf - \
     ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.merged.bed | \
     awk -v OFS="\t" '{ print $3-$2, $7 }' | sort -nk1,1 -k2,2 | uniq > \
-    ${WRKDIR}/data/plot_data/figure1/${CNV}_size.${group}.noMaxSize.N1_N1.all.byVariant.txt
+    ${WRKDIR}/data/plot_data/rCNVdbSummaryFigure/${CNV}_size.${group}.noMaxSize.N1_N1.all.byVariant.txt
   done
 done
 #CNCR
 for CNV in CNV DEL DUP; do
   for VF in E2_E3 E3_E4 E4_N1 N1_N1; do
-    cp ${WRKDIR}/data/plot_data/figure1/${CNV}_size.CNCR.noMaxSize.E2.all.txt \
-    ${WRKDIR}/data/plot_data/figure1/${CNV}_size.CNCR.noMaxSize.${VF}.all.byVariant.txt
+    cp ${WRKDIR}/data/plot_data/rCNVdbSummaryFigure/${CNV}_size.CNCR.noMaxSize.E2.all.txt \
+    ${WRKDIR}/data/plot_data/rCNVdbSummaryFigure/${CNV}_size.CNCR.noMaxSize.${VF}.all.byVariant.txt
   done
 done
 
@@ -251,7 +287,7 @@ for group in CTRL NEURO NDD PSYCH SOMA; do
     fgrep -v "#" | cut -f4 | fgrep -wf - \
     ${WRKDIR}/data/CNV/CNV_RAW/merged_CNV/germline_${CNV}.merged.bed | \
     cut -f2,3,7,9 | uniq | awk -v OFS="\t" '{ print $2-$1, $4/102257 }' > \
-    ${WRKDIR}/data/plot_data/figure1/${CNV}_size_and_VF.${group}.txt
+    ${WRKDIR}/data/plot_data/rCNVdbSummaryFigure/${CNV}_size_and_VF.${group}.txt
   done
 done
 

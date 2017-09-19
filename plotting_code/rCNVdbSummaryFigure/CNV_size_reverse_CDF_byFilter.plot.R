@@ -32,7 +32,7 @@ plotsizes <- function(filt,CNV,cols,xaxis=T,yaxis=T,subgroups=T,
                       mar=c(3.5,3.5,0.5,0.5)){
   #Read data & convert to log-scaled CDF
   sizes <- lapply(list("CTRL","NEURO","SOMA","CNCR"),function(group){
-    dat <- read.table(paste(WRKDIR,"plot_data/figure1/",CNV,"_size.",group,
+    dat <- read.table(paste(WRKDIR,"plot_data/rCNVdbSummaryFigure/",CNV,"_size.",group,
                             ".noMaxSize.E2.",filt,".txt",sep=""))[,1]
     dat <- log10(dat)
     cdf <- sapply(logvect.all,function(min){
@@ -45,7 +45,7 @@ plotsizes <- function(filt,CNV,cols,xaxis=T,yaxis=T,subgroups=T,
 
   #Read data & compute medians/IQRs
   distribs <- lapply(list("CTRL","NEURO","SOMA","CNCR"),function(group){
-    dat <- read.table(paste(WRKDIR,"plot_data/figure1/",CNV,"_size.",group,
+    dat <- read.table(paste(WRKDIR,"plot_data/rCNVdbSummaryFigure/",CNV,"_size.",group,
                             ".noMaxSize.E2.",filt,".txt",sep=""))[,1]
     dat <- log10(dat)
 
@@ -58,7 +58,7 @@ plotsizes <- function(filt,CNV,cols,xaxis=T,yaxis=T,subgroups=T,
   if(subgroups==T){
     #Load data & compute CDFs
     sizes.sub <- lapply(phenos,function(group){
-      dat <- read.table(paste(WRKDIR,"plot_data/figure1/",CNV,"_size.",group,
+      dat <- read.table(paste(WRKDIR,"plot_data/rCNVdbSummaryFigure/",CNV,"_size.",group,
                               ".noMaxSize.E2.",filt,".txt",sep=""))[,1]
       dat <- log10(dat)
       cdf <- sapply(logvect.all,function(min){

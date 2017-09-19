@@ -22,7 +22,7 @@ heatmap.palette <- colorRampPalette(c("#08176b","#138934","#ffff59"))(1001)
 # cols.mixed <- colorRampPalette(c("white","#7B2AB3"))(101)
 
 #####Read data
-df <- read.table(paste(WRKDIR,"plot_data/figure1/germline_case_overlap.matrix.txt",sep=""))
+df <- read.table(paste(WRKDIR,"plot_data/rCNVdbSummaryFigure/germline_case_overlap.matrix.txt",sep=""))
 phenos <- df[,1]
 totals <- sapply(1:nrow(df),function(i){return(df[i,i+1])})
 df <- df[,-1]

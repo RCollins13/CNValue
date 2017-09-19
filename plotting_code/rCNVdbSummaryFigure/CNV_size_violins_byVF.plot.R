@@ -30,9 +30,9 @@ plotsizes <- function(group,cols,xaxis=T,yaxis=T,h=1/50,line=T,
   #Read data & convert to log-scaled CDF
   sizes <- lapply(list("E2","E3","E4","N1"),function(freq){
     sizes <- lapply(list("DEL","DUP"),function(CNV){
-      dat <- read.table(paste(WRKDIR,"plot_data/figure1/",CNV,"_size.",group,
+      dat <- read.table(paste(WRKDIR,"plot_data/rCNVdbSummaryFigure/",CNV,"_size.",group,
                               ".",freq,".all.txt",sep=""))[,1]
-      # dat <- read.table(paste(WRKDIR,"plot_data/figure1/",CNV,"_size.",group,
+      # dat <- read.table(paste(WRKDIR,"plot_data/rCNVdbSummaryFigure/",CNV,"_size.",group,
       #                         ".noMaxSize.",freq,".all.byVariant.txt",sep=""))[,1]
       return(log10(dat))
     })
@@ -107,7 +107,7 @@ plotsizes.tranched <- function(group,cols,xaxis=T,yaxis=T,line=T,
   #Read data & convert to log-scaled CDF
   sizes <- lapply(list("E2_E3","E3_E4","E4_N1","N1_N1"),function(freq){
     sizes <- lapply(list("DEL","DUP"),function(CNV){
-      dat <- read.table(paste(WRKDIR,"plot_data/figure1/",CNV,"_size.",group,
+      dat <- read.table(paste(WRKDIR,"plot_data/rCNVdbSummaryFigure/",CNV,"_size.",group,
                               ".noMaxSize.",freq,".all.byVariant.txt",sep=""))[,1]
       return(log10(dat))
     })
@@ -197,7 +197,7 @@ plotbars <- function(group,n,xaxis=T,mar=c(0.5,2.5,1.5,0.5)){
   #Read data & convert to log-scaled CDF
   pp <- lapply(list("E2","E3","E4","N1"),function(freq){
     pp <- lapply(list("DEL","DUP"),function(CNV){
-      dat <- read.table(paste(WRKDIR,"plot_data/figure1/",CNV,"_size.",group,
+      dat <- read.table(paste(WRKDIR,"plot_data/rCNVdbSummaryFigure/",CNV,"_size.",group,
                               ".",freq,".all.txt",sep=""))[,1]
       return(length(dat)/n)
     })
@@ -244,9 +244,9 @@ dev.off()
 #get stats
 lapply(c("CTRL","GERM"),function(group){
   #Read data
-  DEL <- read.table(paste(WRKDIR,"plot_data/figure1/DEL_size_and_VF.",
+  DEL <- read.table(paste(WRKDIR,"plot_data/rCNVdbSummaryFigure/DEL_size_and_VF.",
                           group,".txt",sep=""))
-  DUP <- read.table(paste(WRKDIR,"plot_data/figure1/DUP_size_and_VF.",
+  DUP <- read.table(paste(WRKDIR,"plot_data/rCNVdbSummaryFigure/DUP_size_and_VF.",
                           group,".txt",sep=""))
   CNV <- rbind(DEL,DUP)
   #Spearman's correlation
@@ -256,9 +256,9 @@ options(scipen=-1000)
 #get exact p
 lapply(c("CTRL","GERM"),function(group){
   #Read data
-  DEL <- read.table(paste(WRKDIR,"plot_data/figure1/DEL_size_and_VF.",
+  DEL <- read.table(paste(WRKDIR,"plot_data/rCNVdbSummaryFigure/DEL_size_and_VF.",
                           group,".txt",sep=""))
-  DUP <- read.table(paste(WRKDIR,"plot_data/figure1/DUP_size_and_VF.",
+  DUP <- read.table(paste(WRKDIR,"plot_data/rCNVdbSummaryFigure/DUP_size_and_VF.",
                           group,".txt",sep=""))
   CNV <- rbind(DEL,DUP)
   #Spearman's correlation

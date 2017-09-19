@@ -18,7 +18,7 @@ logvect.mains <- log10(as.vector(sapply(1:5,function(x){return(10^x)})))
 
 #####Prep data
 #Read file
-df <- read.table(paste(WRKDIR,"plot_data/figure1/sample_counts_by_group.txt",sep=""),
+df <- read.table(paste(WRKDIR,"plot_data/rCNVdbSummaryFigure/sample_counts_by_group.txt",sep=""),
                  header=F,comment.char="")
 names(df) <- c("group","color","line","count","description")
 #Add column for log10 counts
