@@ -134,7 +134,7 @@ halfHeat <- function(mat,half=T,valMax=0.4,
        type="n",xaxs="i",yaxs="i",xaxt="n",yaxt="n",xlab="",ylab="")
 
   #Instantiate color palette
-  cols <- rev(rainbow(200)[35:135])
+  cols <- colorRampPalette(c("#08176b","#138934","#ffff59"))(1001)
   # cols <- rev(rainbow(150)[1:101])
 
   #Iterate over cells and plot heatmap
@@ -143,7 +143,7 @@ halfHeat <- function(mat,half=T,valMax=0.4,
       if(half==T & col>=row){
         color <- NA
       }else{
-        color <- cols[ceiling(100*(1/valMax)*mat[row,col])+1]
+        color <- cols[ceiling(1000*(1/valMax)*mat[row,col])+1]
       }
       rect(xleft=col-1,xright=col,
            ybottom=-row,ytop=-row+1,
@@ -211,14 +211,14 @@ dev.off()
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure4/jaccard_index_blue_green_yellow.scale.pdf",sep=""),
     width=5,height=0.75)
 par(mar=c(0.5,0.5,0.5,0.5),bty="o")
-plot(x=c(1,101),y=c(0,1),type="n",
+plot(x=c(1,1001),y=c(0,1),type="n",
      xaxt="n",xlab="",xaxs="i",
      yaxt="n",ylab="",yaxs="i")
-cols <- rev(rainbow(200)[35:135])
-rect(xleft=0:100,xright=1:101,
+cols <- colorRampPalette(c("#08176b","#138934","#ffff59"))(1001)
+rect(xleft=0:1000,xright=1:1001,
      ybottom=0,ytop=1,
      border=cols,col=cols)
-axis(1,at=seq(1,101,25),labels=NA)
+axis(1,at=seq(1,1001,250),labels=NA)
 dev.off()
 
 

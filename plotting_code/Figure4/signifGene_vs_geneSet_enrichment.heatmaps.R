@@ -249,13 +249,14 @@ p.heat <- function(df,pmax=10,bonf=F,
        type="n",xaxs="i",yaxs="i",xaxt="n",yaxt="n",xlab="",ylab="")
 
   #Instantiate color palette
-  cols <- rev(rainbow(200)[35:135])
+  # cols <- rev(rainbow(200)[35:135])
+  cols <- colorRampPalette(c("#08176b","#138934","#ffff59"))(1001)
   # cols <- rev(rainbow(150)[1:101])
 
   #Iterate over cells and plot heatmap
   sapply(1:nrow(mat.reordered),function(row){
     sapply(1:ncol(mat.reordered),function(col){
-      color <- cols[ceiling(10*mat.reordered[row,col])+1]
+      color <- cols[ceiling(100*mat.reordered[row,col])+1]
       rect(xleft=col-1,xright=col,
            ybottom=-row,ytop=-row+1,
            border=NA,col=color)
@@ -589,7 +590,7 @@ par(mar=c(0.5,0.5,0.5,0.5),bty="o")
 plot(x=c(0,101),y=c(0,1),type="n",
      xaxt="n",xlab="",xaxs="i",
      yaxt="n",ylab="",yaxs="i")
-cols <- rev(rainbow(200)[35:135])
+cols <- colorRampPalette(c("#08176b","#138934","#ffff59"))(101)
 rect(xleft=0:100,xright=1:101,
      ybottom=0,ytop=1,
      border=cols,col=cols)
