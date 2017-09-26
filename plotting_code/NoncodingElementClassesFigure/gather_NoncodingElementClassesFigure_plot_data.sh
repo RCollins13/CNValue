@@ -22,12 +22,13 @@ fi
 mkdir ${WRKDIR}/data/plot_data/NoncodingElementClassesFigure
 
 #####Create matrix of fold-enrichments per annotation class for all phenotypes
-VF=E2
-filt=haplosufficient
 if ! [ -e ${WRKDIR}/data/plot_data/NoncodingElementClassesFigure/burdenMatrices ]; then
   mkdir ${WRKDIR}/data/plot_data/NoncodingElementClassesFigure/burdenMatrices
 fi
+VF=E2
 for CNV in DEL DUP; do
-  cp ${WRKDIR}/analysis/annoSet_burden/merged_results/${CNV}_${VF}_${filt}.*.txt \
-  ${WRKDIR}/data/plot_data/NoncodingElementClassesFigure/burdenMatrices/
+  for filt in haplosufficient noncoding; do
+    cp ${WRKDIR}/analysis/annoSet_burden/merged_results/${CNV}_${VF}_${filt}.*.txt \
+    ${WRKDIR}/data/plot_data/NoncodingElementClassesFigure/burdenMatrices/
+  done
 done

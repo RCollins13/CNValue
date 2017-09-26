@@ -21,6 +21,30 @@ if [ -e ${WRKDIR}/data/plot_data/figure3 ]; then
 fi
 mkdir ${WRKDIR}/data/plot_data/figure3
 
+#####Get average number of genes del'ed/dup'ed per phenotype group
+for CNV in DEL DUP; do
+  for pheno in CTRL GERM NEURO NDD PSYCH SOMA CNCR; do
+    #Paste loop
+    for dummy in 1; do
+      echo ${pheno}
+      #Get number of samples in pheno group
+      awk -v pheno=${pheno} '{ if ($1==pheno) print $4 }' \
+      ${WRKDIR}/data/plot_data/figure1/sample_counts_by_group.txt
+      #All protein-coding genes, constrained genes, and haplosufficient genes
+      for geneset in Gencode_v19_protein_coding ExAC_constrained ExAC_haplosufficient; do
+        bedtools intersect -wa -wb \
+        -a ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed \
+        -b ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.E2.GRCh37.all.bed.gz | \
+        cut -f4,8 | sed -e 's/\-/_/g' -e 's/\./_/g' | sort | uniq | \
+        fgrep -wf <( sed -e 's/\-/_/g' -e 's/\./_/g' \
+          ${WRKDIR}/data/master_annotations/genelists/${geneset}.genes.list ) | \
+        fgrep -wf <( sed -e 's/\-/_/g' -e 's/\./_/g' \
+          ${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list ) | wc -l
+      done
+    done | paste -s 
+  done > ${WRKDIR}/data/plot_data/figure3/GenesDisruptedPerSubject.${CNV}.counts.txt
+done
+
 #####Get obs/exp constraint scores for genes from gene sets signif in 
 #####0/35, 1/35, and 35/35 pheno groups
 #Make lists of genes for each category
