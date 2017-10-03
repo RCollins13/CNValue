@@ -282,28 +282,34 @@ while read annoSet; do
   ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.bed
 done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
                   sort | uniq | cat <( echo -e "all_classes\ntissue_agnostic" ) - )
-#If two elements overlap (at least by 25% of the smaller element), keep the smaller of the two
-#First, find elements with no overlaps
-bedtools intersect -c -f 0.25 \
--a <( cut -f1-4 ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.bed ) \
--b <( cut -f1-4 ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.bed ) | \
-awk -v OFS="\t" '{ if ($NF==1) print $4 }' | sort -Vk1,1 | uniq > ${TMPDIR}/elements_to_keep.list
-#Next, for elements with multiple overlaps, keep the smallest
-while read ID; do
-done < <( cut -f4 ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.bed | \
-          fgrep -wvf ${TMPDIR}/elements_to_keep.list )
-bedtools intersect -f 0.25 -wa -wb \
--a <( cut -f1-4 ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.bed ) \
--b <( cut -f1-4 ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.bed ) | \
-fgrep -vwf ${TMPDIR}/elements_to_keep.list > \
-${TMPDIR}/elements_remaining_clustered.bed
-'{ if ($4!=$8 && $3-$2<$7-$6) print $1, $2, $3, $4; else if ($4!=$8) print $5, $6, $7, $8 }' | \
-sort -Vk1,1 -k2,2n -k3,3n -Vk4,4 | uniq > ${TMPDIR}/final_loci.round1.bed
-bedtools intersect -f 0.25 -wa -wb \
--a ${TMPDIR}/final_loci.round1.bed -b ${TMPDIR}/final_loci.round1.bed | \
-fgrep -vwf ${TMPDIR}/elements_to_keep.list | awk -v OFS="\t" \
-'{ if ($4!=$8 && $3-$2<$7-$6) print $1, $2, $3, $4; else if ($4!=$8) print $5, $6, $7, $8 }' | \
-sort -Vk1,1 -k2,2n -k3,3n -Vk4,4 | uniq > ${TMPDIR}/final_loci.round2.bed
+#If two elements overlap, keep the smaller of the two
+VF=E4
+while read annoSet; do
+  echo -e "${annoSet}"
+  #First, run overlap
+  bedtools intersect -wa -wb \
+  -a <( cut -f1-3,7 ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.bed ) \
+  -b <( cut -f1-3,7 ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.bed ) > \
+  ${TMPDIR}/all_overlaps.bed
+  #Second, get list of elements that don't overlap a different element
+  cut -f4 ${TMPDIR}/all_overlaps.bed | sort -Vk1,1 | uniq -c | \
+  awk -v OFS="\t" '{ if ($1==1) print $2 }' > \
+  ${TMPDIR}/elements_to_keep.IDs.list
+  #Third, iterate over all remaining elements and only keep the smallest overlapping element
+  # among all possible overlapping elements per element
+  while read ID; do
+    awk -v ID=${ID} -v OFS="\t" '{ if ($4==ID || $8==ID) print $4, $3-$2"\n"$8, $7-$6 }' \
+    ${TMPDIR}/all_overlaps.bed | sort -nk2,2 | head -n1 | cut -f1
+  done < <( cut -f4 ${TMPDIR}/all_overlaps.bed | sort -Vk1,1 | uniq | \
+            fgrep -wvf ${TMPDIR}/elements_to_keep.IDs.list ) | \
+  sort -Vk1,1 | uniq >> ${TMPDIR}/elements_to_keep.IDs.list
+  #Finally, get those IDs from the original bed file and write to new file
+  fgrep -wf ${TMPDIR}/elements_to_keep.IDs.list \
+  ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.bed | \
+  cut -f1-3,7 | sort -Vk1,1 -k2,2n -k3,3n -Vk4,4 | uniq > \
+  ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.filtered.bed
+done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
+                  sort | uniq | cat <( echo -e "all_classes\ntissue_agnostic" ) - )
 
 #Split final clustered loci by phenotype
 #Create output directory
@@ -317,21 +323,21 @@ while read pheno; do
   fi
   while read annoSet; do
     #Haplosuff DEL
-    bedtools intersect -wb -r -f 0.5 -a ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.DEL.${VF}.haplosufficient.bonf_sig_elements_merged.all_classes.bed \
-    -b ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.bed | \
-    awk -v OFS="\t" '{ print $4, $5, $6, $10 }' | sort -Vk1,1 -k2,2n -k3,3n -k4,4 | uniq > \
+    bedtools intersect -f 0.5 -a ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.filtered.bed \
+    -b ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.DEL.${VF}.haplosufficient.bonf_sig_elements_merged.all_classes.bed | \
+    sort -Vk1,1 -k2,2n -k3,3n -Vk4,4 | uniq > \
     ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DEL_${VF}.final_merged_loci.bed
     #Noncoding DUP
-    bedtools intersect -wb -r -f 0.5 -a ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.DUP.${VF}.noncoding.bonf_sig_elements_merged.all_classes.bed \
-    -b ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.bed | \
-    awk -v OFS="\t" '{ print $4, $5, $6, $10 }' | sort -Vk1,1 -k2,2n -k3,3n -k4,4 | uniq > \
+    bedtools intersect -f 0.5 -a ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.filtered.bed \
+    -b ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.DUP.${VF}.noncoding.bonf_sig_elements_merged.all_classes.bed | \
+    sort -Vk1,1 -k2,2n -k3,3n -Vk4,4 | uniq > \
     ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DUP_${VF}.final_merged_loci.bed
   done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
                   sort | uniq | cat <( echo -e "all_classes\ntissue_agnostic" ) - )
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
 
-#####Get count of significant loci by phenotype after merging
+#####Get counts of significant loci by phenotype after merging
 #Merged across all annotations
 VF=E4
 while read pheno; do
@@ -343,14 +349,33 @@ while read pheno; do
   done | paste -s
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
+#Specific to cancer (i.e. not observed in any germline group)
+while read pheno; do
+  for CNV in DEL DUP; do
+    fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_${CNV}_${VF}.final_merged_loci.bed | \
+    cut -f4
+  done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+          awk '{ if ($2=="GERM") print $1 }' ) | sort | uniq | \
+fgrep -wvf - \
+${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.filtered.bed | wc -l
 #Count of del-only, del+dup, and dup-only
 VF=E4
 while read pheno; do
   for dummy in 1; do
     echo ${pheno}
-    for CNV in DEL DUP; do
-      fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_${CNV}_${VF}.final_merged_loci.bed
-    done
+    #DEL-only
+    fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DUP_${VF}.final_merged_loci.bed | \
+    cut -f4 | fgrep -wvf - \
+    ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DEL_${VF}.final_merged_loci.bed | wc -l
+    #DEL+DUP
+    fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DUP_${VF}.final_merged_loci.bed | \
+    cut -f4 | fgrep -wf - \
+    ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DEL_${VF}.final_merged_loci.bed | wc -l
+    #DUP-only
+    fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DEL_${VF}.final_merged_loci.bed | \
+    cut -f4 | fgrep -wvf - \
+    ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DUP_${VF}.final_merged_loci.bed | wc -l
   done | paste -s
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
