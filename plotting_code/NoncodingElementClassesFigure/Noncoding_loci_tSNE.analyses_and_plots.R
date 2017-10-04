@@ -441,6 +441,68 @@ axis(2,at=seq(par("usr")[3],par("usr")[4],
               by=(par("usr")[4]-par("usr")[3])/10),
      tck=0.02,labels=NA,lwd=1.5)
 dev.off()
-
+#Compute fraction of elements per category per disease phenotype
+#Do this for dels and dups separately
+cats.byPheno <- lapply(list("DEL","DUP"),function(CNV){
+  res <- sapply(phenos,function(pheno){
+    sig.elements <- which(dat[,colnames(dat)==paste(pheno,"_",CNV,"_significant",sep="")]>0)
+    counts <- unlist(lapply(list(g1.TBRs,g2.superEnh,g3.canonEnh,g4.bivalent,g5.inactive,g6.other),function(cat){
+      length(which(optics.res$cluster[sig.elements] %in% cat))
+    }))
+    return(counts/length(sig.elements))
+  })
+  return(as.data.frame(res))
+})
+#Horizontal scaled barplots of predicted mechanism by major phenos
+#Prepare plot area
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/NoncodingElementClasses/locus_mechanism_breakdown_byPheno.barplots.pdf",sep=""),
+    height=2,width=5.5)
+par(mar=c(3,3.5,0.3,0.3),bty="n")
+plot(x=c(-0.12,2.32),y=c(0,6),type="n",
+     xaxt="n",xlab="",xaxs="i",yaxt="n",ylab="",yaxs="i")
+#Gridlines
+abline(v=c(seq(0,1,0.25),seq(1.2,2.3,0.25)),col=cols.CTRL[2])
+abline(v=c(0,1.2))
+#Boxes
+pheno.indexes <- rev(c(1,3,4,6,13,23))
+sapply(1:6,function(i){
+  #DEL boxes
+  sapply(1:6,function(p){
+    if(i>1){
+      rect(xleft=sum(cats.byPheno[[1]][0:(i-1),pheno.indexes[p]]),
+           xright=sum(cats.byPheno[[1]][1:i,pheno.indexes[p]]),
+           ybottom=p-0.8,ytop=p-0.2,col=groupColors[i])
+    }else{
+      rect(xleft=0,xright=sum(cats.byPheno[[1]][1:i,pheno.indexes[p]]),
+           ybottom=p-0.8,ytop=p-0.2,col=groupColors[i])
+    }
+  })
+  #DUP boxes
+  sapply(1:6,function(p){
+    if(i>1){
+      rect(xleft=1.2+sum(cats.byPheno[[2]][0:(i-1),pheno.indexes[p]]),
+           xright=1.2+sum(cats.byPheno[[2]][1:i,pheno.indexes[p]]),
+           ybottom=p-0.8,ytop=p-0.2,col=groupColors[i])
+    }else{
+      rect(xleft=1.2,xright=1.2+sum(cats.byPheno[[2]][1:i,pheno.indexes[p]]),
+           ybottom=p-0.8,ytop=p-0.2,col=groupColors[i])
+    }
+  })
+})
+#Y-axis
+axis(2,at=0.5:5.5,labels=phenos[pheno.indexes],las=2,tick=F,line=-1,cex.axis=1.2)
+points(x=rep(-0.06,6),y=rev(0.5:5.5),pch=21,cex=1.6,
+       bg=c(cols.GERM[1],cols.NEURO[1],
+            cols.NEURO[1],cols.NEURO[1],
+            cols.SOMA[1],cols.CNCR[1]))
+#X-axis
+axis(1,at=seq(0,1,0.25),labels=NA)
+axis(1,at=seq(0,1,0.25),tick=F,labels=paste(seq(0,100,25),"%",sep=""),line=-0.5,cex.axis=0.8)
+axis(1,at=0.5,tick=F,line=0.5,labels="Fraction of Loci")
+axis(1,at=seq(1.2,2.2,0.25),labels=NA)
+axis(1,at=seq(1.2,2.2,0.25),tick=F,labels=paste(seq(0,100,25),"%",sep=""),line=-0.5,cex.axis=0.8)
+axis(1,at=1.2+0.5,tick=F,line=0.5,labels="Fraction of Loci")
+#Close device
+dev.off()
 
 
