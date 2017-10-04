@@ -190,7 +190,7 @@ sapply(1:length(table(optics.res$cluster)),function(i){
 
 plot(tsne.110$Y,pch=19,cex=0.3,
      xaxt="n",yaxt="n",xlab="",ylab="")
-points(tsne.110$Y[which(optics.res$cluster==18),],col="red",pch=19,cex=0.5)
+points(tsne.110$Y[which(optics.res$cluster==31),],col="red",pch=19,cex=0.5)
 # points(tsne.110$Y[which(apply(dat[,grep("Super",colnames(dat))],1,sum)>0),],col="black",pch=19,cex=0.5)
 # points(tsne.110$Y[which(apply(dat[,grep("TBR",colnames(dat))],1,sum)>0),],col="black",pch=19,cex=0.5)
 # points(tsne.110$Y[which(apply(dat[,grep("FIRE",colnames(dat))],1,sum)>0),],col="black",pch=19,cex=0.5)
@@ -218,13 +218,136 @@ calcEnrichments <- function(cluster){
 }
 
 #####Calculate binomial p-values for all clusters & write to file
-pvals.all <- t(sapply(1:n.categories,calcEnrichments))
-colnames(pvals.all) <- 1:ncol(pvals.all)
+pvals.all <- sapply(1:n.categories,calcEnrichments)
+colnames(pvals.all) <- paste("c",1:ncol(pvals.all),sep="")
+rownames(pvals.all) <- colnames(dat[,-c(1:4)])
 write.table(pvals.all,"~/scratch/cluster_enrichments.txt",col.names=T,row.names=T,quote=F,sep="\t")
 
-#####Generate barplots for feature enrichment p-values per cluster
+#####Generate barplots for feature enrichment p-values per cluster, and mini-tSNE showing location
 #Helper function
-plotPvalBars <- function(cidx,)
+plotPvalBars <- function(cidx,features,labels,
+                         pmax=25,bonf=0.05/nrow(pvals.all)){
+  #Reorder features and labels based on p-value
+  pvals.plot <- sapply(1:length(features),function(i){
+    return(-log10(pvals.all[which(rownames(pvals.all)==features[i]),cidx]))
+  })
+  features <- features[rev(order(pvals.plot))]
+  labels <- labels[rev(order(pvals.plot))]
+  #Prep plot area
+  par(mar=c(0.5,15,2.5,0.5),bty="n")
+  plot(x=c(0,1.02*pmax),y=c(0,length(features)),type="n",
+       xaxs="i",xlab="",xaxt="n",yaxs="i",ylab="",yaxt="n")
+  #Draw gridlines
+  abline(v=seq(0,pmax,5),col=cols.CTRL[2])
+  #Draw rectangles
+  sapply(1:length(features),function(i){
+    rect(xleft=0,xright=min(c(pmax,-log10(pvals.all[which(rownames(pvals.all)==features[i]),cidx]))),
+         ybottom=length(features)-i+0.2,ytop=length(features)-i+0.8,
+         col="red")
+  })
+  #Draw significance thresholds
+  abline(v=-log10(c(0.05,bonf)),lty=2)
+  #Add y-axis category labels
+  axis(2,at=rev(1:length(features))-0.5,line=-0.8,tick=F,
+       labels=labels,las=2)
+  #Add top x-axis (p-vals)
+  axis(3,at=c(seq(0,pmax,5)),labels=NA)
+  axis(3,at=c(seq(0,pmax,5)),tick=F,line=-0.5,
+       labels=c(seq(0,pmax-5,5),paste(">",pmax,sep="")))
+  axis(3,at=-log10(c(0.05,bonf)),tick=F,line=-1,labels=c("N","B"),cex.axis=0.75,font=3)
+  mtext(3,line=1.5,text="Enrichment P-value")
+}
+#Helper function to generate mini tSNE
+minitsne <- function(cidx){
+  par(mar=c(0.2,0.2,0.2,0.2),bty="n",bg="transparent")
+  plot(tsne.110$Y,pch=19,cex=0.1,col=cols.CTRL[1],
+       xaxt="n",yaxt="n",xlab="",ylab="")
+  points(tsne.110$Y[which(optics.res$cluster==cidx),],col="red",pch=19,cex=0.2)
+  axis(3,at=seq(par("usr")[1],par("usr")[2],
+                by=(par("usr")[2]-par("usr")[1])/10),
+       tck=0.02,labels=NA,lwd=1.5)
+  axis(2,at=seq(par("usr")[3],par("usr")[4],
+                by=(par("usr")[4]-par("usr")[3])/10),
+       tck=0.02,labels=NA,lwd=1.5)
+}
+#Generate plots
+#15: TBR cluster
+png(paste(WRKDIR,"rCNV_map_paper/Figures/NoncodingElementClasses/mini_tSNE_c15.png",sep=""),
+   width=400,height=400,res=300)
+minitsne(15)
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/NoncodingElementClasses/feature_enrichment_bars_c15.pdf",sep=""),
+    height=0.4+0.25*(7),width=6)
+plotPvalBars(cidx=15,
+             features=c("TBRs_All_Primary_Tissues","Strong_TFBS_CTCF","Strong_TFBS_SMC3",
+                        "TFBS_ZNF143","TFBS_RAD21","Highly_conserved_ChromHMM_Weak_Transcribed_Elements"),
+             labels=c("Tissue-Conserved TAD Boundaries","Strong CTCF Sites","Strong SMC3 Sites",
+                      "ZNF143 Sites","RAD21 Sites","Weak Transcription"))
+dev.off()
+#5: Canonical enhancer cluster
+png(paste(WRKDIR,"rCNV_map_paper/Figures/NoncodingElementClasses/mini_tSNE_c5.png",sep=""),
+    width=400,height=400,res=300)
+minitsne(5)
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/NoncodingElementClasses/feature_enrichment_bars_c5.pdf",sep=""),
+    height=0.4+0.25*(7),width=6)
+plotPvalBars(cidx=5,
+             features=c("Evolutionarily_conserved_elements_GERP",
+                        "Conserved_H3K27ac","Conserved_DHS","Conserved_FIREs","Conserved_Enhancers",
+                        "Strong_TFBS_EP300","Strong_TFBS_CEBPB"),
+             labels=c("Primary Sequence Conservation","Tissue-Conserved H3K27ac Peaks",
+                      "Tissue-Conserved DHS","Tissue-Conserved FIREs","Tissue-Conserved Enhancers",
+                      "Strong EP300 Sites","Strong CEBPB Sites"))
+dev.off()
+#1: Super enhancer cluster
+png(paste(WRKDIR,"rCNV_map_paper/Figures/NoncodingElementClasses/mini_tSNE_c1.png",sep=""),
+    width=400,height=400,res=300)
+minitsne(1)
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/NoncodingElementClasses/feature_enrichment_bars_c1.pdf",sep=""),
+    height=0.4+0.25*(7),width=6)
+plotPvalBars(cidx=1,
+             features=c("BRAIN_SuperEnhancer","HEART_SuperEnhancer",
+                        "Strong_TFBS_All_TFs","CpG_Islands","Early_replicating_regions",
+                        "Conserved_ChromHMM_Genic_Enhancers_Class_1","Highly_conserved_eQTLs"),
+             labels=c("Brain Super Enhancers","Heart Super Enhancers","Strong TF Sites (70 TFs)","CpG Islands",
+                      "Early Replication Timing","Tissue-Conserved Genic Enhancers","Tissue-Conserved eQTLs"))
+dev.off()
+#Inactive immune chromatin duplications
+plotPvalBars(cidx=12,
+             features=c("Late_replicating_regions","Ultraconserved_noncoding_elements_UCNEs",
+                        "IMMUNE_CompartmentB","IMMUNE_ChromHMM_Heterochromatin",
+                        "ENDOCRINE_ChromHMM_Quiescent","IMMUNE_DMRs","INT_DUP_significant"),
+             labels=c("Late Replication Timing","Ultraconserved Noncoding Elements",
+                      "Immune Inactive (B) Compartments","Immune Heterochromatin",
+                      "Endocrine Quiescent Chromatin","Immune Differential Methylation",
+                      "INT DUP Burden"))
+#Bivalent brain enhancers in NDDs
+plotPvalBars(cidx=2,
+             features=c("NDD_DEL_significant","NDD_DUP_significant",
+                        "BRAIN_ChromHMM_BivalentEnhancer","BRAIN_ChromHMM_BivalentPoisedTSS",
+                        "BRAIN_ChromHMM_WeakRepressedPolycomb","BRAIN_eQTLs"),
+             labels=c("NDD DEL Burden","NDD DUP Burden",
+                      "Brain Bivalent Enhancer","Brain Poised TSS",
+                      "Brain Weak Polycomb Repression","Brain eQTLs"))
+#Heart/embryo-specific enhancers
+plotPvalBars(cidx=31,
+             features=c("EMBRYO_CompartmentA","EMBRYO_FIRE","HEART_ChromHMM_ActiveEnhancer1",
+                        "HEART_H3K27ac","HEART_eQTLs"),
+             labels=c("Embryonic Active (A) Compartments",
+                      "Embryonic FIREs","Heart Active Enhancers","Heart H3K27ac Peaks","Heart eQTLs"))
+#Brain-inactive, skin-active elements w/brain cancer dups
+plotPvalBars(cidx=86,
+             features=c("CBRN_DUP_significant","BRAIN_CompartmentB","SKIN_FIRE",
+                        "SKIN_ChromHMM_TSSFlankUpstream","BRAIN_ChromHMM_WeakRepressedPolycomb",
+                        "SKIN_Enhancer"),
+             labels=c("CBRN DUP Burden","Brain Inactive (B) Compartments",
+                      "Skin FIREs","Skin Upstream TSS Flanks","Brain Weak Polycomb Repression",
+                      "Skin Enhancers"))
+
+
+
+
 
 
 
