@@ -190,7 +190,7 @@ sapply(1:length(table(optics.res$cluster)),function(i){
 
 plot(tsne.110$Y,pch=19,cex=0.3,
      xaxt="n",yaxt="n",xlab="",ylab="")
-points(tsne.110$Y[which(optics.res$cluster==31),],col="red",pch=19,cex=0.5)
+points(tsne.110$Y[which(optics.res$cluster==9),],col="red",pch=19,cex=0.5)
 # points(tsne.110$Y[which(apply(dat[,grep("Super",colnames(dat))],1,sum)>0),],col="black",pch=19,cex=0.5)
 # points(tsne.110$Y[which(apply(dat[,grep("TBR",colnames(dat))],1,sum)>0),],col="black",pch=19,cex=0.5)
 # points(tsne.110$Y[which(apply(dat[,grep("FIRE",colnames(dat))],1,sum)>0),],col="black",pch=19,cex=0.5)
@@ -219,6 +219,7 @@ calcEnrichments <- function(cluster){
 
 #####Calculate binomial p-values for all clusters & write to file
 pvals.all <- sapply(1:n.categories,calcEnrichments)
+pvals.all <- apply(pvals.all,2,p.adjust,method="fdr")
 colnames(pvals.all) <- paste("c",1:ncol(pvals.all),sep="")
 rownames(pvals.all) <- colnames(dat[,-c(1:4)])
 write.table(pvals.all,"~/scratch/cluster_enrichments.txt",col.names=T,row.names=T,quote=F,sep="\t")
@@ -246,7 +247,7 @@ plotPvalBars <- function(cidx,features,labels,
          col="red")
   })
   #Draw significance thresholds
-  abline(v=-log10(c(0.05,bonf)),lty=2)
+  abline(v=-log10(0.05),lty=2)
   #Add y-axis category labels
   axis(2,at=rev(1:length(features))-0.5,line=-0.8,tick=F,
        labels=labels,las=2)
@@ -254,15 +255,15 @@ plotPvalBars <- function(cidx,features,labels,
   axis(3,at=c(seq(0,pmax,5)),labels=NA)
   axis(3,at=c(seq(0,pmax,5)),tick=F,line=-0.5,
        labels=c(seq(0,pmax-5,5),paste(">",pmax,sep="")))
-  axis(3,at=-log10(c(0.05,bonf)),tick=F,line=-1,labels=c("N","B"),cex.axis=0.75,font=3)
-  mtext(3,line=1.5,text="Enrichment P-value")
+  axis(3,at=-log10(0.05),tick=F,line=-1,labels=expression(alpha))
+  mtext(3,line=1.3,text=expression(paste("Enrichment ", ~-log[10](italic(q)))))
 }
 #Helper function to generate mini tSNE
 minitsne <- function(cidx){
-  par(mar=c(0.2,0.2,0.2,0.2),bty="n",bg="transparent")
+  par(mar=c(0.2,0.2,0.2,0.2),bg="white")
   plot(tsne.110$Y,pch=19,cex=0.1,col=cols.CTRL[1],
        xaxt="n",yaxt="n",xlab="",ylab="")
-  points(tsne.110$Y[which(optics.res$cluster==cidx),],col="red",pch=19,cex=0.2)
+  points(tsne.110$Y[which(optics.res$cluster==cidx),],col="red",pch=19,cex=0.3)
   axis(3,at=seq(par("usr")[1],par("usr")[2],
                 by=(par("usr")[2]-par("usr")[1])/10),
        tck=0.02,labels=NA,lwd=1.5)
@@ -273,7 +274,7 @@ minitsne <- function(cidx){
 #Generate plots
 #15: TBR cluster
 png(paste(WRKDIR,"rCNV_map_paper/Figures/NoncodingElementClasses/mini_tSNE_c15.png",sep=""),
-   width=400,height=400,res=300)
+    width=400,height=400,res=300)
 minitsne(15)
 dev.off()
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/NoncodingElementClasses/feature_enrichment_bars_c15.pdf",sep=""),
@@ -313,7 +314,13 @@ plotPvalBars(cidx=1,
              labels=c("Brain Super Enhancers","Heart Super Enhancers","Strong TF Sites (70 TFs)","CpG Islands",
                       "Early Replication Timing","Tissue-Conserved Genic Enhancers","Tissue-Conserved eQTLs"))
 dev.off()
-#Inactive immune chromatin duplications
+#12: Inactive immune chromatin duplications
+png(paste(WRKDIR,"rCNV_map_paper/Figures/NoncodingElementClasses/mini_tSNE_c12.png",sep=""),
+    width=400,height=400,res=300)
+minitsne(12)
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/NoncodingElementClasses/feature_enrichment_bars_c12.pdf",sep=""),
+    height=0.4+0.25*(7),width=6)
 plotPvalBars(cidx=12,
              features=c("Late_replicating_regions","Ultraconserved_noncoding_elements_UCNEs",
                         "IMMUNE_CompartmentB","IMMUNE_ChromHMM_Heterochromatin",
@@ -322,7 +329,14 @@ plotPvalBars(cidx=12,
                       "Immune Inactive (B) Compartments","Immune Heterochromatin",
                       "Endocrine Quiescent Chromatin","Immune Differential Methylation",
                       "INT DUP Burden"))
-#Bivalent brain enhancers in NDDs
+dev.off()
+#2: Bivalent brain enhancers in NDDs
+png(paste(WRKDIR,"rCNV_map_paper/Figures/NoncodingElementClasses/mini_tSNE_c2.png",sep=""),
+    width=400,height=400,res=300)
+minitsne(2)
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/NoncodingElementClasses/feature_enrichment_bars_c2.pdf",sep=""),
+    height=0.4+0.25*(7),width=6)
 plotPvalBars(cidx=2,
              features=c("NDD_DEL_significant","NDD_DUP_significant",
                         "BRAIN_ChromHMM_BivalentEnhancer","BRAIN_ChromHMM_BivalentPoisedTSS",
@@ -330,13 +344,27 @@ plotPvalBars(cidx=2,
              labels=c("NDD DEL Burden","NDD DUP Burden",
                       "Brain Bivalent Enhancer","Brain Poised TSS",
                       "Brain Weak Polycomb Repression","Brain eQTLs"))
-#Heart/embryo-specific enhancers
+dev.off()
+#31: Heart/embryo-specific enhancers
+png(paste(WRKDIR,"rCNV_map_paper/Figures/NoncodingElementClasses/mini_tSNE_c31.png",sep=""),
+    width=400,height=400,res=300)
+minitsne(31)
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/NoncodingElementClasses/feature_enrichment_bars_c31.pdf",sep=""),
+    height=0.4+0.25*(7),width=6)
 plotPvalBars(cidx=31,
              features=c("EMBRYO_CompartmentA","EMBRYO_FIRE","HEART_ChromHMM_ActiveEnhancer1",
                         "HEART_H3K27ac","HEART_eQTLs"),
              labels=c("Embryonic Active (A) Compartments",
                       "Embryonic FIREs","Heart Active Enhancers","Heart H3K27ac Peaks","Heart eQTLs"))
-#Brain-inactive, skin-active elements w/brain cancer dups
+dev.off()
+#86: Brain-inactive, skin-active elements w/brain cancer dups
+png(paste(WRKDIR,"rCNV_map_paper/Figures/NoncodingElementClasses/mini_tSNE_c86.png",sep=""),
+    width=400,height=400,res=300)
+minitsne(86)
+dev.off()
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/NoncodingElementClasses/feature_enrichment_bars_c86.pdf",sep=""),
+    height=0.4+0.25*(7),width=6)
 plotPvalBars(cidx=86,
              features=c("CBRN_DUP_significant","BRAIN_CompartmentB","SKIN_FIRE",
                         "SKIN_ChromHMM_TSSFlankUpstream","BRAIN_ChromHMM_WeakRepressedPolycomb",
@@ -344,10 +372,75 @@ plotPvalBars(cidx=86,
              labels=c("CBRN DUP Burden","Brain Inactive (B) Compartments",
                       "Skin FIREs","Skin Upstream TSS Flanks","Brain Weak Polycomb Repression",
                       "Skin Enhancers"))
+dev.off()
+#Helper function to check number of GERM/CNCR sig DEL/DUP loci per cluster
+checkClusterMembership <- function(cidx){
+  t(sapply(c("DEL","DUP"),function(CNV){
+    unlist(lapply(list(1:22,23:35),function(pidx){
+      sum(apply(dat[which(optics.res$cluster==cidx),grep(CNV,colnames(dat))[pidx]],1,function(vals){
+        if(any(vals>0)){
+          return(1)
+        }else{
+          return(0)
+        }
+      }))
+    }))
+  }))
+}
+#Count significant loci per cluster
+t(sapply(c(15,5,1,12,2,31,86),checkClusterMembership))[,c(1,3,2,4)]
 
 
-
-
+#####Categorical summary analysis per phenotypes
+#First, subset pvalues to those worth considering in analysis
+informative.terms <- sort(unique(as.vector(unlist(sapply(
+  c("Bivalent","ActiveEnhancer","GenicEnhancer","SuperEnhancer",
+    "FIRE","TBR","CTCF","EP300","CEBPB","FOS","JUN",
+    "All_TFs","SMC3","POLR2A","RAD21","Quiescent","Polycomb"),
+  function(term){
+    return(as.vector(unlist(grep(term,rownames(pvals.all)))))
+  })))))
+pvals.subset <- pvals.all[informative.terms,]
+#Convert to binary sig/not sig; 0 = significant; 1 = non-significant
+pvals.subset[which(pvals.subset<0.05)] <- 0
+pvals.subset[which(pvals.subset>=0.05)] <- 1
+#Drop any clusters without at least 10 significant elements
+pvals.subset <- pvals.subset[,which(apply(1-pvals.subset,2,sum)>=5)]
+#Plot heatmap without y-axis clustering
+pdf("~/scratch/cluster_reclustering_heatmap.pdf",height=20,width=20)
+heatmap(pvals.subset,Rowv=NA,scale="none")
+dev.off()
+#Note: manually assign clusters to each profile based on heatmap
+g1.TBRs <- c(9,15,51)
+g2.superEnh <- c(1,3)
+g3.canonEnh <- c(5,31,66,32,86)
+g4.bivalent <- c(2,79,82,84)
+g5.inactive <- c(12,20,37,40)
+g6.other <- c(0,c(1:ncol(pvals.all))[-c(g1.TBRs,g2.superEnh,g3.canonEnh,g4.bivalent,g5.inactive)])
+groupColors <- c(rainbow_hcl(5,c=95,l=82,start=50),"gray80")
+#Plot mini tSNE for assignments
+png(paste(WRKDIR,"rCNV_map_paper/Figures/NoncodingElementClasses/mini_tSNE_assignedMechanisms.png",sep=""),
+    width=400,height=400,res=300)
+par(mar=c(0.2,0.2,0.2,0.2),bg="white")
+plot(tsne.110$Y,pch=19,cex=0.1,col=cols.CTRL[2],
+     xaxt="n",yaxt="n",xlab="",ylab="")
+points(tsne.110$Y[which(optics.res$cluster %in% g1.TBRs),],
+       col=groupColors[1],pch=19,cex=0.2)
+points(tsne.110$Y[which(optics.res$cluster %in% g2.superEnh),],
+       col=groupColors[2],pch=19,cex=0.2)
+points(tsne.110$Y[which(optics.res$cluster %in% g3.canonEnh),],
+       col=groupColors[3],pch=19,cex=0.2)
+points(tsne.110$Y[which(optics.res$cluster %in% g4.bivalent),],
+       col=groupColors[4],pch=19,cex=0.2)
+points(tsne.110$Y[which(optics.res$cluster %in% g5.inactive),],
+       col=groupColors[5],pch=19,cex=0.2)
+axis(3,at=seq(par("usr")[1],par("usr")[2],
+              by=(par("usr")[2]-par("usr")[1])/10),
+     tck=0.02,labels=NA,lwd=1.5)
+axis(2,at=seq(par("usr")[3],par("usr")[4],
+              by=(par("usr")[4]-par("usr")[3])/10),
+     tck=0.02,labels=NA,lwd=1.5)
+dev.off()
 
 
 
