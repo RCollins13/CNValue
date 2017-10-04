@@ -325,12 +325,12 @@ while read pheno; do
   while read annoSet; do
     #Haplosuff DEL
     bedtools intersect -f 0.5 -a ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.filtered.bed \
-    -b ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.DEL.${VF}.haplosufficient.bonf_sig_elements_merged.all_classes.bed | \
+    -b ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.DEL.${VF}.haplosufficient.bonf_sig_elements_merged.${annoSet}.bed | \
     sort -Vk1,1 -k2,2n -k3,3n -Vk4,4 | uniq > \
     ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DEL_${VF}.final_merged_loci.${annoSet}.bed
     #Noncoding DUP
     bedtools intersect -f 0.5 -a ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.filtered.bed \
-    -b ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.DUP.${VF}.noncoding.bonf_sig_elements_merged.all_classes.bed | \
+    -b ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.DUP.${VF}.noncoding.bonf_sig_elements_merged.${annoSet}.bed | \
     sort -Vk1,1 -k2,2n -k3,3n -Vk4,4 | uniq > \
     ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DUP_${VF}.final_merged_loci.${annoSet}.bed
   done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
@@ -341,6 +341,7 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
 #####Get counts of significant loci by phenotype after merging
 #Merged across all annotations
 VF=E4
+annoSet=all_classes
 while read pheno; do
   for dummy in 1; do
     echo ${pheno}
@@ -359,7 +360,7 @@ while read pheno; do
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           awk '{ if ($2=="GERM") print $1 }' ) | sort | uniq | \
 fgrep -wvf - \
-${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.filtered.all_classes.bed | wc -l
+${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.filtered.bed | wc -l
 #Count of del-only, del+dup, and dup-only
 VF=E4
 while read pheno; do
@@ -380,8 +381,6 @@ while read pheno; do
   done | paste -s
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
-
-
 
 
 

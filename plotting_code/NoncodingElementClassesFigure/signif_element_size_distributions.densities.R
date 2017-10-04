@@ -30,16 +30,19 @@ cols.CNCR <- c("#FFCB00","#FFCB00","#FFE066","#FFF5CC")
 sizes <- lapply(list("GERM","NEURO","SOMA","CNCR"),function(pheno){
   dat <- read.table(paste(WRKDIR,"plot_data/NoncodingElementClassesFigure/element_size_distros/",
                           pheno,".element_sizes.txt",sep=""),header=F)[,1]
-  dens <- sapply(seq(0,200000,1000),function(min){
-    return(length(which(dat>min))/length(dat))
-  })
+  # dens <- sapply(seq(0,200000,1000),function(min){
+  #   return(length(which(dat>min))/length(dat))
+  # })
 })
 
 #########
 #####Plot
 #########
+#Open device
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/NoncodingElementClasses/signif_loci_size_distros.pdf",sep=""),
+    width=3,height=2)
 #Prep plot area
-par(mar=c(3,3,0.5,0.5))
+par(mar=c(1.5,3,0.5,1.5))
 plot(x=c(5,200),y=c(0,1),type="n",
      xaxt="n",xlab="",xaxs="i",yaxt="n",ylab="",yaxs="i")
 #Add gridlines
@@ -50,17 +53,19 @@ abline(h=seq(0,1,0.05),col=cols.CTRL[4],lwd=0.5)
 abline(h=seq(0,1,0.1),col=cols.CTRL[3],lwd=0.75)
 abline(h=seq(0,1,0.2),col=cols.CTRL[2])
 #Plot lines
-points(sizes[[1]],type="l",lwd=3,col=cols.GERM[1])
-points(sizes[[2]],type="l",lwd=3,col=cols.NEURO[1])
-points(sizes[[3]],type="l",lwd=3,col=cols.SOMA[1])
-points(sizes[[4]],type="l",lwd=3,col=cols.CNCR[1])
+points(sizes[[1]],type="l",lwd=2.5,col=cols.GERM[1])
+points(sizes[[2]],type="l",lwd=2.5,col=cols.NEURO[1])
+points(sizes[[3]],type="l",lwd=2.5,col=cols.SOMA[1])
+points(sizes[[4]],type="l",lwd=2.5,col=cols.CNCR[1])
 #Add axes
 axis(1,at=seq(0,200,25),labels=NA,tck=-0.01,col=cols.CTRL[1])
 axis(1,at=seq(0,200,50),labels=NA,tck=-0.02)
-axis(1,at=seq(0,200,50),labels=paste(seq(0,200,50),"kb",sep=""),tick=F,line=-0.5)
+axis(1,at=seq(50,150,100),labels=paste(seq(50,150,100),"kb",sep=""),tick=F,line=-0.7)
+axis(1,at=seq(0,200,100),labels=paste(seq(0,200,100),"kb",sep=""),tick=F,line=-0.7)
 axis(2,at=seq(0,1,0.1),labels=NA,tck=-0.01,col=cols.CTRL[1])
 axis(2,at=seq(0,1,0.2),labels=NA,tck=-0.02)
-axis(2,at=seq(0,1,0.2),labels=paste(seq(0,100,20),"%",sep=""),tick=F,line=-0.5,las=2)
-
+axis(2,at=seq(0,1,0.2),labels=paste(seq(0,100,20),"%",sep=""),tick=F,line=-0.6,las=2)
+#Close device
+dev.off()
 
 
