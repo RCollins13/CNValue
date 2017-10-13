@@ -1469,7 +1469,31 @@ while read organ; do
 done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
 sort | uniq )
 
-
+######################
+#####OTHER ANNOTATIONS
+######################
+#pcHiC E-P contacts from Javierre et al, Cell, 2016
+#Note: must have copied the file ActivePromoterEnhancerLinks.tsv from the paper's supplement
+if ! [ -e ${WRKDIR}/data/misc/pcHiC_contacts ]; then
+  mkdir ${WRKDIR}/data/misc/pcHiC_contacts
+fi
+#First: link EP links to gene promoters
+sed 's/chr//g' ${WRKDIR}/data/misc/ActivePromoterEnhancerLinks.tsv | sed '1d' | \
+bedtools intersect -loj -a - -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.all.bed | \
+awk -v OFS="\t" -v FS="\t" '{ print $1, $2, $3, $5, $6, $7, $14, $10 }' | \
+awk -v OFS="\t" -v FS="\t" '{ if ($7=="") $7="."; print }' > \
+${WRKDIR}/data/misc/pcHiC_contacts/pcHiC_contacts.formatted_wGenes.bed
+#Second: split EP links based on number of significant
+for i in $( seq 1 16 ); do
+  # Rscript -e "x <- read.table(\"${WRKDIR}/data/misc/pcHiC_contacts/pcHiC_contacts.formatted_wGenes.bed\",header=F);\
+  #             out <- x[which(lapply(strsplit(as.character(x[,8]),split=\",\"),length)>=${i}),1:7];\
+  #             write.table(out,\"${WRKDIR}/data/misc/pcHiC_contacts/pcHiC_contacts.formatted_wGenes.min_${i}.bed\",\
+  #             col.names=F,row.names=F,sep=\"\\t\",quote=F)"
+  awk -v OFS="\t" '{ print $4, $5, $6, $7 }' \
+  ${WRKDIR}/data/misc/pcHiC_contacts/pcHiC_contacts.formatted_wGenes.min_${i}.bed | \
+  sort -Vk1,1 -k2,2n -k3,3n -k4,4 | uniq > \
+  ${WRKDIR}/data/misc/pcHiC_contacts/pcHiC_contacts.formatted_wGenes.min_${i}.unique_EP_pairs.bed
+done
 
 
 
