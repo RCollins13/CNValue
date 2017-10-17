@@ -76,7 +76,7 @@ relevant.genes <- c("NLGN1","TBL1XR1")
 axisTrack <-  GenomeAxisTrack(fontcolor="black",distFromAxis=1.25,labelPos="above",
                               range=IRanges(start=c(hot.left.start,hot.center.start,hot.right.start),
                                             end=c(hot.left.end,hot.center.end,hot.right.end),
-                                            names=c("Proximal","Central","Distal")),
+                                            names=c("Proximal","Medial","Distal")),
                               showId=T,col.id="white",col.range=NA,
                               fill.range=c("red","darkorchid4","blue"))
 ideoTrack <- IdeogramTrack(genome=ref,chromosome=chr,
@@ -93,12 +93,17 @@ grTrack <- BiomartGeneRegionTrack(genome=ref,chr=chr,start=start,end=end,
 genes <- unique(symbol(grTrack))
 
 #Load CNVs & convert to heatmap data tracks
+#Round all CNV frequencies to <0.1%
 CNVtracks <- lapply(list("coding","noncoding"),function(filt){
   lapply(list("DEL","DUP"),function(CNV){
     dat <- read.table(paste(WRKDIR,"plot_data/ExampleLocusPlots/TBL1XR1/TBL1XR1_locus.",
                             CNV,"_",filt,"_density.5kb_bins.bed",sep=""),
                       header=T,comment.char="")
     names(dat)[1] <- "chr"
+    dat[,4:6] <- apply(dat[,4:6],2,function(vals){
+      vals[which(vals>10)] <- 10
+      return(vals)
+    })
     gr <- with(dat, GRanges(chr, IRanges(start, end), "CTRL"=CTRL, "GERM"=GERM, "CNCR"=CNCR))
     if(CNV=="DEL"){
       gradCol <- c("white","red")
@@ -117,7 +122,7 @@ CNVtracks <- lapply(list("coding","noncoding"),function(filt){
 ##############
 #Prepare plot area
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/ExampleLoci/TBL1XR1/TBL1XR1_NLGN1_locus.master.pdf",sep=""),
-    height=6,width=8)
+    height=4,width=8)
 #Plot tracks
 plotTracks(from=start,to=end,
            c(ideoTrack,axisTrack,grTrack,unlist(CNVtracks)),

@@ -1,3 +1,66 @@
+#!/usr/bin/env bash
+
+##############################
+#    Rare CNV Map Project    #
+##############################
+
+# Copyright (c) 2017 Ryan L. Collins
+# Distributed under terms of the MIT License (see LICENSE)
+# Contact: Ryan L. Collins <rlcollins@g.harvard.edu>
+# Code development credits availble on GitHub
+
+#Code to gather all data required to plot TBL1XR1 example locus
+
+#####Set parameters
+export WRKDIR=/data/talkowski/Samples/rCNVmap
+source ${WRKDIR}/bin/rCNVmap/misc/rCNV_code_parameters.sh
+
+#####Reinitialize directory if exists
+if ! [ -e ${WRKDIR}/data/plot_data/ExampleLocusPlots/ ]; then
+  mkdir ${WRKDIR}/data/plot_data/ExampleLocusPlots/
+fi
+if ! [ -e ${WRKDIR}/data/plot_data/ExampleLocusPlots/TBL1XR1 ]; then
+  mkdir ${WRKDIR}/data/plot_data/ExampleLocusPlots/TBL1XR1
+fi
+
+#####Gather compartment data in ~5kb bins
+#Write 5kb bins
+paste <( seq 170300000 5000 180695000 ) <( seq 170305000 5000 180700000 ) | \
+awk -v OFS="\t" '{ print "chr3", $1, $2, "chr3:"$1"-"$2 }' > \
+${WRKDIR}/data/plot_data/ExampleLocusPlots/TBL1XR1/TBL1XR1_locus.hg19.5kb_bins.bed
+#Iterate over tissues and compute compartment scores
+while read code tissue; do
+  echo ${tissue}
+  ${WRKDIR}/bin/utils/bigWigAverageOverBed \
+  -bedOut=${WRKDIR}/data/plot_data/ExampleLocusPlots/TBL1XR1/${tissue}.compartments_5kbBins.bed \
+  /data/talkowski/Samples/SFARI/ASC_analysis/annotations/TADs/Schmitt2016/Compartment_primary_cohort/${code}.pc.bw \
+  ${WRKDIR}/data/plot_data/ExampleLocusPlots/TBL1XR1/TBL1XR1_locus.hg19.5kb_bins.bed \
+  /dev/null
+done < <( echo -e "CO\tcortex\nHC\thippocampus\nimr90\tIMR90\nLG\tlung\nPO\tmuscle" )
+
+#####Gather CNV density data for CTRL/GERM/CNCR in 5kb bins for DEL/DUP + coding/noncoding
+for CNV in DEL DUP; do
+  for filt in coding noncoding; do
+    echo -e "#chr\tstart\tend\tCTRL\tGERM\tCNCR" > \
+    ${WRKDIR}/data/plot_data/ExampleLocusPlots/TBL1XR1/TBL1XR1_locus.${CNV}_${filt}_density.5kb_bins.bed
+    sed 's/^chr//g' ${WRKDIR}/data/plot_data/ExampleLocusPlots/TBL1XR1/TBL1XR1_locus.hg19.5kb_bins.bed | \
+    awk -v OFS="\t" '{ print $1, $2, $3 }' | bedtools intersect -c -a - \
+    -b ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.E4.GRCh37.${filt}.bed.gz | \
+    bedtools intersect -c -a - \
+    -b ${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.${CNV}.E4.GRCh37.${filt}.bed.gz | \
+    bedtools intersect -c -a - \
+    -b ${WRKDIR}/data/CNV/CNV_MASTER/CNCR/CNCR.${CNV}.E4.GRCh37.${filt}.bed.gz | \
+    sed 's/^/chr/g' >> \
+    ${WRKDIR}/data/plot_data/ExampleLocusPlots/TBL1XR1/TBL1XR1_locus.${CNV}_${filt}_density.5kb_bins.bed
+  done
+done
+
+
+
+
+
+
+
 #NLGN1-TBL1XR1 compartment boundary
 #GERM DEL: INT, SKEL, MSC
 #CNCR DEL: CMSK
@@ -53,42 +116,3 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
 #Cortex & hippocampus distal (177-182): moderate A, gets much stronger in 1-2Mb beyond distal region
 #IMR90, Psoas muscle, lung proximal: weak/moderate B
 #IMR90, Psoas muscle, lung distal: extremely strong A for just 1Mb (~right over TBL1XR1), then reverts back to strong B
-
-
-
-
-#####Set parameters
-export WRKDIR=/data/talkowski/Samples/rCNVmap
-source ${WRKDIR}/bin/rCNVmap/misc/rCNV_code_parameters.sh
-
-#####Reinitialize directory if exists
-if ! [ -e ${WRKDIR}/data/plot_data/ExampleLocusPlots/ ]; then
-  mkdir ${WRKDIR}/data/plot_data/ExampleLocusPlots/
-fi
-if ! [ -e ${WRKDIR}/data/plot_data/ExampleLocusPlots/TBL1XR1 ]; then
-  mkdir ${WRKDIR}/data/plot_data/ExampleLocusPlots/TBL1XR1
-fi
-
-#####Gather compartment data in ~5kb bins
-#Write 5kb bins
-paste <( seq 170300000 5000 180695000 ) <( seq 170305000 5000 180700000 ) | \
-awk -v OFS="\t" '{ print "chr3", $1, $2, "chr3:"$1"-"$2 }' > \
-${WRKDIR}/data/plot_data/ExampleLocusPlots/TBL1XR1/TBL1XR1_locus.hg19.5kb_bins.bed
-#Iterate over tissues and compute compartment scores
-while read code tissue; do
-  echo ${tissue}
-  ${WRKDIR}/bin/utils/bigWigAverageOverBed \
-  -bedOut=${WRKDIR}/data/plot_data/ExampleLocusPlots/TBL1XR1/${tissue}.compartments_5kbBins.bed \
-  /data/talkowski/Samples/SFARI/ASC_analysis/annotations/TADs/Schmitt2016/Compartment_primary_cohort/${code}.pc.bw \
-  ${WRKDIR}/data/plot_data/ExampleLocusPlots/TBL1XR1/TBL1XR1_locus.hg19.5kb_bins.bed \
-  /dev/null
-done < <( echo -e "CO\tcortex\nHC\thippocampus\nimr90\tIMR90\nLG\tlung\nPO\tmuscle" )
-
-
-
-
-
-
-
-
-
