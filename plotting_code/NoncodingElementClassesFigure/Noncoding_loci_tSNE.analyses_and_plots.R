@@ -506,3 +506,13 @@ axis(1,at=1.2+0.5,tick=F,line=0.5,labels="Fraction of Loci")
 dev.off()
 
 
+
+#####Write table of GERM/NEURO/NDD/SCZ/NONN/CNCR significant loci with annotations for manual curation (Google Doc w/Kiana)
+pheno.idx <- unique(as.vector(unlist(sapply(c("GERM","NEURO","NDD","SCZ","SOMA","CNCR"),function(pheno){
+  return(grep(pheno,colnames(dat)))
+}))))
+which(dat[,pheno.idx]==1
+
+
+
+

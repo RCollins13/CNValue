@@ -59,8 +59,8 @@ ref <- "hg19"
 chr <- "chr9"
 start <- 1260000
 end <- 2900000
-distal.start <- 80050742
-distal.end <- 80197059
+distal.start <- 1500588
+distal.end <- 1713727
 proximal.start <- 2650652
 proximal.end <- 2794964
 
@@ -72,7 +72,7 @@ proximal.end <- 2794964
 axisTrack <-  GenomeAxisTrack(fontcolor="black",distFromAxis=1.25,labelPos="above",
                               range=IRanges(start=c(distal.start,proximal.start),
                                             end=c(distal.end,proximal.end),
-                                            names=c("Distal Region","Proximal Region"),
+                                            names=c("Distal Region","Proximal Region")),
                               showId=T,col.id="white",col.range=NA,fill.range="red")
 ideoTrack <- IdeogramTrack(genome=ref,chromosome=chr,
                            col=NA,fill=adjustcolor(cols.NEURO[1],alpha=0.5))
@@ -89,13 +89,13 @@ genes <- unique(symbol(grTrack))
 
 #Load CNVs & convert to heatmap data tracks
 #Round all CNV frequencies to <0.1%
-CNVtracks <- lapply(list("all"),function(filt){
+CNVtracks <- lapply(list("all","haplosufficient"),function(filt){
   lapply(list("DEL"),function(CNV){
     dat <- read.table(paste(WRKDIR,"plot_data/ExampleLocusPlots/SMARCA2/SMARCA2_locus.",
                             CNV,"_",filt,"_density.5kb_bins.bed",sep=""),
                       header=T,comment.char="")
     names(dat)[1] <- "chr"
-    gr <- with(dat, GRanges(chr, IRanges(start, end), "CTRL"=CTRL, "NDD"=NDD))
+    gr <- with(dat, GRanges(chr, IRanges(start, end), "CTRL"=CTRL, "GERM"=GERM))
     if(CNV=="DEL"){
       gradCol <- c("white","red")
     }else{
@@ -107,35 +107,35 @@ CNVtracks <- lapply(list("all"),function(filt){
   })
 })
 
-#Load fetal brain expression
-expression.dat <- read.table(paste(WRKDIR,"plot_data/ExampleLocusPlots/SMARCA2/SMARCA2_locus.",
-                                   "fetal_brain_expression.1kb_bins.bed",sep=""),
-                             header=T,comment.char="")
-names(expression.dat)[1] <- "chr"
-expression.gr <- with(expression.dat, GRanges(chr, IRanges(start, end), "Expression"=Expression))
-expression.track <-  DataTrack(range=expression.gr,type="polygon",name="Fetal Brain Expression",
-                               col.mountain="black",fill.mountain="black",fill="black")
-
-#Load annotated enhancers
-annotated.enhancers <- bed_to_granges(paste(WRKDIR,"plot_data/ExampleLocusPlots/SMARCA2/SMARCA2_locus.",
-                                            "enhancer_elements.bed",sep=""))
-annotated.enhancer.track <- AnnotationTrack(annotated.enhancers,name="Fetal Brain Enhancers",
-                                            stacking="dense",col.line=cols.NEURO[1],fill=cols.NEURO[1])
-
-#Load fetal brain DHS
-DHS.track <- DataTrack(range=paste(WRKDIR,"plot_data/ExampleLocusPlots/SMARCA2/SMARCA2_locus.",
-                                   "fetal_brain_DHS.bedGraph",sep=""),type="polygon",
-                       fill=cols.NEURO[1],name="Fetal Brain DHS")
-
-#Load adult brain H3K27ac ChIP-seq track
-H3K27ac.track <- DataTrack(range=paste(WRKDIR,"plot_data/ExampleLocusPlots/SMARCA2/SMARCA2_locus.",
-                                       "adult_brain_H3K27ac.bedGraph",sep=""),type="polygon",
-                           fill=cols.NEURO[1],name="Adult Brain H3K27ac")
-
-#Load fetal brain H3K4me1 ChIP-seq track
-H3K4me1.track <- DataTrack(range=paste(WRKDIR,"plot_data/ExampleLocusPlots/SMARCA2/SMARCA2_locus.",
-                                       "fetal_brain_H3K4me1.bedGraph",sep=""),type="polygon",
-                           fill=cols.NEURO[1],name="Fetal Brain H3K4me1")
+# #Load fetal brain expression
+# expression.dat <- read.table(paste(WRKDIR,"plot_data/ExampleLocusPlots/SMARCA2/SMARCA2_locus.",
+#                                    "fetal_brain_expression.1kb_bins.bed",sep=""),
+#                              header=T,comment.char="")
+# names(expression.dat)[1] <- "chr"
+# expression.gr <- with(expression.dat, GRanges(chr, IRanges(start, end), "Expression"=Expression))
+# expression.track <-  DataTrack(range=expression.gr,type="polygon",name="Fetal Brain Expression",
+#                                col.mountain="black",fill.mountain="black",fill="black")
+#
+# #Load annotated enhancers
+# annotated.enhancers <- bed_to_granges(paste(WRKDIR,"plot_data/ExampleLocusPlots/SMARCA2/SMARCA2_locus.",
+#                                             "enhancer_elements.bed",sep=""))
+# annotated.enhancer.track <- AnnotationTrack(annotated.enhancers,name="Fetal Brain Enhancers",
+#                                             stacking="dense",col.line=cols.NEURO[1],fill=cols.NEURO[1])
+#
+# #Load fetal brain DHS
+# DHS.track <- DataTrack(range=paste(WRKDIR,"plot_data/ExampleLocusPlots/SMARCA2/SMARCA2_locus.",
+#                                    "fetal_brain_DHS.bedGraph",sep=""),type="polygon",
+#                        fill=cols.NEURO[1],name="Fetal Brain DHS")
+#
+# #Load adult brain H3K27ac ChIP-seq track
+# H3K27ac.track <- DataTrack(range=paste(WRKDIR,"plot_data/ExampleLocusPlots/SMARCA2/SMARCA2_locus.",
+#                                        "adult_brain_H3K27ac.bedGraph",sep=""),type="polygon",
+#                            fill=cols.NEURO[1],name="Adult Brain H3K27ac")
+#
+# #Load fetal brain H3K4me1 ChIP-seq track
+# H3K4me1.track <- DataTrack(range=paste(WRKDIR,"plot_data/ExampleLocusPlots/SMARCA2/SMARCA2_locus.",
+#                                        "fetal_brain_H3K4me1.bedGraph",sep=""),type="polygon",
+#                            fill=cols.NEURO[1],name="Fetal Brain H3K4me1")
 
 
 
@@ -147,8 +147,7 @@ pdf(paste(WRKDIR,"rCNV_map_paper/Figures/ExampleLoci/SMARCA2/SMARCA2_locus.maste
     height=4,width=8)
 #Plot tracks
 plotTracks(from=start,to=end,
-           c(ideoTrack,axisTrack,unlist(CNVtracks),grTrack,expression.track,
-             annotated.enhancer.track,DHS.track,H3K27ac.track,H3K4me1.track),
+           c(ideoTrack,axisTrack,unlist(CNVtracks),grTrack),
            background.title="white",col.title="black",col.line="black",col.axis="black",cex.axis=0.5)
 #Close device
 dev.off()

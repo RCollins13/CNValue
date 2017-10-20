@@ -127,10 +127,10 @@ ${WRKDIR}/data/plot_data/ExampleLocusPlots/SMARCA2/fetal_brain_H3K4me1.bedGraph
 while read pheno nsamp; do
   for dummy in 1; do
     echo -e "${pheno}\t${nsamp}"
-    for CNV in DEL; do
+    for CNV in DEL DUP; do
       bedtools intersect -wb -a <( echo -e "${chr}\t${distal_start}\t${distal_start}" ) \
       -b ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.E4.GRCh37.haplosufficient.bed.gz | wc -l
     done
-  done | paste -s | awk -v OFS="\t" '{ print $1, $2, $3, $3/$2 }'
+  done | paste -s | awk -v OFS="\t" '{ print $1, $2, $3, $3/$2, $4, $4/$2 }'
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           awk -v OFS="\t" '{ if ($2!="CTRL") print $1, $NF }' )
