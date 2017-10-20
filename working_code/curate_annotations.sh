@@ -1469,9 +1469,9 @@ while read organ; do
 done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
 sort | uniq )
 
-######################
-#####OTHER ANNOTATIONS
-######################
+###########################
+#####MISC OTHER ANNOTATIONS
+###########################
 #pcHiC E-P contacts from Javierre et al, Cell, 2016
 #Note: must have copied the file ActivePromoterEnhancerLinks.tsv from the paper's supplement
 if ! [ -e ${WRKDIR}/data/misc/pcHiC_contacts ]; then
@@ -1495,8 +1495,84 @@ for i in $( seq 1 16 ); do
   ${WRKDIR}/data/misc/pcHiC_contacts/pcHiC_contacts.formatted_wGenes.min_${i}.unique_EP_pairs.bed
 done
 
-
-
+########################################
+#####ANNOTATIONS FOR EXAMPLE LOCUS PLOTS
+########################################
+if ! [ -e ${WRKDIR}/data/misc/dataForLocusPlots/ ]; then
+  mkdir ${WRKDIR}/data/misc/dataForLocusPlots/
+fi
+#H3K27ac (active enhancers) in adult brain regions. Average across all samples
+#81yo male caudate nucleus
+#https://www.encodeproject.org/files/ENCFF933PPW/@@download/ENCFF933PPW.tagAlign.gz
+#75yo female caudate nucleus
+#https://www.encodeproject.org/files/ENCFF855ENP/@@download/ENCFF855ENP.tagAlign.gz
+#81yo male cingulate gyrus
+#https://www.encodeproject.org/files/ENCFF792CYK/@@download/ENCFF792CYK.tagAlign.gz
+#75yo female cingulate gyrus
+#https://www.encodeproject.org/files/ENCFF055GDV/@@download/ENCFF055GDV.tagAlign.gz
+#81yo male hippocampus
+#https://www.encodeproject.org/files/ENCFF085VDH/@@download/ENCFF085VDH.tagAlign.gz
+#73yo male hippocampus
+#https://www.encodeproject.org/files/ENCFF544ERT/@@download/ENCFF544ERT.tagAlign.gz
+#81yo male substantia niagra
+#https://www.encodeproject.org/files/ENCFF549OOU/@@download/ENCFF549OOU.tagAlign.gz
+for ENCID in ENCFF933PPW ENCFF855ENP ENCFF792CYK ENCFF055GDV ENCFF085VDH ENCFF544ERT ENCFF549OOU; do
+  bsub -q filemove -sla miket_sc -J DL_brain_h3k27ac -o /dev/null \
+  "cd ${WRKDIR}/data/misc/dataForLocusPlots/; \
+  wget https://www.encodeproject.org/files/${ENCID}/@@download/${ENCID}.tagAlign.gz"
+done
+for ENCID in ENCFF933PPW ENCFF855ENP ENCFF792CYK ENCFF055GDV ENCFF085VDH ENCFF544ERT ENCFF549OOU; do
+  zcat ${WRKDIR}/data/misc/dataForLocusPlots/${ENCID}.tagAlign.gz
+done | sort -Vk1,1 | bedtools genomecov -bga -i - \
+-g <( sed 's/^/chr/g' /data/talkowski/rlc47/src/GRCh37.genome ) > \
+${WRKDIR}/data/misc/dataForLocusPlots/adult_brain_H3K27ac_merged.bedGraph
+#K3K27me3 (silenced enhancers) in fetal brain (BRAIN)
+bsub -q filemove -sla miket_sc -J DL_brain_h3k27me3 -o /dev/null \
+"cd ${WRKDIR}/data/misc/dataForLocusPlots/; \
+wget https://www.encodeproject.org/files/ENCFF706ZUE/@@download/ENCFF706ZUE.tagAlign.gz;\
+ln -fs ./ENCFF706ZUE.tagAlign.gz ./fetal_brain_H3K27me3.tagAlign.gz"
+#K3K9me3 (constituative chromatin) in fetal brain (BRAIN)
+bsub -q filemove -sla miket_sc -J DL_brain_h3k9me3 -o /dev/null \
+"cd ${WRKDIR}/data/misc/dataForLocusPlots/; \
+wget https://www.encodeproject.org/files/ENCFF405VIS/@@download/ENCFF405VIS.tagAlign.gz;\
+ln -fs ./ENCFF405VIS.tagAlign.gz ./fetal_brain_H3K9me3.tagAlign.gz"
+#K3K4me1 (enhancers) in fetal brain (BRAIN)
+bsub -q filemove -sla miket_sc -J DL_brain_h3k4me1 -o /dev/null \
+"cd ${WRKDIR}/data/misc/dataForLocusPlots/; \
+wget https://www.encodeproject.org/files/ENCFF220KAQ/@@download/ENCFF220KAQ.tagAlign.gz;\
+ln -fs ./ENCFF220KAQ.tagAlign.gz ./fetal_brain_H3K4me1.tagAlign.gz"
+#DHS in fetal brain (BRAIN)
+bsub -q filemove -sla miket_sc -J DL_brain_DHS -o /dev/null \
+"cd ${WRKDIR}/data/misc/dataForLocusPlots/; \
+wget https://www.encodeproject.org/files/ENCFF783LRB/@@download/ENCFF783LRB.bigWig;\
+ln -fs ./ENCFF783LRB.bigWig ./fetal_brain_DHS.bigWig"
+#DHS in adult frontal cortex (BRAIN)
+bsub -q filemove -sla miket_sc -J DL_brain_DHS -o /dev/null \
+"cd ${WRKDIR}/data/misc/dataForLocusPlots/; \
+wget https://www.encodeproject.org/files/ENCFF420QAT/@@download/ENCFF420QAT.bigWig;\
+ln -fs ./ENCFF420QAT.bigWig ./adult_brain_DHS.bigWig"
+#HiC heatmap for fetal brain cortical plate (BRAIN)
+bsub -q filemove -sla miket_sc -J DL_brain_HiC -o /dev/null \
+"cd ${WRKDIR}/data/misc/dataForLocusPlots/; \
+wget ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE77nnn/GSE77565/suppl/GSE77565_FBD_IC-heatmap-chr-10k.hdf5.gz;\
+ln -fs ./GSE77565_FBD_IC-heatmap-chr-10k.hdf5.gz ./fetal_brain_HiC_10k.hdf5.gz"
+# source activate collins_py35
+# mkdir ${WRKDIR}/data/misc/dataForLocusPlots/fetalBrainHiC_matrices
+# python ${WRKDIR}/bin/utils/hdf2tab/scripts/hdf2tab.py -v \
+# --input fetal_brain_HiC_10k.hdf5 \
+# -o ${WRKDIR}/data/misc/dataForLocusPlots/fetalBrainHiC_matrices/matrix
+# python ${WRKDIR}/bin/utils/hdf2tab/scripts/hdf2tab.py \
+# -i fetal_brain_HiC_10k.hdf5 \
+# --info
+#Fetal brain RNAseq
+bsub -q filemove -sla miket_sc -J DL_brain_RNAseq -o /dev/null \
+"cd ${WRKDIR}/data/misc/dataForLocusPlots/; \
+wget https://www.encodeproject.org/files/ENCFF387ESI/@@download/ENCFF387ESI.bigWig;\
+ln -fs ./ENCFF387ESI.bigWig ./fetal_brain_RNAseq_minusStrand.bigWig"
+bsub -q filemove -sla miket_sc -J DL_brain_RNAseq -o /dev/null \
+"cd ${WRKDIR}/data/misc/dataForLocusPlots/; \
+wget https://www.encodeproject.org/files/ENCFF862KEW/@@download/ENCFF862KEW.bigWig;\
+ln -fs ./ENCFF862KEW.bigWig ./fetal_brain_RNAseq_plusStrand.bigWig"
 
 
 

@@ -45,12 +45,12 @@ for CNV in DEL DUP; do
     ${WRKDIR}/data/plot_data/ExampleLocusPlots/TBL1XR1/TBL1XR1_locus.${CNV}_${filt}_density.5kb_bins.bed
     sed 's/^chr//g' ${WRKDIR}/data/plot_data/ExampleLocusPlots/TBL1XR1/TBL1XR1_locus.hg19.5kb_bins.bed | \
     awk -v OFS="\t" '{ print $1, $2, $3 }' | bedtools intersect -c -a - \
-    -b ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.E4.GRCh37.${filt}.bed.gz | \
+    -b ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.E2.GRCh37.${filt}.bed.gz | \
     bedtools intersect -c -a - \
-    -b ${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.${CNV}.E4.GRCh37.${filt}.bed.gz | \
+    -b ${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.${CNV}.E2.GRCh37.${filt}.bed.gz | \
     bedtools intersect -c -a - \
-    -b ${WRKDIR}/data/CNV/CNV_MASTER/CNCR/CNCR.${CNV}.E4.GRCh37.${filt}.bed.gz | \
-    sed 's/^/chr/g' >> \
+    -b ${WRKDIR}/data/CNV/CNV_MASTER/CNCR/CNCR.${CNV}.E2.GRCh37.${filt}.bed.gz | \
+    sed 's/^/chr/g' | awk -v OFS="\t" '{ print $1, $2, $3, $4/38628, $5/63629, $6/10844 }' >> \
     ${WRKDIR}/data/plot_data/ExampleLocusPlots/TBL1XR1/TBL1XR1_locus.${CNV}_${filt}_density.5kb_bins.bed
   done
 done

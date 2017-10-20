@@ -7,7 +7,7 @@
 #Copyright (c) 2017 Ryan Collins
 #Distributed under terms of the MIT License
 
-#Code to generate locus plot for TBL1XR1/NLGN1
+#Code to generate locus plot for GNAI1
 
 #####Set parameters
 WRKDIR <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/"
@@ -56,17 +56,13 @@ bed_to_granges <- function(file){
 
 #####Set variables for plotting
 ref <- "hg19"
-chr <- "chr3"
-start <- 172579763
-end <- 178680636
-hot.left.start <- 174145797
-hot.left.end <- 175072055
-hot.center.start <- 175759747
-hot.center.end <- 176688171
-hot.right.start <- 176928607
-hot.right.end <- 177967562
-all.interval.genes <- c("SPATA16","NLGN1","NAALADL2","TBL1XR1","KCNMB2")
-relevant.genes <- c("NLGN1","TBL1XR1")
+chr <- "chr7"
+start <- 79630000
+end <- 80360000
+crit.start <- 80050742
+crit.end <- 80197059
+all.interval.genes <- c("GNAI1","CD36","GNAT3")
+relevant.genes <- c("GNAI1")
 
 ########################
 #####Prepare GViz tracks
@@ -74,11 +70,8 @@ relevant.genes <- c("NLGN1","TBL1XR1")
 
 #Basic genome coordinates & ideogram
 axisTrack <-  GenomeAxisTrack(fontcolor="black",distFromAxis=1.25,labelPos="above",
-                              range=IRanges(start=c(hot.left.start,hot.center.start,hot.right.start),
-                                            end=c(hot.left.end,hot.center.end,hot.right.end),
-                                            names=c("Proximal","Medial","Distal")),
-                              showId=T,col.id="white",col.range=NA,
-                              fill.range=c("red","darkorchid4","blue"))
+                              range=IRanges(start=crit.start,end=crit.end,names="Critical Region"),
+                              showId=T,col.id="white",col.range=NA,fill.range="red")
 ideoTrack <- IdeogramTrack(genome=ref,chromosome=chr,
                            col=NA,fill=adjustcolor(cols.NEURO[1],alpha=0.5))
 
@@ -94,38 +87,66 @@ genes <- unique(symbol(grTrack))
 
 #Load CNVs & convert to heatmap data tracks
 #Round all CNV frequencies to <0.1%
-CNVtracks <- lapply(list("coding","noncoding"),function(filt){
-  lapply(list("DEL","DUP"),function(CNV){
-    dat <- read.table(paste(WRKDIR,"plot_data/ExampleLocusPlots/TBL1XR1/TBL1XR1_locus.",
+CNVtracks <- lapply(list("all"),function(filt){
+  lapply(list("DEL"),function(CNV){
+    dat <- read.table(paste(WRKDIR,"plot_data/ExampleLocusPlots/GNAI1/GNAI1_locus.",
                             CNV,"_",filt,"_density.5kb_bins.bed",sep=""),
                       header=T,comment.char="")
     names(dat)[1] <- "chr"
-    dat[,4:6] <- apply(dat[,4:6],2,function(vals){
-      vals[which(vals>0.0003)] <- 0.0003
-      return(vals)
-    })
-    gr <- with(dat, GRanges(chr, IRanges(start, end), "CTRL"=CTRL, "GERM"=GERM, "CNCR"=CNCR))
+    gr <- with(dat, GRanges(chr, IRanges(start, end), "CTRL"=CTRL, "NDD"=NDD))
     if(CNV=="DEL"){
       gradCol <- c("white","red")
     }else{
       gradCol <- c("white","blue")
     }
-      return(DataTrack(gr,ncolor=100,type="heatmap",gradient=gradCol,
-             name=paste(CNV," (",filt,")",sep=""),
-             showSampleNames=T,col.sampleNames="black"))
+    return(DataTrack(gr,ncolor=100,type="heatmap",gradient=gradCol,
+                     name=paste(CNV," (",filt,")",sep=""),
+                     showSampleNames=T,col.sampleNames="black"))
   })
 })
+
+#Load fetal brain expression
+expression.dat <- read.table(paste(WRKDIR,"plot_data/ExampleLocusPlots/GNAI1/GNAI1_locus.",
+                                   "fetal_brain_expression.1kb_bins.bed",sep=""),
+                             header=T,comment.char="")
+names(expression.dat)[1] <- "chr"
+expression.gr <- with(expression.dat, GRanges(chr, IRanges(start, end), "Expression"=Expression))
+expression.track <-  DataTrack(range=expression.gr,type="polygon",name="Fetal Brain Expression",
+                               col.mountain="black",fill.mountain="black",fill="black")
+
+#Load annotated enhancers
+annotated.enhancers <- bed_to_granges(paste(WRKDIR,"plot_data/ExampleLocusPlots/GNAI1/GNAI1_locus.",
+                                            "enhancer_elements.bed",sep=""))
+annotated.enhancer.track <- AnnotationTrack(annotated.enhancers,name="Fetal Brain Enhancers",
+                                            stacking="dense",col.line=cols.NEURO[1],fill=cols.NEURO[1])
+
+#Load fetal brain DHS
+DHS.track <- DataTrack(range=paste(WRKDIR,"plot_data/ExampleLocusPlots/GNAI1/GNAI1_locus.",
+                                   "fetal_brain_DHS.bedGraph",sep=""),type="polygon",
+                       fill=cols.NEURO[1],name="Fetal Brain DHS")
+
+#Load adult brain H3K27ac ChIP-seq track
+H3K27ac.track <- DataTrack(range=paste(WRKDIR,"plot_data/ExampleLocusPlots/GNAI1/GNAI1_locus.",
+                                       "adult_brain_H3K27ac.bedGraph",sep=""),type="polygon",
+                           fill=cols.NEURO[1],name="Adult Brain H3K27ac")
+
+#Load fetal brain H3K4me1 ChIP-seq track
+H3K4me1.track <- DataTrack(range=paste(WRKDIR,"plot_data/ExampleLocusPlots/GNAI1/GNAI1_locus.",
+                                       "fetal_brain_H3K4me1.bedGraph",sep=""),type="polygon",
+                           fill=cols.NEURO[1],name="Fetal Brain H3K4me1")
+
 
 
 ##############
 #####Plot view
 ##############
 #Prepare plot area
-pdf(paste(WRKDIR,"rCNV_map_paper/Figures/ExampleLoci/TBL1XR1/TBL1XR1_NLGN1_locus.master.pdf",sep=""),
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/ExampleLoci/GNAI1/GNAI1_locus.master.pdf",sep=""),
     height=4,width=8)
 #Plot tracks
 plotTracks(from=start,to=end,
-           c(ideoTrack,axisTrack,grTrack,unlist(CNVtracks)),
+           c(ideoTrack,axisTrack,unlist(CNVtracks),grTrack,expression.track,
+             annotated.enhancer.track,DHS.track,H3K27ac.track,H3K4me1.track),
            background.title="white",col.title="black",col.line="black",col.axis="black",cex.axis=0.5)
 #Close device
 dev.off()
