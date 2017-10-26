@@ -311,8 +311,6 @@ while read annoSet; do
 done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
                   sort | uniq | cat <( echo -e "all_classes\ntissue_agnostic" ) - )
 
-
-
 #Split final clustered loci by phenotype
 #Create output directory
 if ! [ -e ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci ]; then
@@ -339,6 +337,21 @@ while read pheno; do
                   sort | uniq | cat <( echo -e "all_classes\ntissue_agnostic" ) - )
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
+
+#####Calculate pairwise correlations for all elements
+for pheno in CNCR GERM; do
+  zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.DEL.E4.GRCh37.haplosufficient.bed.gz
+  zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.DUP.E4.GRCh37.noncoding.bed.gz
+done | fgrep -v "#" | sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4 | uniq > \
+${TMPDIR}/GERM_CNCR_CNVs_pooled.bed
+zcat ${WRKDIR}/analysis/perAnno_burden/cleaned_noncoding_loci.wAnnotations.forManualCuration.txt.gz | \
+cut -f1-4 | sed '1d' | sort -Vk1,1 -k2,2n -k3,3n | uniq > ${TMPDIR}/loci_for_jaccard.bed
+bsub -q normal -sla miket_sc -J noncoding_CNVjaccard -u nobody \
+"${WRKDIR}/bin/rCNVmap/analysis_scripts/calc_CNV_correlation_between_locusPairs.sh \
+ ${TMPDIR}/loci_for_jaccard.bed \
+ ${TMPDIR}/GERM_CNCR_CNVs_pooled.bed \
+ ${WRKDIR}/analysis/perAnno_burden/cleaned_noncoding_loci.jaccard_matrix.txt"
+
 
 #####Get counts of significant loci by phenotype after merging
 #Merged across all annotations

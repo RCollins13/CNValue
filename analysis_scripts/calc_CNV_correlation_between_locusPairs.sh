@@ -25,6 +25,9 @@ OUTFILE=$3    #Matrix of jaccard indexes
 # CNVs=/scratch/miket/rlc47temp/tmp.files/GERM_CNCR_CNVs_pooled.bed
 # OUTFILE=/scratch/miket/rlc47temp/tmp.files/test_jaccard_out.txt
 
+#####Make new temporary directory
+TMPDIR=`mktemp -d`
+
 #####Write list of CNV-element pairs
 bedtools intersect -wa -wb -a ${elements} -b ${CNVs} | \
 cut -f4,8 | sort -k1,1 -k2,2 | uniq > \
@@ -59,3 +62,6 @@ while read chrA startA endA IDA; do
     done < ${elements}
   done | paste -s
 done < ${elements} >> ${OUTFILE}
+
+#####Clean up
+rm -rf ${TMPDIR}
