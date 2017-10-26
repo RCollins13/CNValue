@@ -129,7 +129,7 @@ while read pheno nsamp; do
     echo -e "${pheno}\t${nsamp}"
     for CNV in DEL DUP; do
       bedtools intersect -wb -a <( echo -e "${chr}\t${distal_start}\t${distal_start}" ) \
-      -b ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.E4.GRCh37.haplosufficient.bed.gz | wc -l
+      -b ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.E2.GRCh37.all.bed.gz | wc -l
     done
   done | paste -s | awk -v OFS="\t" '{ print $1, $2, $3, $3/$2, $4, $4/$2 }'
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \

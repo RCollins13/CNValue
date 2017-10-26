@@ -507,12 +507,76 @@ dev.off()
 
 
 
-#####Write table of GERM/NEURO/NDD/SCZ/NONN/CNCR significant loci with annotations for manual curation (Google Doc w/Kiana)
+#####Clean & write table of GERM/NEURO/NDD/SCZ/NONN/CNCR significant loci with annotations for manual curation (Google Doc w/Kiana)
+#Subset significant loci in one of the six major pheno groups
 pheno.idx <- unique(as.vector(unlist(sapply(c("GERM","NEURO","NDD","SCZ","SOMA","CNCR"),function(pheno){
   return(grep(pheno,colnames(dat)))
 }))))
-which(dat[,pheno.idx]==1
-
-
+sites.keep <- which(apply(dat[,pheno.idx],1,function(vals){any(vals==1)}))
+dat.keep <- dat[sites.keep,]
+#Clean start of data frame: print association per pheno & tSNE cluster index/classification
+simplified.associations <- t(apply(dat.keep,1,function(vals){
+  sapply(c("GERM","NEURO","NDD","SCZ","SOMA","CNCR"),function(pheno){
+    hits <- vals[grep(pheno,colnames(dat))]
+    if(any(hits>0)){
+      if(all(hits>0)){
+        return("DEL_DUP")
+      }else{
+        if(hits[1]>0){
+          return("DEL")
+        }else{
+          return("DUP")
+        }
+      }
+    }else{
+      return("NA")
+    }
+  })
+}))
+dat.cleaned <- cbind(dat.keep[,1:4],
+                     simplified.associations,
+                     optics.res$cluster[sites.keep])
+colnames(dat.cleaned) <- c("element_chr","element_start","element_end","element_ID",
+                           "GERM","NEURO","NDD","SCZ","SOMA","CNCR","tSNE_cluster")
+dat.cleaned$tSNE_classification <- sapply(dat.cleaned$tSNE_cluster,function(cidx){
+  if(cidx %in% g1.TBRs){
+    return("TBR")
+  }else{
+    if(cidx %in% g2.superEnh){
+      return("SuperEnhancer")
+    }else{
+      if(cidx %in% g3.canonEnh){
+        return("CanonicalActiveEnhancer")
+      }else{
+        if(cidx %in% g4.bivalent){
+          return("BivalentRepressedEnhancer")
+        }else{
+          if(cidx %in% g5.inactive){
+            return("InactiveChromatin")
+          }else{
+            return("OtherOrUnknown")
+          }
+        }
+      }
+    }
+  }
+})
+#Append basic feature classifications to cleaned dataset
+cleaned.features <- t(apply(dat.keep,1,function(vals){
+  sapply(c(tissues,"conserved","conserved_elements","eQTL","GWAS",
+           "TFBS","Strong_TFBS","POLR2A","Transcription",
+           "Enhancer","ActiveEnhancer","GenicEnhancer","BivalentEnhancer","Super_Enhancer","FIRE",
+           "DHS","StrongDHS","H3K27ac","StrongH3K27ac",
+           "EP300","CEBPB","JUN","FOS",
+           "TBR","CTCF","RAD21","SMC3",
+           "PMD","Heterochromatin","Quiescent","Polycomb","ZNFGenesRepeats"),
+         function(term){
+           as.numeric(sum(as.numeric(vals[grep(term,colnames(dat))]))/((as.numeric(vals[3])-as.numeric(vals[2]))/1000))
+         })
+}))
+dat.cleaned <- cbind(dat.cleaned,cleaned.features)
+#Write cleaned data to tsv for manual curation
+write.table(dat.cleaned,paste(WRKDIR,"cleaned_noncoding_loci.wAnnotations.forManualCuration.txt",sep=""),
+            col.names=T,row.names=F,quote=F,sep="\t")
 
 

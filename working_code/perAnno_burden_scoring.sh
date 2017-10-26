@@ -382,7 +382,31 @@ while read pheno; do
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
 
-
-
+#Get significant germline elements within 1Mb of high-confidence autosomal disease genes
+VF=E4
+dist=1000000
+for pheno in GERM NEURO NDD DD PSYCH SCZ SOMA; do
+  cat ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_*_${VF}.final_merged_loci.all_classes.bed
+done | bedtools intersect -wa -u -b - \
+-a <( fgrep -wf ${WRKDIR}/data/master_annotations/genelists/DDD_2017.genes.list \
+      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed | \
+      awk -v OFS="\t" -v dist=${dist} '{ print $1, $2-dist, $3+dist, $4 }' | \
+      awk -v OFS="\t" '{ if ($2<1) $2=1; print $0 }' | grep -e '^[0-9]' ) | \
+cut -f4 | sed 's/\-/\t/g' | cut -f1 | sort | uniq | fgrep -wf - \
+${WRKDIR}/data/master_annotations/genelists/ExAC_haplosufficient.genes.list
+#Haplosufficient genes that appear in the above list because of coding effects (exclude): MEF2C
+#Get significant cancer elements within 1Mb of high-confidence cancer driver genes
+VF=E4
+dist=1000000
+for pheno in CNCR; do
+  cat ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_*_${VF}.final_merged_loci.all_classes.bed
+done | bedtools intersect -wa -u -b - \
+-a <( fgrep -wf ${WRKDIR}/data/master_annotations/genelists/COSMIC_all.genes.list \
+      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed | \
+      awk -v OFS="\t" -v dist=${dist} '{ print $1, $2-dist, $3+dist, $4 }' | \
+      awk -v OFS="\t" '{ if ($2<1) $2=1; print $0 }' | grep -e '^[0-9]' ) | \
+cut -f4 | sed 's/\-/\t/g' | cut -f1 | sort | uniq | fgrep -wf - \
+${WRKDIR}/data/master_annotations/genelists/ExAC_haplosufficient.genes.list
+#Haplosufficient genes that appear in the list because of coding effects (exclude): FHIT, PTPN13, RAD51B, TGFBR2
 
 
