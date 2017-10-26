@@ -311,6 +311,8 @@ while read annoSet; do
 done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
                   sort | uniq | cat <( echo -e "all_classes\ntissue_agnostic" ) - )
 
+
+
 #Split final clustered loci by phenotype
 #Create output directory
 if ! [ -e ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci ]; then
@@ -395,6 +397,22 @@ done | bedtools intersect -wa -u -b - \
 cut -f4 | sed 's/\-/\t/g' | cut -f1 | sort | uniq | fgrep -wf - \
 ${WRKDIR}/data/master_annotations/genelists/ExAC_haplosufficient.genes.list
 #Haplosufficient genes that appear in the above list because of coding effects (exclude): MEF2C
+#Get significant germline elements within 1Mb of rCNV-burdened genes that are also pLI-constrained
+for pheno in GERM NEURO SOMA NDD DD PSYCH SCZ; do
+  for CNV in DEL DUP; do
+    cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_E4_exonic.geneScore_Bonferroni_sig.union.genes.list
+  done
+done | sort | uniq > ${TMPDIR}/GERM_all.genes.list
+for pheno in GERM NEURO NDD DD PSYCH SCZ SOMA; do
+  cat ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_*_${VF}.final_merged_loci.all_classes.bed
+done | bedtools intersect -wa -u -b - \
+-a <( fgrep -wf ${TMPDIR}/GERM_all.genes.list \
+      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed | \
+      awk -v OFS="\t" -v dist=${dist} '{ print $1, $2-dist, $3+dist, $4 }' | \
+      awk -v OFS="\t" '{ if ($2<1) $2=1; print $0 }' | grep -e '^[0-9]' ) | \
+cut -f4 | sed 's/\-/\t/g' | cut -f1 | sort | uniq | fgrep -wf \
+${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list
+
 #Get significant cancer elements within 1Mb of high-confidence cancer driver genes
 VF=E4
 dist=1000000
