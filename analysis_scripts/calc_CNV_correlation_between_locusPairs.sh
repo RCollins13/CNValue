@@ -20,10 +20,10 @@ elements=$1   #chr, start, end, ID
 CNVs=$2       #chr, start, end, ID
 OUTFILE=$3    #Matrix of jaccard indexes
 
-#DEV PARAMETERS
-elements=/data/talkowski/Samples/rCNVmap/analysis/perAnno_burden/signif_elements/all_merged/all_classes_haplosuffDELnoncodingDUP_E4.signif_loci.merged.filtered.bed
-CNVs=/scratch/miket/rlc47temp/tmp.files/GERM_CNCR_CNVs_pooled.bed
-OUTFILE=/scratch/miket/rlc47temp/tmp.files/test_jaccard_out.txt
+# #DEV PARAMETERS
+# elements=/data/talkowski/Samples/rCNVmap/analysis/perAnno_burden/signif_elements/all_merged/all_classes_haplosuffDELnoncodingDUP_E4.signif_loci.merged.filtered.bed
+# CNVs=/scratch/miket/rlc47temp/tmp.files/GERM_CNCR_CNVs_pooled.bed
+# OUTFILE=/scratch/miket/rlc47temp/tmp.files/test_jaccard_out.txt
 
 #####Write list of CNV-element pairs
 bedtools intersect -wa -wb -a ${elements} -b ${CNVs} | \
