@@ -257,6 +257,28 @@ for CNV in DEL DUP; do
 done
 gzip ${WRKDIR}/data/CNV/CNV_RAW/Vogler_CNVs/*.raw.bed
 
+#####Gather Huang CNVs
+if [ -e ${WRKDIR}/data/CNV/CNV_RAW/Huang_CNVs ]; then
+  rm -r ${WRKDIR}/data/CNV/CNV_RAW/Huang_CNVs
+fi
+mkdir ${WRKDIR}/data/CNV/CNV_RAW/Huang_CNVs
+#Headers
+for CNV in DEL DUP; do
+  echo -e "#chr\tstart\tend\tVID\tCNV\tPheno\tSource_PMID" > \
+  ${WRKDIR}/data/CNV/CNV_RAW/Huang_CNVs/Huang_GERM.${CNV}.raw.bed
+done
+#DELs
+awk -v OFS="\t" '{ if ($3==2 && $10>2) print $6, $7, $8, "Huang_GERM_DEL", "DEL", "TOURETTES", "28641109" }' \
+${TMPDIR}/Huang_2017_CNVs.raw.bed | sort -Vk1,1 -k2,2n -k3,3n | \
+awk -v OFS="\t" '{ print $1, $2, $3, $4"_"NR, $5, $6, $7 }' >> \
+${WRKDIR}/data/CNV/CNV_RAW/Huang_CNVs/Huang_GERM.DEL.raw.bed
+#DUPs
+awk -v OFS="\t" '{ if ($3==2 && $10<2) print $6, $7, $8, "Huang_GERM_DUP", "DUP", "TOURETTES", "28641109" }' \
+${TMPDIR}/Huang_2017_CNVs.raw.bed | sort -Vk1,1 -k2,2n -k3,3n | \
+awk -v OFS="\t" '{ print $1, $2, $3, $4"_"NR, $5, $6, $7 }' >> \
+${WRKDIR}/data/CNV/CNV_RAW/Huang_CNVs/Huang_GERM.DUP.raw.bed
+gzip ${WRKDIR}/data/CNV/CNV_RAW/Huang_CNVs/*.raw.bed
+
 #####Gather Talkowski SigGen CNVs
 #Download from database (MySQL code below)
 # SELECT `Chr`, `Start`, `Stop`, `Diag_state`, `ID`, `Source`, `Indication`, `Ref` \
@@ -556,6 +578,7 @@ awk '{ if ($3!=".") print $0 }' > ${WRKDIR}/data/HPO_map/HPO_map.modified.tsv
 cat ${TMPDIR}/../misc_CNVs/TGDB_CNVs.CHB_GeneDX.phenotypes.list \
 ${TMPDIR}/../misc_CNVs/Coe_Cooper_case_phenotypes.list \
 <( printf 'PGC_UNK\tSCHIZOPHRENIA\n%.0s' {1..21094} | awk -v OFS="\t" '{ print $1"_"NR, $2 }' ) \
+<( printf 'Huang_UNK\tTOURETTE\n%.0s' {1..2434} | awk -v OFS="\t" '{ print $1"_"NR, $2 }' ) \
 <( paste <( sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | cut -f1 | sort | uniq ) \
 <( sed '1d' ${TMPDIR}/../misc_CNVs/all_cancers.seg | cut -f1 | sort | uniq | awk -v FS="-" '{ print $2 }' | \
   sed -f ${WRKDIR}/bin/rCNVmap/misc/TCGA_TSS_linkers.sed | awk '{ print toupper($1) }' ) ) > \
@@ -607,7 +630,7 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
 cut -f1,3 ${WRKDIR}/data/HPO_map/HPO_map.modified.tsv > \
 ${TMPDIR}/HPO_mappings_for_application.txt
 #Create list of HPO mappings for all germline CNVs
-for cohort in SSC Coe Talkowski PGC; do
+for cohort in SSC Coe Talkowski PGC Huang; do
   for CNV in DEL DUP; do
     #Cut vector of phenotypes
     zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_GERM.${CNV}.raw.bed.gz | \
@@ -637,7 +660,7 @@ for cohort in TCGA; do
   done
 done
 #Sanity-check HPO mapping output
-for cohort in SSC Coe Talkowski PGC; do
+for cohort in SSC Coe Talkowski PGC Huang; do
   for CNV in DEL DUP; do
     echo -e "${cohort}\t${CNV}"
     #Print number of columns in raw CNV file
@@ -670,7 +693,7 @@ for cohort in TCGA; do
   done | paste - - - - -
 done
 #Assign HPO mappings to CNV files
-for cohort in SSC Coe Talkowski PGC; do
+for cohort in SSC Coe Talkowski PGC Huang; do
   for CNV in DEL DUP; do
     cat \
     <( zcat ${WRKDIR}/data/CNV/CNV_RAW/${cohort}_CNVs/${cohort}_GERM.${CNV}.raw.bed.gz | head -n1 ) \

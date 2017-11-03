@@ -32,6 +32,7 @@ Optional arguments:
   -d  DIST          Distance padded between window and left/right flanking
                     windows, in bp (default: 1,000,000 bp)
   -r  SMOOTH        Number of bins to pad to each bin for smoothing (default: 0)
+  -R  WINDOW_SMOOTH Number of bins to pad to each window bin for smoothing (default: 0)
   -I  OVERLAP       Minimum overlap of bin required by each CNV, as pct (default: 0)
   -x  EXCLUDE       Regions to exclude from calculations
   -o  OUTFILE       Output file (default: stdout)
@@ -46,8 +47,9 @@ WINDOW=5000
 STEP=5000
 DIST=1000000
 SMOOTH=0
+WSMOOTH=0
 OVERLAP=0
-while getopts ":o:w:s:d:r:I:x:zh" opt; do
+while getopts ":o:w:s:d:r:R:I:x:zh" opt; do
   case "$opt" in
     h)
       usage
@@ -67,6 +69,9 @@ while getopts ":o:w:s:d:r:I:x:zh" opt; do
       ;;
     r)
       SMOOTH=${OPTARG}
+      ;;
+    R)
+      WSMOOTH=${OPTARG}
       ;;
     I)
       OVERLAP=${OPTARG}
