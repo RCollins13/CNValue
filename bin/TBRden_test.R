@@ -23,4 +23,5 @@ TBRden(controls=as.character(args[1]),
 	   OUTDIR=as.character(args[3]),
 	   prefix=as.character(args[4]),
 	   adjusted=as.numeric(args[5]),
-	   manColor=as.character(args[6]))
+	   manColor=as.character(args[6]),
+	   coe=T)

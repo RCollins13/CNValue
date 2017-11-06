@@ -55,8 +55,8 @@ while getopts ":o:w:s:d:r:R:I:x:zh" opt; do
       usage
       exit 0
       ;;
-    o)
-      OUTFILE=${OPTARG}
+    z)
+      GZ=1
       ;;
     w)
       WINDOW=${OPTARG}
@@ -79,8 +79,8 @@ while getopts ":o:w:s:d:r:R:I:x:zh" opt; do
     x)
       EXCLUDE=${OPTARG}
       ;;
-    z)
-      GZ=1
+    o)
+      OUTFILE=${OPTARG}
       ;;
   esac
 done
@@ -106,7 +106,7 @@ genome=$2
 # genome=/data/talkowski/rlc47/src/GRCh37.genome
 
 #DEBUG: print arguments & options
-echo -e "GZIP=${GZIP}"
+echo -e "GZIP=${GZ}"
 echo -e "WINDOW=${WINDOW}"
 echo -e "STEP=${STEP}"
 echo -e "DIST=${DIST}"
