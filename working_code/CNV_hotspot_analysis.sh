@@ -18,11 +18,13 @@ export WRKDIR=/data/talkowski/Samples/rCNVmap
 source ${WRKDIR}/bin/rCNVmap/misc/rCNV_code_parameters.sh
 
 ##############################################################################
-#Create master mask of N-masked regions and 1Mb flanking telomeres/centromeres
+#Create master mask of N-masked regions and 100kb flanking telomeres/1Mb flanking centromeres
 ##############################################################################
-grep -e 'centromere\|telomere' /data/talkowski/rlc47/src/GRCh37_heterochromatin.bed | \
-awk -v OFS="\t" '{ print $1, $2-1000000, $3+1000000 }' | awk -v OFS="\t" '{ if ($2<0) $2=0; print }' | \
-cat - /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
+cat <( grep -e 'telomere' /data/talkowski/rlc47/src/GRCh37_heterochromatin.bed | \
+awk -v OFS="\t" '{ print $1, $2-100000, $3+100000 }' | awk -v OFS="\t" '{ if ($2<0) $2=0; print }' ) \
+<( grep -e 'centromere' /data/talkowski/rlc47/src/GRCh37_heterochromatin.bed | \
+awk -v OFS="\t" '{ print $1, $2-1000000, $3+1000000 }' | awk -v OFS="\t" '{ if ($2<0) $2=0; print }' ) \
+/data/talkowski/rlc47/src/GRCh37_Nmask.bed \
 <( grep -e 'X\|Y\|M' ${WRKDIR}/lists/rCNVmap_excluded_loci.CNVs.bed | cut -f1-3 ) | \
 sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
 ${WRKDIR}/data/master_annotations/other/hotspotAnalysis.excluded_loci.bed 
@@ -30,7 +32,7 @@ ${WRKDIR}/data/master_annotations/other/hotspotAnalysis.excluded_loci.bed
 ################
 #Run CNV pileups
 ################
-#100kb bins, 10kb steps, 2.5Mb window, ±200kb smoothing, CNVs with 100% overlap only
+#200kb bins, 10kb steps, 2.5Mb window, ±1Mb window smoothing, CNVs with 100% overlap only
 #Clear directory
 if [ -e ${WRKDIR}/analysis/BIN_CNV_pileups ]; then
   rm -rf ${WRKDIR}/analysis/BIN_CNV_pileups
@@ -48,7 +50,7 @@ while read pheno; do
         mkdir ${WRKDIR}/analysis/BIN_CNV_pileups/${pheno}
         #Parallelize intersections
         bsub -q short -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_binned_pileup \
-        "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 100000 -s 10000 -d 2500000 -r 2 -I 1 \
+        "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 200000 -s 10000 -d 2500000 -R 2 -I 1 \
         -o ${WRKDIR}/analysis/BIN_CNV_pileups/${pheno}/${pheno}.${CNV}.${VF}.${filt}.BIN_CNV_pileup.bed \
         -x ${WRKDIR}/data/master_annotations/other/hotspotAnalysis.excluded_loci.bed  \
         ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \

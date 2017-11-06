@@ -521,6 +521,58 @@ ${WRKDIR}/data/master_annotations/genelists/Constrained_NOT_Highly_Expressed.gen
 #Note: Supplementary excel sheet downloaded from bioRxiv:
 #  http://www.biorxiv.org/content/early/2017/08/25/135293
 #Genes filtered on q<0.05 in excel for each phenotype and saved as gene lists on cluster
+#DDG2P DD-associated genes from DECIPHER
+#Note: must have manually downloaded csv, formatted it, and scp'ed it to
+#  ERISOne at ${WRKDIR}/data/misc/DDG2P_genes.txt
+awk -v FS="\t" '{ if (($3=="confirmed") && \
+                     ($4=="hemizygous" || $4=="monoallelic" || $4=="monoallelic,mosaic") && \
+                     ($5=="dominant_negative" || $5=="loss_of_function")) print $1 }' ${WRKDIR}/data/misc/DDG2P_genes.txt | \
+sort | uniq > ${WRKDIR}/data/master_annotations/genelists/DDG2P_HighConf_Dominant_LOF.genes.list
+awk -v FS="\t" '{ if (($3=="confirmed" || $3=="probable" || $3=="possible") && \
+                     ($4=="hemizygous" || $4=="monoallelic" || $4=="monoallelic,mosaic") && \
+                     ($5=="dominant_negative" || $5=="loss_of_function")) print $1 }' ${WRKDIR}/data/misc/DDG2P_genes.txt | \
+sort | uniq > ${WRKDIR}/data/master_annotations/genelists/DDG2P_AnyConf_Dominant_LOF.genes.list
+awk -v FS="\t" '{ if (($3=="confirmed") && \
+                     ($4=="biallelic") && \
+                     ($5=="dominant_negative" || $5=="loss_of_function")) print $1 }' ${WRKDIR}/data/misc/DDG2P_genes.txt | \
+sort | uniq > ${WRKDIR}/data/master_annotations/genelists/DDG2P_HighConf_Recessive_LOF.genes.list
+awk -v FS="\t" '{ if (($3=="confirmed" || $3=="probable" || $3=="possible") && \
+                     ($4=="biallelic") && \
+                     ($5=="dominant_negative" || $5=="loss_of_function")) print $1 }' ${WRKDIR}/data/misc/DDG2P_genes.txt | \
+sort | uniq > ${WRKDIR}/data/master_annotations/genelists/DDG2P_AnyConf_Recessive_LOF.genes.list
+awk -v FS="\t" '{ if (($3=="confirmed") && \
+                     ($4=="hemizygous" || $4=="monoallelic" || $4=="monoallelic,mosaic") && \
+                     ($5=="activating" || $5=="increased_gene_dosage" || $5=="part_of_contiguous_gene_duplication")) print $1 }' ${WRKDIR}/data/misc/DDG2P_genes.txt | \
+sort | uniq > ${WRKDIR}/data/master_annotations/genelists/DDG2P_HighConf_Dominant_GOF.genes.list
+awk -v FS="\t" '{ if (($3=="confirmed" || $3=="probable" || $3=="possible") && \
+                     ($4=="hemizygous" || $4=="monoallelic" || $4=="monoallelic,mosaic") && \
+                     ($5=="activating" || $5=="increased_gene_dosage" || $5=="part_of_contiguous_gene_duplication")) print $1 }' ${WRKDIR}/data/misc/DDG2P_genes.txt | \
+sort | uniq > ${WRKDIR}/data/master_annotations/genelists/DDG2P_AnyConf_Dominant_GOF.genes.list
+# awk -v FS="\t" '{ if (($3=="confirmed") && \
+#                      ($4=="biallelic") && \
+#                      ($5=="activating" || $5=="increased_gene_dosage" || $5=="part_of_contiguous_gene_duplication")) print $1 }' ${WRKDIR}/data/misc/DDG2P_genes.txt | \
+# sort | uniq > ${WRKDIR}/data/master_annotations/genelists/DDG2P_HighConf_Recessive_GOF.genes.list
+# awk -v FS="\t" '{ if (($3=="confirmed" || $3=="probable" || $3=="possible") && \
+#                      ($4=="biallelic") && \
+#                      ($5=="activating" || $5=="increased_gene_dosage" || $5=="part_of_contiguous_gene_duplication")) print $1 }' ${WRKDIR}/data/misc/DDG2P_genes.txt | \
+# sort | uniq > ${WRKDIR}/data/master_annotations/genelists/DDG2P_AnyConf_Recessive_GOF.genes.list
+awk -v FS="\t" '{ if (($3=="confirmed") && \
+                     ($4=="hemizygous" || $4=="monoallelic" || $4=="monoallelic,mosaic") && \
+                     ($5=="5_prime_or_3_prime_UTR_mutation" || $5=="" || $5=="all_missense/in_frame" || $5=="cis-regulatory_or_promotor_mutation" || $5=="uncertain")) print $1 }' ${WRKDIR}/data/misc/DDG2P_genes.txt | \
+sort | uniq > ${WRKDIR}/data/master_annotations/genelists/DDG2P_HighConf_Dominant_Unknown.genes.list
+awk -v FS="\t" '{ if (($3=="confirmed" || $3=="probable" || $3=="possible") && \
+                     ($4=="hemizygous" || $4=="monoallelic" || $4=="monoallelic,mosaic") && \
+                     ($5=="5_prime_or_3_prime_UTR_mutation" || $5=="" || $5=="all_missense/in_frame" || $5=="cis-regulatory_or_promotor_mutation" || $5=="uncertain")) print $1 }' ${WRKDIR}/data/misc/DDG2P_genes.txt | \
+sort | uniq > ${WRKDIR}/data/master_annotations/genelists/DDG2P_AnyConf_Dominant_Unknown.genes.list
+awk -v FS="\t" '{ if (($3=="confirmed") && \
+                     ($4=="biallelic") && \
+                     ($5=="5_prime_or_3_prime_UTR_mutation" || $5=="" || $5=="all_missense/in_frame" || $5=="cis-regulatory_or_promotor_mutation" || $5=="uncertain")) print $1 }' ${WRKDIR}/data/misc/DDG2P_genes.txt | \
+sort | uniq > ${WRKDIR}/data/master_annotations/genelists/DDG2P_HighConf_Recessive_Unknown.genes.list
+awk -v FS="\t" '{ if (($3=="confirmed" || $3=="probable" || $3=="possible") && \
+                     ($4=="biallelic") && \
+                     ($5=="5_prime_or_3_prime_UTR_mutation" || $5=="" || $5=="all_missense/in_frame" || $5=="cis-regulatory_or_promotor_mutation" || $5=="uncertain")) print $1 }' ${WRKDIR}/data/misc/DDG2P_genes.txt | \
+sort | uniq > ${WRKDIR}/data/master_annotations/genelists/DDG2P_AnyConf_Recessive_Unknown.genes.list
+
 
 #Get count of all genes and autosomal genes per gene list
 while read list; do
@@ -532,7 +584,7 @@ while read list; do
   <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed ) | \
   grep -e '^[0-9]' | cut -f4 | sort | uniq | wc -l
 done < <( l ${WRKDIR}/data/master_annotations/genelists/*genes.list | \
-  awk '{ print $9 }' | fgrep missense ) | paste - - -
+  awk '{ print $9 }' | fgrep DDG2P ) | paste - - -
 
 
 
