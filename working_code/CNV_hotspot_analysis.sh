@@ -125,7 +125,7 @@ while read pheno color; do
     done
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-        awk -v OFS="\t" '$1 ~ /GERM|NEURO|NDD|PSYCH|SOMA/ {  print $1, $7 }' | cut -f1,7 )
+        awk -v OFS="\t" '$1 ~ /GERM|NEURO|NDD|PSYCH|SOMA/ {  print $1, $7 }' )
 
 #############################################
 #Collect & merge significant loci per disease
