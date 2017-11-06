@@ -88,22 +88,22 @@ shift $(( ${OPTIND} - 1 ))
 CNVs=$1
 genome=$2
 
-#DEV PARAMETERS
-WINDOW=200000
-GZIP=1
-STEP=10000
-DIST=2500000
-WSMOOTH=2
-SMOOTH=0
-OVERLAP=1
-pheno=NDD
-CNV=DEL
-VF=E2
-filt=all
-OUTFILE=${TMPDIR}/test_out.bed
-EXCLUDE=${WRKDIR}/data/master_annotations/other/hotspotAnalysis.excluded_loci.bed
-CNVs=${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz
-genome=/data/talkowski/rlc47/src/GRCh37.genome
+# #DEV PARAMETERS
+# WINDOW=200000
+# GZIP=1
+# STEP=10000
+# DIST=2500000
+# WSMOOTH=2
+# SMOOTH=0
+# OVERLAP=1
+# pheno=NDD
+# CNV=DEL
+# VF=E2
+# filt=all
+# OUTFILE=${TMPDIR}/test_out.bed
+# EXCLUDE=${WRKDIR}/data/master_annotations/other/hotspotAnalysis.excluded_loci.bed
+# CNVs=${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz
+# genome=/data/talkowski/rlc47/src/GRCh37.genome
 
 #Check for required input
 if [ -z ${CNVs} ] || [ -z ${genome} ]; then
