@@ -572,6 +572,7 @@ awk -v FS="\t" '{ if (($3=="confirmed" || $3=="probable" || $3=="possible") && \
                      ($4=="biallelic") && \
                      ($5=="5_prime_or_3_prime_UTR_mutation" || $5=="" || $5=="all_missense/in_frame" || $5=="cis-regulatory_or_promotor_mutation" || $5=="uncertain")) print $1 }' ${WRKDIR}/data/misc/DDG2P_genes.txt | \
 sort | uniq > ${WRKDIR}/data/master_annotations/genelists/DDG2P_AnyConf_Recessive_Unknown.genes.list
+#Coe 2017: recurrence of dnLGD and dnMIS from exomes on ~11k ASD/ID cases
 
 
 #Get count of all genes and autosomal genes per gene list
@@ -584,7 +585,7 @@ while read list; do
   <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed ) | \
   grep -e '^[0-9]' | cut -f4 | sort | uniq | wc -l
 done < <( l ${WRKDIR}/data/master_annotations/genelists/*genes.list | \
-  awk '{ print $9 }' | fgrep DDG2P ) | paste - - -
+  awk '{ print $9 }' | fgrep Coe2017 ) | paste - - -
 
 
 

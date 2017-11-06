@@ -14,7 +14,7 @@
 #Usage statement
 usage(){
 cat <<EOF
-usage: TBRden_binned_pileup.sh [-h] [-w WINDOW] [-s STEP] [-d DIST] [-r SMOOTH]
+usage: TBRden_binned_pileup.sh [-h] [-w WINDOW] [-s STEP] [-d DIST] [-r SMOOTH] [-R WINDOW_SMOOTH]
                                [-I OVERLAP] [-x EXCLUDE] [-o OUTFILE] [-z] CNVs genome
 
 Runs intersection of a CNV dataset versus a binned genome of sliding windows
@@ -88,6 +88,23 @@ shift $(( ${OPTIND} - 1 ))
 CNVs=$1
 genome=$2
 
+#DEV PARAMETERS
+WINDOW=200000
+GZIP=1
+STEP=10000
+DIST=2500000
+WSMOOTH=2
+SMOOTH=0
+OVERLAP=1
+pheno=NDD
+CNV=DEL
+VF=E2
+filt=all
+OUTFILE=${TMPDIR}/test_out.bed
+EXCLUDE=${WRKDIR}/data/master_annotations/other/hotspotAnalysis.excluded_loci.bed
+CNVs=${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz
+genome=/data/talkowski/rlc47/src/GRCh37.genome
+
 #Check for required input
 if [ -z ${CNVs} ] || [ -z ${genome} ]; then
   usage
@@ -132,19 +149,21 @@ bedtools intersect -c -f ${OVERLAP} -a ${INTS} -b ${CNVs} > ${COUNTS}
 
 #Get left flanking medians
 LEFT=`mktemp`
-awk -v OFS="\t" -v d=${DIST} '{ print $1, $2-d, $3-d, $4"_L" }' \
-${INTS} | awk -v OFS="\t" -v w=${WINDOW} '{ if ($2<0) $2=0; if ($3<w) $3=w; print }' | \
+awk -v OFS="\t" -v d=${DIST} -v buffer=$(( ${WSMOOTH}*${WINDOW} )) \
+'{ print $1, $2-d-buffer, $3-d+buffer, $4"_L" }' ${INTS} | \
+awk -v OFS="\t" -v w=${WINDOW} '{ if ($2<0) $2=0; if ($3<w) $3=w; print }' | \
 bedtools map -c 5 -o median -a - -b ${COUNTS} | awk -v OFS="\t" '{ if ($5==".") $5="NA"; print }' | \
 cut -f1 -d\. > ${LEFT}
 
 #Get right flanking medians
 RIGHT=`mktemp`
-awk -v OFS="\t" -v d=${DIST} '{ print $1, $2+d, $3+d, $4"_R" }' \
-${INTS} | awk -v OFS="\t" -v w=${WINDOW} '{ if ($2<0) $2=0; if ($3<w) $3=w; print }' | \
+awk -v OFS="\t" -v d=${DIST} -v buffer=$(( ${WSMOOTH}*${WINDOW} )) \
+'{ print $1, $2+d-buffer, $3+d+buffer, $4"_R" }' ${INTS} | \
+awk -v OFS="\t" -v w=${WINDOW} '{ if ($2<0) $2=0; if ($3<w) $3=w; print }' | \
 bedtools map -c 5 -o median -a - -b ${COUNTS} | awk -v OFS="\t" '{ if ($5==".") $5="NA"; print }' | \
 cut -f1 -d\. > ${RIGHT}
 
-#Smooth values if optioned
+#Smooth main bin values if optioned
 if [ ${SMOOTH} -gt 0 ]; then
   for file in ${COUNTS} ${LEFT} ${RIGHT}; do
     awk -v S=${SMOOTH} -v w=${WINDOW} -v OFS="\t" '{ print $1, $2-(w*S), $3+(w*S), $4 }' ${file} | \
