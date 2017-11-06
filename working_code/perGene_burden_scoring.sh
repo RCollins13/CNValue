@@ -164,6 +164,29 @@ while read pheno; do
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           fgrep -v CTRL | cut -f1 )
+#Final analysis: subset of all combinations
+for pheno in GERM NEURO NDD PSYCH SOMA; do
+  for CNV in DEL DUP; do
+    for VF in E2 E4; do
+      for context in exonic; do
+        if [ -e ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt ]; then
+          #Nominal
+          fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
+          awk -v FS="\t" '{ if ($43<=0.05) print $1 }' | sort | uniq > \
+          ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_nominally_sig.genes.list
+          #FDR
+          fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
+          awk -v FS="\t" '{ if ($44<=0.05) print $1 }' | sort | uniq > \
+          ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_FDR_sig.genes.list
+          #Bonferroni
+          fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
+          awk -v FS="\t" '{ if ($45<=0.05) print $1 }' | sort | uniq > \
+          ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_Bonferroni_sig.genes.list
+        fi
+      done
+    done
+  done
+done
 #Create output directory for control results
 if [ -e ${WRKDIR}/analysis/perGene_burden/signif_genes/CTRL ]; then
   rm -rf ${WRKDIR}/analysis/perGene_burden/signif_genes/CTRL
@@ -304,55 +327,116 @@ for CNV in CNV DEL DUP; do
     done
   done
 done
-
-#####Get summary table of significant gene counts - genes unique to disease or control
-VF=E4
-context=exonic
-for CNV in CNV DEL DUP; do
-  echo -e "\n\n${CNV}\n----"
-  for dummy in 1; do
-    #Control
-    for dummy in 1; do
-      echo "CTRL"
-      for sig in nominally FDR Bonferroni; do
-        cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_CTRL_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
+#Final analysis: subset of all combinations
+#Require E4-sig genes also to be nominally sig via Fisher's exact at E2
+for pheno in GERM NEURO NDD PSYCH SOMA; do
+  for CNV in DEL DUP; do
+    for VF in E4; do
+      for context in exonic wholegene; do
+        #First must pass E2 basic Fisher's exact, then must pass E4 FDR
+        fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_E2_${context}.geneScore_stats.txt | \
+        awk -v FS="\t" '{ if ($29<=0.05) print $1 }' | sort | uniq | sed 's/\-/_/g' | \
+        fgrep -wf - <( sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_FDR_sig.genes.list ) > \
+        ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list
       done
-    done | paste -s
-    #Affected pheno groups
-    while read pheno; do
-      for dummy in 1; do
-        echo ${pheno}
-        for sig in nominally FDR Bonferroni; do
-          cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
-        done
-      done | paste -s
-    done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-              fgrep -v CTRL | cut -f1 )
-    #Affected - unions
-    for group in GERM NEURO NDD PSYCH SOMA CNCR; do
-      for dummy in 1; do
-        echo "ALL_${group}_UNION"
-        for sig in nominally FDR Bonferroni; do
-          cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_${group}_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
-        done
-      done | paste -s
     done
   done
 done
 
-#####Get count of germline pheno groups significant per gene (>0)
-VF=E4
-context=exonic
-sig=Bonferroni
-while read pheno; do
-  for CNV in DEL DUP; do
-    cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list
-  done | sort | uniq
-done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-          awk '{ if ($2=="GERM") print $1 }' ) | \
-sort | uniq -c | awk -v OFS="\t" '{ print $2, $1 }' | sort -nrk2,2
+#Sanity check: get fraction of constrained genes per group for final analysis set
+VF=E4; context=exonic
+for CNV in DEL DUP; do
+  for context in exonic wholegene; do
+    for pheno in GERM NEURO NDD PSYCH SOMA; do
+      for wrapper in 1; do
+        echo "${pheno}_${CNV}_${context}"
+        cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list | wc -l
+        for geneSet in ExAC_constrained ExAC_missense_constrained DDD_2017 DDG2P_AnyConf_Dominant_LOF DDG2P_AnyConf_Dominant_GOF DDG2P_AnyConf_Dominant_Unknown; do
+          total=$( cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list | wc -l )
+          hit=$( fgrep -wf ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list \
+                 ${WRKDIR}/data/master_annotations/genelists/${geneSet}.genes.list | wc -l )
+          echo "" | awk -v hit=${hit} -v total=${total} '{ print hit/total }'
+        done
+      done | paste -s
+    done
+  done 
+done
+for geneSet in ExAC_constrained ExAC_missense_constrained DDD_2017 DDG2P_AnyConf_Dominant_LOF DDG2P_AnyConf_Dominant_GOF DDG2P_AnyConf_Dominant_Unknown; do
+  total=$( cat ${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list | wc -l )
+  hit=$( fgrep -wf ${WRKDIR}/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list \
+         ${WRKDIR}/data/master_annotations/genelists/${geneSet}.genes.list | wc -l )
+  echo "" | awk -v hit=${hit} -v total=${total} '{ print hit/total }'
+done | paste -s
+
+# #####Get summary table of significant gene counts - genes unique to disease or control
+# VF=E4
+# context=exonic
+# for CNV in CNV DEL DUP; do
+#   echo -e "\n\n${CNV}\n----"
+#   for dummy in 1; do
+#     #Control
+#     for dummy in 1; do
+#       echo "CTRL"
+#       for sig in nominally FDR Bonferroni; do
+#         cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_CTRL_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
+#       done
+#     done | paste -s
+#     #Affected pheno groups
+#     while read pheno; do
+#       for dummy in 1; do
+#         echo ${pheno}
+#         for sig in nominally FDR Bonferroni; do
+#           cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
+#         done
+#       done | paste -s
+#     done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+#               fgrep -v CTRL | cut -f1 )
+#     #Affected - unions
+#     for group in GERM NEURO NDD PSYCH SOMA CNCR; do
+#       for dummy in 1; do
+#         echo "ALL_${group}_UNION"
+#         for sig in nominally FDR Bonferroni; do
+#           cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/all_${group}_groups_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list | wc -l
+#         done
+#       done | paste -s
+#     done
+#   done
+# done
+
+# #####Get count of germline pheno groups significant per gene (>0)
+# VF=E4
+# context=exonic
+# sig=Bonferroni
+# while read pheno; do
+#   for CNV in DEL DUP; do
+#     cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_${sig}_sig.unique.genes.list
+#   done | sort | uniq
+# done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+#           awk '{ if ($2=="GERM") print $1 }' ) | \
+# sort | uniq -c | awk -v OFS="\t" '{ print $2, $1 }' | sort -nrk2,2
 
 
+#####Final analysis: get list of all del-significant, dup-significant, and any-significant E4 exonic genes in top 5 phenos
+#DEL OR DUP SEPARATELY
+for CNV in DEL DUP; do
+  for pheno in GERM NEURO NDD PSYCH SOMA; do
+    for VF in E4; do
+      for context in exonic wholegene; do
+        cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list
+      done
+    done
+  done | sort | uniq > ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list
+done
+#DEL AND DUP UNION
+for context in exonic wholegene; do
+  for dummy in 1; do
+    for CNV in DEL DUP; do
+      for VF in E4; do
+        cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list
+      done
+    done
+  done | sort | uniq > ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_DELDUPUnion_${VF}_${context}.geneScore_FINAL_sig.genes.list
+done
 
 
 

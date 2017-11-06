@@ -34,7 +34,7 @@ done
 #####Gather data for manhattan plots
 VF=E2
 filt=all
-for pheno in GERM NEURO NDD PSYCH SOMA CNCR; do
+for pheno in GERM NEURO NDD PSYCH SOMA; do
   paste \
   <( zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/${pheno}_DEL_${VF}_${filt}.TBRden_results.bed.gz | \
      sed '1d' | awk -v OFS="\t" '{ print $1, $2, $3, $NF }' ) \
@@ -43,10 +43,10 @@ for pheno in GERM NEURO NDD PSYCH SOMA CNCR; do
   ${WRKDIR}/data/plot_data/figure2/${pheno}.${VF}.${filt}.manhattan_pvals.bed
 done
 
-#####Gather data for constrained gene enrichment analysis
-cp -r ${WRKDIR}/analysis/large_CNV_segments/constrained_enrichments \
-${WRKDIR}/data/plot_data/figure2/
+# #####Gather data for constrained gene enrichment analysis
+# cp -r ${WRKDIR}/analysis/large_CNV_segments/constrained_enrichments \
+# ${WRKDIR}/data/plot_data/figure2/
 
-#####Gather germline prevalance data
-cp -r ${WRKDIR}/analysis/large_CNV_segments/prevalance \
-${WRKDIR}/data/plot_data/figure2/
+# #####Gather germline prevalance data
+# cp -r ${WRKDIR}/analysis/large_CNV_segments/prevalance \
+# ${WRKDIR}/data/plot_data/figure2/

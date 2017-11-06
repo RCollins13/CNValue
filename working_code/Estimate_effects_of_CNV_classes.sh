@@ -1,20 +1,14 @@
-for pheno in GERM NEURO SOMA NDD DD PSYCH SCZ CNCR; do
-  for CNV in DEL DUP; do
-    cat /data/talkowski/Samples/rCNVmap/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_E4_exonic.geneScore_Bonferroni_sig.union.genes.list
-  done
-done
+# for CNV in DEL DUP; do
+#   for pheno in GERM NEURO NDD PSYCH SOMA; do  
+#     cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_${VF}_${context}.geneScore_Bonferroni_sig.FINAL.genes.list
+#   done | sort | u
+# done > ${TMPDIR}/germ.list
 
-for pheno in GERM NEURO SOMA NDD DD PSYCH SCZ; do
-  for CNV in DEL DUP; do
-    cat /data/talkowski/Samples/rCNVmap/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_E4_exonic.geneScore_Bonferroni_sig.union.genes.list
-  done
-done > ${TMPDIR}/germ.list
-
-for pheno in CNCR; do
-  for CNV in DEL DUP; do
-    cat /data/talkowski/Samples/rCNVmap/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_E4_exonic.geneScore_Bonferroni_sig.union.genes.list
-  done
-done | sort | uniq | fgrep -wf ${TMPDIR}/germ.list
+# for pheno in CNCR; do
+#   for CNV in DEL DUP; do
+#     cat /data/talkowski/Samples/rCNVmap/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_E4_exonic.geneScore_Bonferroni_sig.union.genes.list
+#   done
+# done | sort | uniq | fgrep -wf ${TMPDIR}/germ.list
 
 #Germline risk estimates
 #Large loci
@@ -33,7 +27,7 @@ done
 #Genes
 for CNV in DEL DUP; do
   for wrapper in 1; do
-    fgrep -wf ${TMPDIR}/GERM_all.genes.list \
+    fgrep -wf ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_E4_${context}.geneScore_Bonferroni_sig.FINAL.genes.list \
     ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed |
     bedtools intersect -u -b - \
     -a ${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.${CNV}.E4.GRCh37.coding.bed.gz | \
