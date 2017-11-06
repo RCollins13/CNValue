@@ -59,6 +59,22 @@ while read pheno; do
     done
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | cut -f1 )
+#Final analysis: subset of all combinations
+for pheno in GERM NEURO NDD PSYCH SOMA; do
+  for CNV in DEL DUP; do
+    for VF in E2; do
+      for filt in all; do
+        #Parallelize intersections
+        bsub -q short -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${filt}_binned_pileup \
+        "${WRKDIR}/bin/rCNVmap/bin/TBRden_binned_pileup.sh -z -w 200000 -s 10000 -d 2500000 -R 2 -I 1 \
+        -o ${WRKDIR}/analysis/BIN_CNV_pileups/${pheno}/${pheno}.${CNV}.${VF}.${filt}.BIN_CNV_pileup.bed \
+        -x ${WRKDIR}/data/master_annotations/other/hotspotAnalysis.excluded_loci.bed  \
+        ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+        /data/talkowski/rlc47/src/GRCh37.genome"
+      done
+    done
+  done
+done 
 
 ###########################################################
 #Run statistical analysis of case vs control pileup burdens
@@ -91,6 +107,25 @@ while read pheno color; do
     done
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v CTRL | cut -f1,7 )
+#Final analysis: subset of all combinations
+while read pheno color; do
+  for CNV in DEL DUP; do
+    for VF in E2; do
+      for filt in all; do
+        #Parallelize analyses (LSF)
+        bsub -q short -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_pileup_analysis -u nobody \
+        -o ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/${smooth}kb_smoothed/${pheno}_${CNV}_${filter}.out \
+        -e ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/${smooth}kb_smoothed/${pheno}_${CNV}_${filter}.err \
+        "${WRKDIR}/bin/rCNVmap/bin/TBRden_test.R \
+        ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL/CTRL.${CNV}.${VF}.${filt}.BIN_CNV_pileup.bed.gz \
+        ${WRKDIR}/analysis/BIN_CNV_pileups/${pheno}/${pheno}.${CNV}.${VF}.${filt}.BIN_CNV_pileup.bed.gz \
+        ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/ \
+        ${pheno}_${CNV}_${VF}_${filt} 0.00000001 ${color}"
+      done
+    done
+  done
+done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+        awk -v OFS="\t" '$1 ~ /GERM|NEURO|NDD|PSYCH|SOMA/ {  print $1, $7 }' | cut -f1,7 )
 
 #############################################
 #Collect & merge significant loci per disease
@@ -120,6 +155,19 @@ while read pheno; do
     done
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v CTRL | cut -f1 )
+#Final analysis: subset of all combinations
+for pheno in GERM NEURO NDD PSYCH SOMA; do
+  for CNV in DEL DUP; do
+    for VF in E2; do
+      for filt in all; do
+        zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/${pheno}_${CNV}_${VF}_${filt}.TBRden_results.bed.gz | \
+        awk -v sig=${sig} -v OFS="\t" '{ if ($NF<sig) print $1, $2, $3 }' | \
+        bedtools merge -i - > \
+        ${WRKDIR}/analysis/large_CNV_segments/${pheno}/${pheno}_${CNV}_${VF}_${filt}.signif.bed
+      done
+    done
+  done
+done
 
 #####################################################
 #Collect & merge significant loci across all diseases

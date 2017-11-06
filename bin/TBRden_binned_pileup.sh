@@ -165,14 +165,12 @@ cut -f1 -d\. > ${RIGHT}
 
 #Smooth main bin values if optioned
 if [ ${SMOOTH} -gt 0 ]; then
-  for file in ${COUNTS} ${LEFT} ${RIGHT}; do
-    awk -v S=${SMOOTH} -v w=${WINDOW} -v OFS="\t" '{ print $1, $2-(w*S), $3+(w*S), $4 }' ${file} | \
-    awk -v OFS="\t" -v w=${WINDOW} '{ if ($2<0) $2=0; if ($3<w) $3=w; print }' | \
-    bedtools map -c 5 -o mean -a - -b <( awk '{ if ($5!="NA") print $0 }' ${file} ) | \
-    awk -v S=${SMOOTH} -v w=${WINDOW} -v OFS="\t" '{ print $1, $2+(w*S), $3-(w*S), $4, $5 }' | \
-    awk -v OFS="\t" '{ if ($5==".") $5="NA"; print }' > ${file}2
-    mv ${file}2 ${file}
-  done
+  awk -v S=${SMOOTH} -v w=${WINDOW} -v OFS="\t" '{ print $1, $2-(w*S), $3+(w*S), $4 }' ${COUNTS} | \
+  awk -v OFS="\t" -v w=${WINDOW} '{ if ($2<0) $2=0; if ($3<w) $3=w; print }' | \
+  bedtools map -c 5 -o mean -a - -b <( awk '{ if ($5!="NA") print $0 }' ${COUNTS} ) | \
+  awk -v S=${SMOOTH} -v w=${WINDOW} -v OFS="\t" '{ print $1, $2+(w*S), $3-(w*S), $4, $5 }' | \
+  awk -v OFS="\t" '{ if ($5==".") $5="NA"; print }' > ${COUNTS}2
+  mv ${COUNTS}2 ${COUNTS}
 fi
 
 #Write results to OUTFILE with header
