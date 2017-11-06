@@ -17,11 +17,21 @@ library(TBRden)
 #Read args
 args <- commandArgs(trailingOnly=T)
 
-#Run TBRden
+#Run TBRden - old method with comparing to left/right flanks
+# TBRden(controls=as.character(args[1]),
+# 	   cases=as.character(args[2]),
+# 	   OUTDIR=as.character(args[3]),
+# 	   prefix=as.character(args[4]),
+# 	   adjusted=as.numeric(args[5]),
+# 	   manColor=as.character(args[6]))
+
+#Run TBRden - Coe method
 TBRden(controls=as.character(args[1]),
 	   cases=as.character(args[2]),
 	   OUTDIR=as.character(args[3]),
 	   prefix=as.character(args[4]),
 	   adjusted=as.numeric(args[5]),
 	   manColor=as.character(args[6]),
-	   Coe=T)
+	   Coe=T,
+	   ncases=as.integer(args[7]),
+	   ncontrols=as.integer(args[8]))
