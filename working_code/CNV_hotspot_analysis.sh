@@ -60,7 +60,7 @@ while read pheno; do
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | cut -f1 )
 #Final analysis: subset of all combinations
-for pheno in GERM NEURO NDD PSYCH SOMA; do
+for pheno in CTRL GERM NEURO NDD PSYCH SOMA; do
   for CNV in DEL DUP; do
     for VF in E2; do
       for filt in all; do
@@ -108,7 +108,8 @@ while read pheno color; do
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | fgrep -v CTRL | cut -f1,7 )
 #Final analysis: subset of all combinations
-while read pheno color; do
+ncontrol=38628
+while read pheno color ncase; do
   for CNV in DEL DUP; do
     for VF in E2; do
       for filt in all; do
@@ -120,18 +121,19 @@ while read pheno color; do
         ${WRKDIR}/analysis/BIN_CNV_pileups/CTRL/CTRL.${CNV}.${VF}.${filt}.BIN_CNV_pileup.bed.gz \
         ${WRKDIR}/analysis/BIN_CNV_pileups/${pheno}/${pheno}.${CNV}.${VF}.${filt}.BIN_CNV_pileup.bed.gz \
         ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/ \
-        ${pheno}_${CNV}_${VF}_${filt} 0.00000001 ${color}"
+        ${pheno}_${CNV}_${VF}_${filt} 0.00000001 ${color} \
+        ${ncase} ${ncontrol}"
       done
     done
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-        awk -v OFS="\t" '$1 ~ /GERM|NEURO|NDD|PSYCH|SOMA/ {  print $1, $7 }' )
+        awk -v OFS="\t" '$1 ~ /GERM|NEURO|NDD|PSYCH|SOMA/ {  print $1, $7, $8 }' )
 
 #############################################
 #Collect & merge significant loci per disease
 #############################################
 #Set significance threshold
-sig=0.00000001
+nTests=13225
 #Initialize directory
 if [ -e ${WRKDIR}/analysis/large_CNV_segments ]; then
   rm -rf ${WRKDIR}/analysis/large_CNV_segments
@@ -161,8 +163,8 @@ for pheno in GERM NEURO NDD PSYCH SOMA; do
     for VF in E2; do
       for filt in all; do
         zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/${pheno}_${CNV}_${VF}_${filt}.TBRden_results.bed.gz | \
-        awk -v sig=${sig} -v OFS="\t" '{ if ($NF<sig) print $1, $2, $3 }' | \
-        bedtools merge -i - > \
+        awk -v nTests=${nTests} -v OFS="\t" '{ if ($13<0.05/nTests) print $1, $2, $3 }' | \
+        bedtools merge -i - -d 200000 > \
         ${WRKDIR}/analysis/large_CNV_segments/${pheno}/${pheno}_${CNV}_${VF}_${filt}.signif.bed
       done
     done
@@ -188,11 +190,23 @@ for CNV in CNV DEL DUP; do
     done
   done
 done
+#Final analysis: subset of all combinations
+for CNV in DEL DUP; do
+  for VF in E2; do
+    for filt in all; do
+      for pheno in GERM NEURO NDD PSYCH SOMA; do
+        cat ${WRKDIR}/analysis/large_CNV_segments/${pheno}/${pheno}_${CNV}_${VF}_${filt}.signif.bed
+      done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+      fgrep -v CTRL | cut -f1 ) | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - -d 200000 > \
+      ${WRKDIR}/analysis/large_CNV_segments/master_lists/${CNV}_${VF}_${filt}.signif.bed
+    done
+  done
+done
 
 ###############################
 #Filter master significant loci 
 ###############################
-#Filters: ≥250kb, 100kb merge distance, ≥4 protein-coding genes, and <50% SD coverage
+#Filters: ≥200kb, 100kb merge distance, ≥4 protein-coding genes, and <50% SD coverage
 minSize=250000
 minGenes=4
 maxSD=0.5
@@ -214,6 +228,16 @@ for VF in E2 E3 E4 N1; do
     # bedtools coverage -b - \
     # -a ${WRKDIR}/data/master_annotations/noncoding/SegDups.elements.bed | \
     # awk -v maxSD=${maxSD} -v OFS="\t" '{ if ($NF<maxSD) print $1, $2, $3 }' | \
+    sort -Vk1,1 -k2,2n -k3,3n > \
+    ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed
+  done
+done
+#Final analysis: subset of all combinations
+for VF in E2; do
+  for filt in all; do
+    for CNV in DEL DUP; do
+      cat ${WRKDIR}/analysis/large_CNV_segments/master_lists/${CNV}_${VF}_${filt}.signif.bed
+    done | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - -d 200000 | \
     sort -Vk1,1 -k2,2n -k3,3n > \
     ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed
   done
@@ -257,6 +281,15 @@ for VF in E2 E3 E4 N1; do
     done
   done
 done
+#Final analysis: subset of all combinations
+for VF in E2; do
+  for filt in all; do
+    for CNV in DEL DUP; do
+      bsub -q short -sla miket_sc -J DEL_DUP_union.${VF}_${filt}.signif.filtered.${CNV}_pVal -u nobody \
+      "${WRKDIR}/bin/rCNVmap/analysis_scripts/get_lowest_pVals_sigCNVsegs.sh ${VF} ${filt} ${CNV}"
+    done
+  done
+done
 #Get odds ratios
 #NOTE: require CNV to cover >25% of syndromic locus by size
 for VF in E2 E3 E4 N1; do
@@ -284,6 +317,15 @@ for VF in E2 E3 E4 N1; do
       #   done | paste -s
       # done < ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed > \
       # ${WRKDIR}/analysis/large_CNV_segments/assoc_stats/DEL_DUP_union.${VF}_${filt}.signif.filtered.${CNV}_OR.bed
+      bsub -q short -sla miket_sc -J DEL_DUP_union.${VF}_${filt}.signif.filtered.${CNV}_OR -u nobody \
+      "${WRKDIR}/bin/rCNVmap/analysis_scripts/get_ORs_sigCNVsegs.sh ${VF} ${filt} ${CNV}"
+    done
+  done
+done
+#Final analysis: subset of all combinations
+for VF in E2; do
+  for filt in all; do
+    for CNV in DEL DUP; do
       bsub -q short -sla miket_sc -J DEL_DUP_union.${VF}_${filt}.signif.filtered.${CNV}_OR -u nobody \
       "${WRKDIR}/bin/rCNVmap/analysis_scripts/get_ORs_sigCNVsegs.sh ${VF} ${filt} ${CNV}"
     done
