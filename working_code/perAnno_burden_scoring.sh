@@ -352,6 +352,30 @@ bsub -q normal -sla miket_sc -J noncoding_CNVjaccard -u nobody \
  ${TMPDIR}/GERM_CNCR_CNVs_pooled.bed \
  ${WRKDIR}/analysis/perAnno_burden/cleaned_noncoding_loci.jaccard_matrix.txt"
 
+#####Cluster significant elements into regulatory blocks
+#Note: must have clustered element IDs locally and uploaded to cluster here:
+# ${WRKDIR}/analysis/perAnno_burden/clustered_elements_regBlocks.list
+annoSet=all_classes; VF=E4
+while read eIDs; do
+  for wrapper in 1; do
+    #Get coordinates of all contributing loci
+    echo ${eIDs} | sed 's/\;/\n/g' | fgrep -wf - \
+    ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.filtered.bed > \
+    ${TMPDIR}/coordinates.bed
+    #Print coordinates of merged regulatory block
+    head -n1 ${TMPDIR}/coordinates.bed | cut -f1
+    cut -f2 ${TMPDIR}/coordinates.bed | sort -nk1,1 | head -n1
+    cut -f3 ${TMPDIR}/coordinates.bed | sort -nrk1,1 | head -n1
+    #Print remaining info
+    echo "SignifRegBlock"
+    awk -v OFS="_" '{ print $1, $2, $3 }' ${TMPDIR}/coordinates.bed | paste -s -d\;
+    echo ${eIDs}
+  done | paste -s
+done < ${WRKDIR}/analysis/perAnno_burden/clustered_elements_regBlocks.list | \
+sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" '{ print $1, $2, $3, $4"_"NR, $5, $6 }' > \
+${WRKDIR}/analysis/perAnno_burden/signifRegulatoryBlocks.final.bed
+
+
 
 #####Get counts of significant loci by phenotype after merging
 #Merged across all annotations
@@ -439,5 +463,7 @@ done | bedtools intersect -wa -u -b - \
 cut -f4 | sed 's/\-/\t/g' | cut -f1 | sort | uniq | fgrep -wf - \
 ${WRKDIR}/data/master_annotations/genelists/ExAC_haplosufficient.genes.list
 #Haplosufficient genes that appear in the list because of coding effects (exclude): FHIT, PTPN13, RAD51B, TGFBR2
+
+
 
 

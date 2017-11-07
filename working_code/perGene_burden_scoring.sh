@@ -433,8 +433,23 @@ for context in exonic wholegene; do
   done | sort | uniq > ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_DELDUPUnion_${VF}_${context}.geneScore_FINAL_sig.genes.list
 done
 
-
-
+#####Get genes with no prior germline disease association
+while read gene; do
+  hits=$( fgrep -w ${gene} ${WRKDIR}/data/master_annotations/genelists/* | \
+          fgrep -v GTEx | fgrep -v MASTER | fgrep -v GO_ | fgrep -v quintile | \
+          fgrep -v decile | fgrep -v targets | fgrep -v cancer | fgrep -v Cancer | \
+          fgrep -v Gencode | fgrep -v ExAC | fgrep -v Constrained | fgrep -v RVIS | \
+          fgrep -v essential | fgrep -v DNA_repair | fgrep -v GWAS_nearest | \
+          fgrep -v Olfactory | fgrep -v COSMIC | fgrep -v Kinases | fgrep -v GPCRs | sed '/^$/d' | wc -l )
+  echo -e "${gene}\t${hits}"
+done < ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_DELDUPUnion_${VF}_${context}.geneScore_FINAL_sig.genes.list
+#Read out other gene lists for constrained genes with no disease associations
+while read gene; do
+  echo -e "\n\n${gene}"
+  fgrep -w ${gene} ${WRKDIR}/data/master_annotations/genelists/* | cut -f1 -d\: | \
+  awk -v FS="/" '{ print $NF }' | sed 's/\.genes\.list//g' | fgrep -v Gencode | \
+  fgrep -v GTEx
+done < <( echo -e "ACTR3B\nADCY9\nANKFY1\nASB7\nBPTF\nC16orf72\nCLUH\nCOLEC12\nFAM196A\nFCGR1B\nFNTA\nGMDS\nGPR89A\nLRRK1\nMPRIP\nNCS1\nOR4F17\nOR4F4\nOTUD7A\nRAP1GAP2\nRAP1GDS1\nRMND5A\nRPSAP58\nTAOK3\nUBAP1\nUSP34\nZNF195" )
 
 
 

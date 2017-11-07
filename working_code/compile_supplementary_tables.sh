@@ -26,7 +26,7 @@ for CNV in DEL DUP; do
   #Print header
   for wrapper in 1; do
     echo -e "chr\tstart\tend\tCTRL_${CNV}_count"
-    for pheno in GERM NEURO NDD PSYCH SOMA; do
+    for pheno in GERM NEURO NDD PSYCH NONN; do
       echo -e "${pheno}_${CNV}_count\t${pheno}_${CNV}_OR\t${pheno}_${CNV}_p"
     done
   done | paste -s > ${WRKDIR}/data/plot_data/suppTables/suppTables_1_2_${CNV}.txt
@@ -53,4 +53,56 @@ for CNV in DEL DUP; do
   awk -v OFS="\t" '{ print $1, $2, $3, $14, $15, $4, $9, $16, $5, $10, $17, $6, $11, $18, $7, $12, $19, $8, $13 }' >> \
   ${WRKDIR}/data/plot_data/suppTables/suppTables_1_2_${CNV}.txt
 done
+
+#####Supp tables 3-4: significant genes
+VF=E4; context=exonic
+for CNV in DEL DUP; do
+  #Print header
+  for wrapper in 1; do
+    echo -e "gene\tCTRL_${CNV}_count"
+    for pheno in GERM NEURO NDD PSYCH NONN; do
+      echo -e "${pheno}_${CNV}_count\t${pheno}_${CNV}_OR\t${pheno}_Zscore\t${pheno}_${CNV}_q"
+    done
+  done | paste -s > ${WRKDIR}/data/plot_data/suppTables/suppTables_3_4_${CNV}.txt
+  #Iterate over genes & get association statistics per phenotype
+  while read gene; do
+    for wrapper in 1; do
+      echo "${gene}"
+      for pheno in GERM NEURO NDD PSYCH SOMA; do
+        awk -v OFS="\t" -v gene=${gene} '{ if ($1==gene) print $8, $14, $26, $41, $44 }' \
+        ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt
+      done
+    done | paste -s | cut --complement -f7,12,17,22
+  done < ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list >> \
+  ${WRKDIR}/data/plot_data/suppTables/suppTables_3_4_${CNV}.txt
+done
+
+#####Supp tables 5-6: significant regulatory blocks
+VF=E4; annoSet=all_classes
+for CNV in DEL DUP; do
+  #Print header
+  for wrapper in 1; do
+    echo -e "chr\tstart\tend\tblockID\tsignif_elements\tCTRL_${CNV}_count"
+    for pheno in GERM NEURO NDD PSYCH NONN; do
+      echo -e "${pheno}_${CNV}_count\t${pheno}_${CNV}_combined_OR\t${pheno}_${CNV}_minimum_p"
+    done
+  done | paste -s > ${WRKDIR}/data/plot_data/suppTables/suppTables_5_6_${CNV}.txt
+  #Iterate over genes & get association statistics per phenotype
+  while read chr start end blockID elements eIDs; do
+    for wrapper in 1; do
+      echo "${gene}"
+      for pheno in GERM NEURO NDD PSYCH SOMA; do
+        awk -v OFS="\t" -v gene=${gene} '{ if ($1==gene) print $8, $14, $26, $41, $44 }' \
+        ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt
+      done
+    done | paste -s | cut --complement -f7,12,17,22
+  done < ${WRKDIR}/analysis/perAnno_burden/signifRegulatoryBlocks.final.bed >> \
+  ${WRKDIR}/data/plot_data/suppTables/suppTables_5_6_${CNV}.txt
+done
+
+
+
+
+
+
 
