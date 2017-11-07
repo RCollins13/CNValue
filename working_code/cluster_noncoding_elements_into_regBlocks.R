@@ -37,3 +37,15 @@ clusterElements <- function(x,minJac=0.2){
   }
   return(matches)
 }
+
+#Cluster with minJac = 0.2
+matches <- clusterElements(x,minJac=0.2)
+matches <- lapply(matches,function(elements){
+  hits <- sapply(elements,function(element){
+    return(rownames(x)[as.numeric(element)])
+  })
+  hits <- paste(hits,collapse=";")
+  return(hits)
+})
+matches <- unique(unlist(matches))
+write.table(matches,"~/scratch/clustered_elements_regBlocks.list",sep="\t",quote=F,col.names=F,row.names=F)

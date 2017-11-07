@@ -19,7 +19,7 @@ source ${WRKDIR}/bin/rCNVmap/misc/rCNV_code_parameters.sh
 VF=$1
 filt=$2
 CNV=$3
-overlap=0.8
+overlap=200000
 
 #####Run
 while read chr start end; do
@@ -28,10 +28,14 @@ while read chr start end; do
     #iterate over phenos
     while read pheno nCASE; do
       #Get counts of case/control CNVs
-      caseCNV=$( bedtools intersect -wb -f ${overlap} -a <( echo -e "${chr}\t${start}\t${end}" ) \
-      -b ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz | wc -l )
-      controlCNV=$( bedtools intersect -wb -f ${overlap} -a <( echo -e "${chr}\t${start}\t${end}" ) \
-      -b ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz | wc -l )
+      caseCNV=$( bedtools intersect -wb -a <( echo -e "${chr}\t${start}\t${end}" ) \
+      -b ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz | \
+      cut -f4- | bedtools coverage -b - -a <( echo -e "${chr}\t${start}\t${end}" ) | \
+      awk -v overlap=${overlap} '{ if ($(NF-2)>=overlap) print $4 }' | sort | uniq | wc -l )
+      controlCNV=$( bedtools intersect -wb -a <( echo -e "${chr}\t${start}\t${end}" ) \
+      -b ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz | \
+      cut -f4- | bedtools coverage -b - -a <( echo -e "${chr}\t${start}\t${end}" ) | \
+      awk -v overlap=${overlap} '{ if ($(NF-2)>=overlap) print $4 }' | sort | uniq | wc -l )
       caseNoCNV=$( echo "${nCASE}-${caseCNV}" | bc )
       controlNoCNV=$( echo "38628-${controlCNV}" | bc )
       #Calcluate odds ratio
