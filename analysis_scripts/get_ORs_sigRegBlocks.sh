@@ -42,6 +42,8 @@ while read chr start end blockID elements eIDs; do
       #Calcluate odds ratio
       unset R_HOME
       Rscript -e "cat(paste(round(((${caseCNV}+(${nCASE}/38628))/(${controlCNV}+1))/((${caseNoCNV}+(${nCASE}/38628))/(${controlNoCNV}+1)),4)),\"\n\",sep=\"\")"
+      #Calcluate p-value
+      Rscript -e "cat(paste(format(fisher.test(matrix(c(${controlNoCNV},${caseNoCNV},${controlCNV},${caseCNV}),byrow=T,nrow=2),alternative=\"greater\")\$p.value,scientific=T)),\"\n\",sep=\"\")"
     done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
       cut -f1,8 | grep -e 'GERM\|NEURO\|NDD\|PSYCH\|SOMA' )
   done | paste -s

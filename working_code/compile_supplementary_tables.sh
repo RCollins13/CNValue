@@ -87,6 +87,9 @@ for CNV in DEL DUP; do
       echo -e "${pheno}_${CNV}_count\t${pheno}_${CNV}_combined_OR\t${pheno}_${CNV}_minimum_p"
     done
   done | paste -s > ${WRKDIR}/data/plot_data/suppTables/suppTables_5_6_${CNV}.txt
+  #Get list of all DEL or DUP significant elements
+  for pheno in GERM NEURO NDD PSYCH NONN; do
+    
   #Iterate over genes & get association statistics per phenotype
   while read chr start end blockID elements eIDs; do
     for wrapper in 1; do
