@@ -88,18 +88,22 @@ for CNV in DEL DUP; do
     done
   done | paste -s > ${WRKDIR}/data/plot_data/suppTables/suppTables_5_6_${CNV}.txt
   #Get list of all DEL or DUP significant elements
-  for pheno in GERM NEURO NDD PSYCH NONN; do
-    
-  #Iterate over genes & get association statistics per phenotype
-  while read chr start end blockID elements eIDs; do
+  for pheno in GERM NEURO NDD PSYCH SOMA; do
+    cat ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_${CNV}_${VF}.final_merged_loci.${annoSet}.bed
+  done | sort -Vk1,1 -k2,2n -k3,3n | cut -f1-3 | bedtools merge -i - > \
+  ${TMPDIR}/${CNV}_sig_elements.bed
+  #Get CNV counts, ORs, and p-values
+  bedtools intersect -wa -u -b ${TMPDIR}/${CNV}_sig_elements.bed \
+  -a <( sed 's/chr//g' ${WRKDIR}/analysis/perAnno_burden/signifRegulatoryBlocks.${CNV}_ORs.bed ) > \
+  ${TMPDIR}/${CNV}_sig_elements.stats.bed 
+  #Get individual elements to append to tracks
+  while read chr start end blockID everythingElse; do
     for wrapper in 1; do
-      echo "${gene}"
-      for pheno in GERM NEURO NDD PSYCH SOMA; do
-        awk -v OFS="\t" -v gene=${gene} '{ if ($1==gene) print $8, $14, $26, $41, $44 }' \
-        ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt
-      done
-    done | paste -s | cut --complement -f7,12,17,22
-  done < ${WRKDIR}/analysis/perAnno_burden/signifRegulatoryBlocks.final.bed >> \
+      echo -e "${chr}\t${start}\t${end}\t${blockID}"
+      fgrep -w ${blockID} ${WRKDIR}/analysis/perAnno_burden/signifRegulatoryBlocks.final.bed | cut -f5
+      echo "${everythingElse}"
+    done | paste -s
+  done < ${TMPDIR}/${CNV}_sig_elements.stats.bed >> \
   ${WRKDIR}/data/plot_data/suppTables/suppTables_5_6_${CNV}.txt
 done
 

@@ -19,7 +19,7 @@ df[9,2] <- sum(df[9:nrow(df),2])
 df <- df[1:9,]
 
 #####Prepare plot
-pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure1/phenotypes_per_subject.histogram.pdf",sep=""),
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/rCNVdbSummaryFigure/phenotypes_per_subject.histogram.pdf",sep=""),
     width=3,height=2.7)
 par(mar=c(1.5,3,0.5,0.5),bty="n")
 plot(x=c(-0.1,nrow(df)),y=c(0,1.02*max(df[,2])),

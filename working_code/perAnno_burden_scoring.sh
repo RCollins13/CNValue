@@ -375,7 +375,7 @@ done < ${WRKDIR}/analysis/perAnno_burden/clustered_elements_regBlocks.list | \
 sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" '{ print $1, $2, $3, $4"_"NR, $5, $6 }' > \
 ${WRKDIR}/analysis/perAnno_burden/signifRegulatoryBlocks.final.bed
 
-#####Calculate ORs per regulatory block separately for dels and dups
+#####Calculate final p-values and ORs per regulatory block separately for dels and dups
 #Final analysis: subset of all combinations
 for VF in E4; do
   while read CNV filt; do

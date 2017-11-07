@@ -125,7 +125,7 @@ for dummy in 1; do
 done > ${WRKDIR}/data/plot_data/rCNVdbSummaryFigure/sample_counts_by_group.txt
 
 ####Get number of phenotypic group assignments per patient
-cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list | \
+cut -f2 ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.wHPO.list | fgrep -v 0002664 | \
 sed 's/,/\t/g' | awk '{ print NF }' | sort | uniq -c | awk -v OFS="\t" '{ print $2, $1 }' | \
 sort -nk1,1 > ${WRKDIR}/data/plot_data/rCNVdbSummaryFigure/phenotypes_per_sample_hist.txt
 
