@@ -195,6 +195,7 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
           cut -f1 | fgrep -v CTRL )
 
 #####Merge significant loci across phenotypes & between DEL/DUP
+#NOTE: UPDATED FOR FINAL ANALYSIS -- ONLY RUN ON GERM/NEURO/NDD/PSYCH/SOMA
 #Create working directory
 if ! [ -e ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/ ]; then
   mkdir ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/
@@ -210,12 +211,11 @@ while read annoSet; do
     for filt in haplosufficient noncoding; do
       echo -e "${annoSet}_${CNV}_${filt}"
       #Create master list of all significant elements
-      while read pheno; do
+      for pheno in GERM NEURO NDD PSYCH SOMA; do
         fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.${CNV}.${VF}.${filt}.bonf_sig_elements_merged.all_classes.bed | \
         awk -v OFS="\t" -v pheno=${pheno} -v CNV=${CNV} -v filt=${filt} -v minSize=${minSize} -v maxSize=${maxSize} \
         '{ if ($3-$2>=minSize && $3-$2<=maxSize) print $1, $2, $3, pheno"_"CNV"_"filt"_"NR, pheno"_"CNV"_"filt"_"NR, CNV }' 
-      done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-                cut -f1 | fgrep -v CTRL ) | sort -Vk1,1 -k2,2n -k3,3n > \
+      done | sort -Vk1,1 -k2,2n -k3,3n > \
       ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_${CNV}_${VF}_${filt}.signif_loci.pre_merge.bed
       #Run bedtools intersect (50% recip)
       bedtools intersect -r -f 0.5 -wa -wb \
@@ -312,11 +312,12 @@ done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingA
                   sort | uniq | cat <( echo -e "all_classes\ntissue_agnostic" ) - )
 
 #Split final clustered loci by phenotype
+#NOTE: UPDATED FOR FINAL ANALYSIS -- ONLY RUN ON GERM/NEURO/NDD/PSYCH/SOMA
 #Create output directory
 if ! [ -e ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci ]; then
   mkdir ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci
 fi
-while read pheno; do
+for pheno in GERM NEURO NDD PSYCH SOMA; do
   echo ${pheno}
   if [ -e ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno} ]; then
     rm -rf ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}
@@ -335,20 +336,19 @@ while read pheno; do
     ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DUP_${VF}.final_merged_loci.${annoSet}.bed
   done < <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
                   sort | uniq | cat <( echo -e "all_classes\ntissue_agnostic" ) - )
-done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-          cut -f1 | fgrep -v CTRL )
+done
 
 #####Calculate pairwise correlations for all elements
-for pheno in CNCR GERM; do
+for pheno in GERM; do
   zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.DEL.E4.GRCh37.haplosufficient.bed.gz
   zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.DUP.E4.GRCh37.noncoding.bed.gz
 done | fgrep -v "#" | sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4 | uniq > \
 ${TMPDIR}/GERM_CNCR_CNVs_pooled.bed
-zcat ${WRKDIR}/analysis/perAnno_burden/cleaned_noncoding_loci.wAnnotations.forManualCuration.txt.gz | \
-cut -f1-4 | sed '1d' | sort -Vk1,1 -k2,2n -k3,3n | uniq > ${TMPDIR}/loci_for_jaccard.bed
+# zcat ${WRKDIR}/analysis/perAnno_burden/cleaned_noncoding_loci.wAnnotations.forManualCuration.txt.gz | \
+# cut -f1-4 | sed '1d' | sort -Vk1,1 -k2,2n -k3,3n | uniq > ${TMPDIR}/loci_for_jaccard.bed
 bsub -q normal -sla miket_sc -J noncoding_CNVjaccard -u nobody \
 "${WRKDIR}/bin/rCNVmap/analysis_scripts/calc_CNV_correlation_between_locusPairs.sh \
- ${TMPDIR}/loci_for_jaccard.bed \
+ ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/all_classes_haplosuffDELnoncodingDUP_E4.signif_loci.merged.filtered.bed \
  ${TMPDIR}/GERM_CNCR_CNVs_pooled.bed \
  ${WRKDIR}/analysis/perAnno_burden/cleaned_noncoding_loci.jaccard_matrix.txt"
 

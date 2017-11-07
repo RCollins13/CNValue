@@ -418,23 +418,18 @@ done | paste -s
 
 #####Final analysis: get list of all del-significant, dup-significant, and any-significant E4 exonic genes in top 5 phenos
 #DEL OR DUP SEPARATELY
-for CNV in DEL DUP; do
-  for pheno in GERM NEURO NDD PSYCH SOMA; do
-    for VF in E4; do
-      for context in exonic wholegene; do
-        cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list
-      done
-    done
-  done | sort | uniq > ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list
+VF=E4
+for context in exonic wholegene; do
+  for CNV in DEL DUP; do
+    for pheno in GERM NEURO NDD PSYCH SOMA; do
+      cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list
+    done | sort | uniq > ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list
+  done
 done
 #DEL AND DUP UNION
 for context in exonic wholegene; do
-  for dummy in 1; do
-    for CNV in DEL DUP; do
-      for VF in E4; do
-        cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list
-      done
-    done
+  for CNV in DEL DUP; do
+    cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list
   done | sort | uniq > ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_DELDUPUnion_${VF}_${context}.geneScore_FINAL_sig.genes.list
 done
 
