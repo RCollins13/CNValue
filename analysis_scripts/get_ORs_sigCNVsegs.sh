@@ -40,9 +40,9 @@ while read chr start end; do
       controlNoCNV=$( echo "38628-${controlCNV}" | bc )
       #Calcluate odds ratio
       unset R_HOME
-      Rscript -e "cat(paste(((${caseCNV}+(${nCASE}/38628))/(${controlCNV}+1))/((${caseNoCNV}+(${nCASE}/38628))/(${controlNoCNV}+1))),\"\n\",sep=\"\")"
+      Rscript -e "cat(paste(round(((${caseCNV}+(${nCASE}/38628))/(${controlCNV}+1))/((${caseNoCNV}+(${nCASE}/38628))/(${controlNoCNV}+1))),4),\"\n\",sep=\"\")"
     done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-      fgrep -v CTRL | cut -f1,8 )
+      cut -f1,8 | grep -e 'GERM\|NEURO\|NDD\|PSYCH\|SOMA' )
   done | paste -s
 done < ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed > \
 ${WRKDIR}/analysis/large_CNV_segments/assoc_stats/DEL_DUP_union.${VF}_${filt}.signif.filtered.${CNV}_OR.bed

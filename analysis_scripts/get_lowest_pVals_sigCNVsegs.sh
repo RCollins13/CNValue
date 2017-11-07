@@ -42,7 +42,7 @@ while read chr start end; do
       unset R_HOME
       Rscript -e "cat(paste(format(fisher.test(matrix(c(${controlNoCNV},${caseNoCNV},${controlCNV},${caseCNV}),byrow=T,nrow=2),alternative=\"greater\")\$p.value,scientific=T)),\"\n\",sep=\"\")"
     done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-      fgrep -v CTRL | cut -f1,8 )
+      cut -f1,8 | grep -e 'GERM\|NEURO\|NDD\|PSYCH\|SOMA' )
   done | paste -s
 done < ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed > \
 ${WRKDIR}/analysis/large_CNV_segments/assoc_stats/DEL_DUP_union.${VF}_${filt}.signif.filtered.${CNV}_pVal.bed 
