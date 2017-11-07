@@ -15,9 +15,21 @@
 export WRKDIR=/data/talkowski/Samples/rCNVmap
 source ${WRKDIR}/bin/rCNVmap/misc/rCNV_code_parameters.sh
 
+#####Create directory if necessary
+if ! [ -e ${WRKDIR}/data/plot_data/suppTables ]; then
+  mkdir ${WRKDIR}/data/plot_data/suppTables
+fi
+
 #####Supp tables 1-2: significant large segments
 VF=E2; filt=all
 for CNV in DEL DUP; do
+  #Print header
+  for wrapper in 1; do
+    echo -e "chr\tstart\tend\tCTRL_${CNV}_count"
+    for pheno in GERM NEURO NDD PSYCH SOMA; do
+      echo -e "${pheno}_${CNV}_count\t${pheno}_${CNV}_OR\t${pheno}_${CNV}_p"
+    done
+  done | paste -s > ${WRKDIR}/data/plot_data/suppTables/suppTables_1_2_${CNV}.txt
   #Get ORs and p-values
   bedtools intersect -wa -wb \
   -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/${CNV}_${VF}_${filt}.signif.bed \
@@ -37,6 +49,8 @@ for CNV in DEL DUP; do
   done < ${WRKDIR}/analysis/large_CNV_segments/master_lists/${CNV}_${VF}_${filt}.signif.bed > \
   ${TMPDIR}/${CNV}_segments_CNVcounts.txt
   #Paste the two tables together
-  paste ${TMPDIR}/${CNV}_segments_stats.txt ${TMPDIR}/${CNV}_segments_CNVcounts.txt
+  paste ${TMPDIR}/${CNV}_segments_stats.txt ${TMPDIR}/${CNV}_segments_CNVcounts.txt | \
+  awk -v OFS="\t" '{ print $1, $2, $3, $14, $15, $4, $9, $16, $5, $10, $17, $6, $11, $18, $7, $12, $19, $8, $13 }' >> \
+  ${WRKDIR}/data/plot_data/suppTables/suppTables_1_2_${CNV}.txt
 done
 
