@@ -7,7 +7,7 @@ ASD	GERM	4	Autism_spectrum_disorder	0000729	0002664	blue	3398
 DD	GERM	4	Developmental_delay	0001263	0002664	blue	34736
 ID	GERM	4	Intellectual_disability	0001249	0002664	blue	988
 PSYCH	GERM	3	Neuropsychiatric_disorder	0100753;0000708	0002664;0000729	blue	22115
-SCZ	GERM	4	Schizophrenia	100753	0002664	blue	21126
+SCZ	GERM	4	Schizophrenia	0100753	0002664	blue	21126
 BEHAV	GERM	4	Behavioral_abnormality_other	0000708	0002664;0100753;0000729	blue	997
 SEIZ	GERM	4	Seizures	0001250	0002664	blue	3164
 HYPO	GERM	4	Hypotonia	0001290	0002664	blue	1259
