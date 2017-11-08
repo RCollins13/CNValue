@@ -20,9 +20,11 @@ df <- df[1:9,]
 
 #####Prepare plot
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/rCNVdbSummaryFigure/phenotypes_per_subject.histogram.pdf",sep=""),
-    width=3,height=2.7)
+    width=3,height=3.4)
+# ymax <- 1.02*max(df[,2])
+ymax <- 30000
 par(mar=c(1.5,3,0.5,0.5),bty="n")
-plot(x=c(-0.1,nrow(df)),y=c(0,1.02*max(df[,2])),
+plot(x=c(-0.1,nrow(df)),y=c(0,ymax),
      type="n",xaxs="i",yaxs="i",xaxt="n",yaxt="n",xlab="",ylab="")
 
 #####Plot barplot

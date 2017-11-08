@@ -15,6 +15,13 @@ options(scipen=1000,stringsAsFactors=F)
 require(shape)
 heatmap.palette <- colorRampPalette(c("#08176b","#138934","#ffff59"))(1001)
 
+#####Set color vectors
+cols.CTRL <- c("#A5A6A7","#DCDDDF","#EAEBEC","#F8F8F9")
+cols.GERM <- c("#7B2AB3","B07FD1","#CAAAE1","#E5D4F0")
+cols.NEURO <- c("#00BFF4","#66D9F8","#99E5FB","#CCF2FD")
+cols.SOMA <- c("#EC008D","#F466BB","#F799D1","#FBCCE8")
+cols.CNCR <- c("#FFCB00","#FFCB00","#FFE066","#FFF5CC")
+
 #####Set color palettes
 # require(RColorBrewer)
 # cols.neuro <- colorRampPalette(c("white","#00BFF4"))(101)
@@ -51,8 +58,15 @@ scaled.df <- sapply(1:ncol(df),function(c){
 #   return(scaled.vals)
 # })))
 
+#####Set shaded colors for final analysis
+borcols <- c(rep(cols.NEURO[1],2),
+             cols.NEURO[3],cols.NEURO[1],
+             rep(cols.NEURO[3],6),
+             cols.SOMA[1],
+             rep(cols.SOMA[3],9))
+
 #####Prepare plot
-pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure1/Germline_subject_phenotype_overlap.heatmap.pdf",sep=""),
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/rCNVdbSummaryFigure/Germline_subject_phenotype_overlap.heatmap.pdf",sep=""),
     width=4,height=4)
 par(mar=rep(0.2,4),bty="n")
 
@@ -63,10 +77,9 @@ plot(x=-1:nrow(df),y=-nrow(df):1,
 # Arrows(x0=par("usr")[1],x1=-0.22,y0=-19.5:-0.5,y1=-19.5:-0.5,
 #        arr.type="triangle",arr.length=0.1,arr.width=0.15)
 rect(xleft=(1:nrow(df))-0.9,xright=(1:nrow(df))-0.1,
-     ybottom=0.1,ytop=0.5,
-     col=c(rep("#00BFF4",10),rep("#EC008D",10)))
+     ybottom=0.1,ytop=0.5,col=borcols)
 rect(xleft=-0.5,xright=-0.1,ybottom=-(1:nrow(df))+0.1,ytop=-((1:nrow(df))-0.9),
-     col=c(rep("#00BFF4",10),rep("#EC008D",10)))
+     col=borcols)
 
 #####Plot heatmap
 sapply(1:nrow(scaled.df),function(row){
@@ -106,7 +119,7 @@ segments(x0=c(0,10),x1=c(20,10),
 dev.off()
 
 #####Plot scales/key
-pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure1/Germline_subject_phenotype_overlap.heatmap.key.pdf",sep=""),
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/rCNVdbSummaryFigure/Germline_subject_phenotype_overlap.heatmap.key.pdf",sep=""),
     width=0.7,height=5)
 par(mar=c(0.2,0.2,0.2,1),bty="n")
 plot(x=c(0,1),y=c(0,-1001),

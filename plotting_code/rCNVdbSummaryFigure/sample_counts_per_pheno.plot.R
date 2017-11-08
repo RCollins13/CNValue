@@ -16,6 +16,13 @@ logvect.all <- c(0,log10(as.vector(sapply(1:4,function(x){return((1:9)*10^x)})))
 logvect.mids <- log10(as.vector(sapply(1:5,function(x){return(c(5,10)*10^x)})))
 logvect.mains <- log10(as.vector(sapply(1:5,function(x){return(10^x)})))
 
+#####Set color vectors
+cols.CTRL <- c("#A5A6A7","#DCDDDF","#EAEBEC","#F8F8F9")
+cols.GERM <- c("#7B2AB3","B07FD1","#CAAAE1","#E5D4F0")
+cols.NEURO <- c("#00BFF4","#66D9F8","#99E5FB","#CCF2FD")
+cols.SOMA <- c("#EC008D","#F466BB","#F799D1","#FBCCE8")
+cols.CNCR <- c("#FFCB00","#FFCB00","#FFE066","#FFF5CC")
+
 #####Prep data
 #Read file
 df <- read.table(paste(WRKDIR,"plot_data/rCNVdbSummaryFigure/sample_counts_by_group.txt",sep=""),
@@ -25,11 +32,11 @@ names(df) <- c("group","color","line","count","description")
 df$logCount <- log10(df$count)
 
 #####Modify NDD and PSYCH to have new color values
-df[which(df$group=="NDD" | df$group=="PSYCH"),2] <- "#66d9f8"
+df[which(df$group=="NDD" | df$group=="PSYCH"),2] <- cols.NEURO[1]
 
 #####Plot
 #Initialize device
-pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure1/sample_counts_per_pheno.barplot.pdf",sep=""),
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/rCNVdbSummaryFigure/sample_counts_per_pheno.barplot.pdf",sep=""),
     height=5,width=2.5)
 par(mar=c(0.5,0.5,2.5,0),bty="n")
 
