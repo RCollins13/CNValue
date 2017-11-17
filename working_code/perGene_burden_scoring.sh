@@ -329,14 +329,20 @@ for CNV in CNV DEL DUP; do
 done
 #Final analysis: subset of all combinations
 #Require E4-sig genes also to be nominally sig via Fisher's exact at E2
+#Require <100% gene body overlap versus control probe deserts
+#Require 0% gene body overlap with significant large segments
 for pheno in GERM NEURO NDD PSYCH SOMA; do
   for CNV in DEL DUP; do
     for VF in E4; do
       for context in exonic wholegene; do
-        #First must pass E2 basic Fisher's exact, then must pass E4 FDR
+        #First must pass E2 basic Fisher's exact, then must pass E4 FDR, then filter against control probe deserts and large segments
         fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_E2_${context}.geneScore_stats.txt | \
         awk -v FS="\t" '{ if ($29<=0.05) print $1 }' | sort | uniq | sed 's/\-/_/g' | \
-        fgrep -wf - <( sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_FDR_sig.genes.list ) > \
+        fgrep -wf - <( sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_FDR_sig.genes.list ) | \
+        fgrep -wf - <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed ) | \
+        bedtools coverage -b - -a ${WRKDIR}/data/misc/CTRL_probeDeserts.bed | awk '{ if ($NF<1) print $0 }' | \
+        bedtools coverage -b - -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/${CNV}_E2_all.signif.bed | \
+        awk '{ if ($NF==0) print $4 }' | sort | uniq > \
         ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list
       done
     done

@@ -22,6 +22,7 @@ fi
 
 #####Supp tables 1-2: significant large segments
 VF=E2; filt=all
+overlap=200000
 for CNV in DEL DUP; do
   #Print header
   for wrapper in 1; do

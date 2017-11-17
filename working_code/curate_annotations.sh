@@ -1547,6 +1547,34 @@ for i in $( seq 1 16 ); do
   sort -Vk1,1 -k2,2n -k3,3n -k4,4 | uniq > \
   ${WRKDIR}/data/misc/pcHiC_contacts/pcHiC_contacts.formatted_wGenes.min_${i}.unique_EP_pairs.bed
 done
+#Affymetrix 6.0 & Illumina Omni SNP array coordinates
+cd ${WRKDIR}/data/misc/
+wget http://hgdownload.cse.ucsc.edu/goldenpath/hg19/database/snpArrayAffy6.txt.gz
+zcat ${WRKDIR}/data/misc/snpArrayAffy6.txt.gz | cut -f2-4 | sed 's/^chr//g' > \
+${WRKDIR}/data/misc/Affy6_probes.bed
+gzip -f ${WRKDIR}/data/misc/Affy6_probes.bed
+wget http://hgdownload.cse.ucsc.edu/goldenpath/hg19/database/snpArrayIlluminaHumanOmni1_Quad.txt.gz
+zcat ${WRKDIR}/data/misc/snpArrayIlluminaHumanOmni1_Quad.txt.gz | cut -f2-4 | sed 's/^chr//g' > \
+${WRKDIR}/data/misc/Omni_probes.bed
+gzip -f ${WRKDIR}/data/misc/Omni_probes.bed
+#Create control probe deserts
+while read contig length; do
+  paste <( seq 0 10000 $(( ${length}-100000 )) ) \
+  <( seq 100000 10000 ${length} ) | \
+  awk -v OFS="\t" -v contig=${contig} '{ print contig, $1, $2 }'
+done < ${WRKDIR}/data/misc/GRCh37_autosomes.genome > \
+${WRKDIR}/data/misc/GRCh37_autosomes.100kbBins_10kbSteps.bed
+bedtools intersect -c -a ${WRKDIR}/data/misc/GRCh37_autosomes.100kbBins_10kbSteps.bed \
+-b ${WRKDIR}/data/misc/Affy6_probes.bed.gz | awk -v OFS="\t" '{ if ($4<=9) print $1, $2, $3 }' | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+${WRKDIR}/data/misc/Affy6_probeDeserts.bed
+bedtools intersect -c -a ${WRKDIR}/data/misc/GRCh37_autosomes.100kbBins_10kbSteps.bed \
+-b ${WRKDIR}/data/misc/Omni_probes.bed.gz | awk -v OFS="\t" '{ if ($4<=14) print $1, $2, $3 }' | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+${WRKDIR}/data/misc/Omni_probeDeserts.bed
+cat ${WRKDIR}/data/misc/Affy6_probeDeserts.bed \
+${WRKDIR}/data/misc/Omni_probeDeserts.bed | sort -Vk1,1 -k2,2n -k3,3n | \
+bedtools merge -i - > ${WRKDIR}/data/misc/CTRL_probeDeserts.bed
 
 ########################################
 #####ANNOTATIONS FOR EXAMPLE LOCUS PLOTS

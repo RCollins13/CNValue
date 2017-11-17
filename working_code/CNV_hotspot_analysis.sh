@@ -25,7 +25,8 @@ awk -v OFS="\t" '{ print $1, $2-100000, $3+100000 }' | awk -v OFS="\t" '{ if ($2
 <( grep -e 'centromere' /data/talkowski/rlc47/src/GRCh37_heterochromatin.bed | \
 awk -v OFS="\t" '{ print $1, $2-1000000, $3+1000000 }' | awk -v OFS="\t" '{ if ($2<0) $2=0; print }' ) \
 /data/talkowski/rlc47/src/GRCh37_Nmask.bed \
-<( grep -e 'X\|Y\|M' ${WRKDIR}/lists/rCNVmap_excluded_loci.CNVs.bed | cut -f1-3 ) | \
+<( grep -e 'X\|Y\|M' ${WRKDIR}/lists/rCNVmap_excluded_loci.CNVs.bed | cut -f1-3 ) \
+${WRKDIR}/data/misc/CTRL_probeDeserts.bed | \
 sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
 ${WRKDIR}/data/master_annotations/other/hotspotAnalysis.excluded_loci.bed 
 
@@ -127,13 +128,13 @@ while read pheno color ncase; do
     done
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-        awk -v OFS="\t" '$1 ~ /GERM|NEURO|NDD|PSYCH|SOMA/ {  print $1, $7, $8 }' )
+        awk -v OFS="\t" '$1 ~ /GERM|NEURO|NDD|PSYCH|SOMA/ { print $1, $7, $8 }' )
 
 #############################################
 #Collect & merge significant loci per disease
 #############################################
 #Set significance threshold
-nTests=13225
+nTests=10420
 #Initialize directory
 if [ -e ${WRKDIR}/analysis/large_CNV_segments ]; then
   rm -rf ${WRKDIR}/analysis/large_CNV_segments
