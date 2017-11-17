@@ -59,6 +59,51 @@ while read pheno; do
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
+#Final analysis: subset of all combinations, but exclude CNVs with >200kb overlap with any large segment
+#Prep CNVs:
+for pheno in CTRL GERM NEURO NDD PSYCH SOMA; do
+  for CNV in DEL DUP; do
+    for VF in E4; do
+      zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.all.bed.gz | head -n1 > \
+      ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.all_largeSegmentExcluded.bed
+      bedtools coverage \
+      -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/${CNV}_E2_all.signif.bed \
+      -b ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.all.bed.gz | \
+      awk -v OFS="\t" '{ if ($(NF-2)<200000) print $1, $2, $3, $4, $5, $6, $7 }' | \
+      sort -Vk1,1 -k2,2n -k3,3n >> \
+      ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.all_largeSegmentExcluded.bed
+      gzip -f ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.all_largeSegmentExcluded.bed
+    done
+  done
+done
+#Launch jobs
+for pheno in GERM NEURO NDD PSYCH SOMA; do
+  for CNV in DEL DUP; do
+    for VF in E4; do
+      #Exonic
+      bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_perGene_burden_dataCollection_exonic \
+      "${WRKDIR}/bin/rCNVmap/bin/gather_geneScore_data.sh \
+      -H ${WRKDIR}/data/misc/exons_boundaries_dictionary/ \
+      -U /data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list \
+      -o ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_exonic.geneScore_data.txt \
+      ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.all_largeSegmentExcluded.bed.gz \
+      ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.all_largeSegmentExcluded.bed.gz \
+      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf \
+      ${h37}"
+      #Wholegene
+      bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_perGene_burden_dataCollection_wholegene \
+      "${WRKDIR}/bin/rCNVmap/bin/gather_geneScore_data.sh -W \
+      -H ${WRKDIR}/data/misc/exons_boundaries_dictionary/ \
+      -U /data/talkowski/Samples/rCNVmap/data/master_annotations/genelists/Gencode_v19_protein_coding.genes.list \
+      -o ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_wholegene.geneScore_data.txt \
+      ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.all_largeSegmentExcluded.bed.gz \
+      ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.all_largeSegmentExcluded.bed.gz \
+      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.annotation.gtf \
+      ${h37}"
+    done
+  done
+done
+
 
 #####Copy test datasets to plotting data directory
 if [ -e ${WRKDIR}/data/plot_data/perGene_burden ]; then
