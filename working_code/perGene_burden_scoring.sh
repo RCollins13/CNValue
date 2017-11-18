@@ -63,7 +63,7 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
 #Prep CNVs:
 for pheno in CTRL GERM NEURO NDD PSYCH SOMA; do
   for CNV in DEL DUP; do
-    for VF in E4; do
+    for VF in E2 E4; do
       zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.all.bed.gz | head -n1 > \
       ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.all_largeSegmentExcluded.bed
       bedtools coverage \
@@ -79,7 +79,7 @@ done
 #Launch jobs
 for pheno in GERM NEURO NDD PSYCH SOMA; do
   for CNV in DEL DUP; do
-    for VF in E4; do
+    for VF in E2 E4; do
       #Exonic
       bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_perGene_burden_dataCollection_exonic \
       "${WRKDIR}/bin/rCNVmap/bin/gather_geneScore_data.sh \
@@ -173,6 +173,25 @@ while read pheno; do
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           fgrep -v CTRL | cut -f1 )
+#Final analysis: subset of all combinations
+for pheno in GERM NEURO NDD PSYCH SOMA; do
+  nCASE=$( awk -v pheno=${pheno} '{ if ($1==pheno) print $4 }' \
+         ${WRKDIR}/data/plot_data/figure1/sample_counts_by_group.txt )
+  for CNV in DEL DUP; do
+    for VF in E2 E4; do
+      for context in exonic wholegene; do
+        if [ -e ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt ]; then
+          bsub -q short -sla miket_sc -u nobody -J ${pheno}_${CNV}_${VF}_${context}_geneScoreModel \
+          "${WRKDIR}/bin/rCNVmap/bin/run_geneScore_model.R \
+          -o ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt \
+          ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt \
+          38628 ${nCASE}"
+        fi
+      done
+    done
+  done
+done
+
 
 #####Subselect significant genes per combination
 #Create master output directory
@@ -213,7 +232,7 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
 for pheno in GERM NEURO NDD PSYCH SOMA; do
   for CNV in DEL DUP; do
     for VF in E2 E4; do
-      for context in exonic; do
+      for context in exonic wholegene; do
         if [ -e ${WRKDIR}/data/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_data.txt ]; then
           #Nominal
           fgrep -v "#" ${WRKDIR}/analysis/perGene_burden/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_stats.txt | \
@@ -375,7 +394,6 @@ done
 #Final analysis: subset of all combinations
 #Require E4-sig genes also to be nominally sig via Fisher's exact at E2
 #Require <100% gene body overlap versus control probe deserts
-#Require 0% gene body overlap with significant large segments
 for pheno in GERM NEURO NDD PSYCH SOMA; do
   for CNV in DEL DUP; do
     for VF in E4; do
@@ -385,14 +403,24 @@ for pheno in GERM NEURO NDD PSYCH SOMA; do
         awk -v FS="\t" '{ if ($29<=0.05) print $1 }' | sort | uniq | sed 's/\-/_/g' | \
         fgrep -wf - <( sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/${pheno}/${pheno}_${CNV}_${VF}_${context}.geneScore_FDR_sig.genes.list ) | \
         fgrep -wf - <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed ) | \
-        bedtools coverage -b - -a ${WRKDIR}/data/misc/CTRL_probeDeserts.bed | awk '{ if ($NF<1) print $0 }' | \
-        bedtools coverage -b - -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/${CNV}_E2_all.signif.bed | \
-        awk '{ if ($NF==0) print $4 }' | sort | uniq > \
+        bedtools coverage -b - -a ${WRKDIR}/data/misc/CTRL_probeDeserts.bed | \
+        awk '{ if ($NF<1) print $4 }' | sort | uniq > \
         ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list
       done
     done
   done
 done
+#Count number of genes per phenotype
+for pheno in GERM NEURO NDD PSYCH SOMA; do
+  echo ${pheno}
+  for CNV in DEL DUP; do
+    for VF in E4; do
+      for context in exonic; do
+        cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list | wc -l
+      done
+    done
+  done
+done | paste - - -
 
 #Sanity check: get fraction of constrained genes per group for final analysis set
 VF=E4; context=exonic
