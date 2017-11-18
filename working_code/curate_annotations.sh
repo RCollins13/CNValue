@@ -610,8 +610,8 @@ sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
 ${WRKDIR}/data/master_annotations/noncoding/UCNEs.elements.bed
 #Autosomal consensus syndromic CNV list
 cat <( sed '1d' ${SFARI_ANNO}/misc/recurrent_CNV_loci_hg19.bed | sed 's/,//g' | cut -f1-3 ) \
-<( sed '1d' ${SFARI_ANNO}/misc/PathogenicCNVs_allSources_nonredundant_hg19_CER.bed | cut -f1,4,5 ) | \
-sort -Vk1,1 -k2,2n -k3,3n | awk '{ if ($3-$2<=5000000) print $0 }' | bedtools merge -i - | \
+<( sed '1d' ${SFARI_ANNO}/misc/PathogenicCNVs_allSources_nonredundant_hg19_CER.bed | cut -f1,4,5 ) \
+${WRKDIR}/data/misc/PGC_CNV_all.bed | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | \
 grep -e '^[0-9]' > ${WRKDIR}/data/master_annotations/noncoding/syndromic_CNVs.elements.bed
 #FIREs
 #Note: requires manually curated Schmitt_tissues.list
