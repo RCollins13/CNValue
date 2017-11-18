@@ -134,7 +134,7 @@ done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.li
 #Collect & merge significant loci per disease
 #############################################
 #Set significance threshold
-nTests=10420
+nTests=12480
 #Initialize directory
 if [ -e ${WRKDIR}/analysis/large_CNV_segments ]; then
   rm -rf ${WRKDIR}/analysis/large_CNV_segments
@@ -207,11 +207,11 @@ done
 ###############################
 #Filter master significant loci 
 ###############################
-#Filters: ≥200kb, 100kb merge distance, ≥4 protein-coding genes, and <50% SD coverage
-minSize=250000
-minGenes=4
-maxSD=0.5
-maxDist=250000
+#Filters: ≥200kb, 100kb merge distance
+minSize=200000
+minGenes=0
+maxSD=1
+maxDist=100000
 #Note: combine loci significant for DEL or DUP, but not CNV (DEL+DUP)
 if [ -e ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered ]; then
   rm -rf ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered

@@ -22,7 +22,7 @@ cols.CTRL <- c("#A5A6A7","#DCDDDF","#EAEBEC","#F8F8F9")
 cols.GERM <- c("#7B2AB3","#B07FD1","#CAAAE1","#E5D4F0")
 cols.NEURO <- c("#00BFF4","#66D9F8","#99E5FB","#CCF2FD")
 cols.SOMA <- c("#EC008D","#F466BB","#F799D1","#FBCCE8")
-cols.CNCR <- c("#FFCB00","#FFCB00","#FFE066","#FFF5CC")
+# cols.CNCR <- c("#FFCB00","#FFCB00","#FFE066","#FFF5CC")
 
 ###################################################
 #####Helper function to read and transform p-values
@@ -102,7 +102,7 @@ mirrorManhattan <- function (df,adjusted=1E-8,ymax=NULL,col.even,col.odd,yaxis=T
 
   #Add y-axis
   if(yaxis==T){
-    y.at <- seq(0,2*ceiling(par("usr")[4]),by=10)
+    y.at <- seq(0,2*ceiling(par("usr")[4]),by=5)
     #Top y-axis
     axis(2,at=y.at+boxht,labels=NA)
     axis(2,at=y.at[-1]+boxht,tick=F,line=-0.3,labels=y.at[-1],las=2)
@@ -113,16 +113,16 @@ mirrorManhattan <- function (df,adjusted=1E-8,ymax=NULL,col.even,col.odd,yaxis=T
 
   #Add horizontal gridlines
   abline(v=indexes[,4],col="white",lwd=2)
-  abline(h=c(-seq(0,ymax+10,10)-boxht,seq(0,ymax+10,10)+boxht),
+  abline(h=c(-seq(0,ymax+10,5)-boxht,seq(0,ymax+10,5)+boxht),
          col=cols.CTRL[3],lwd=0.8)
   abline(h=c(log10(adjusted)-boxht,-log10(adjusted)+boxht),
-         col=adjustcolor(c("blue","red"),alpha=0.5),lty=3)
+         col=adjustcolor(c("red","blue"),alpha=0.5),lty=3)
 
   #Plots points
-  points(df.plot[,2],df.plot[,3]+boxht,
-         cex=0.5,pch=19,col=as.character(df.plot[,5]))
-  points(df.plot[,2],-(df.plot[,4]+boxht),
+  points(df.plot[,2],df.plot[,4]+boxht,
          cex=0.5,pch=19,col=as.character(df.plot[,6]))
+  points(df.plot[,2],-(df.plot[,3]+boxht),
+         cex=0.5,pch=19,col=as.character(df.plot[,5]))
 
   #Adds chromosome labels
   sapply(1:length(contigs),function(i){
@@ -156,17 +156,16 @@ mirrorManhattan <- function (df,adjusted=1E-8,ymax=NULL,col.even,col.odd,yaxis=T
 #Make plotting values list
 plotVals <- list(c("GERM",cols.GERM[1],cols.GERM[3],T),
                  c("NEURO",cols.NEURO[1],cols.NEURO[3],F),
-                 c("NDD",cols.NEURO[1],cols.NEURO[3],F),
+                 c("NDD",cols.NEURO[1],cols.NEURO[3],T),
                  c("PSYCH",cols.NEURO[1],cols.NEURO[3],F),
-                 c("SOMA",cols.SOMA[1],cols.SOMA[3],F),
-                 c("CNCR",cols.CNCR[1],cols.CNCR[3],F))
+                 c("SOMA",cols.SOMA[1],cols.SOMA[3],F))
 #Iterate and plot
 lapply(plotVals,function(vals){
   df <- readData(vals[1],"E2","all")
   png(paste(WRKDIR,"rCNV_map_paper/Figures/Figure2/",
             as.character(vals[1]),"_E2_all.mirrorManhattan.png",sep=""),
       height=1200,width=1500,res=300)
-  mirrorManhattan(df,col.even=vals[2],col.odd=vals[3],ymax=40,yaxis=vals[4])
+  mirrorManhattan(df,col.even=vals[2],col.odd=vals[3],ymax=20,yaxis=vals[4],adjusted=0.05/10420)
   dev.off()
 })
 

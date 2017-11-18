@@ -37,9 +37,9 @@ filt=all
 for pheno in GERM NEURO NDD PSYCH SOMA; do
   paste \
   <( zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/${pheno}_DEL_${VF}_${filt}.TBRden_results.bed.gz | \
-     sed '1d' | awk -v OFS="\t" '{ print $1, $2, $3, $NF }' ) \
+     sed '1d' | awk -v OFS="\t" '{ print $1, $2, $3, $(NF-1) }' ) \
   <( zcat ${WRKDIR}/analysis/BIN_CNV_burdens/${pheno}/${pheno}_DUP_${VF}_${filt}.TBRden_results.bed.gz | \
-     sed '1d' | awk -v OFS="\t" '{ print $NF }' ) > \
+     sed '1d' | awk -v OFS="\t" '{ print $(NF-1) }' ) > \
   ${WRKDIR}/data/plot_data/figure2/${pheno}.${VF}.${filt}.manhattan_pvals.bed
 done
 

@@ -1565,11 +1565,11 @@ while read contig length; do
 done < ${WRKDIR}/data/misc/GRCh37_autosomes.genome > \
 ${WRKDIR}/data/misc/GRCh37_autosomes.100kbBins_10kbSteps.bed
 bedtools intersect -c -a ${WRKDIR}/data/misc/GRCh37_autosomes.100kbBins_10kbSteps.bed \
--b ${WRKDIR}/data/misc/Affy6_probes.bed.gz | awk -v OFS="\t" '{ if ($4<=9) print $1, $2, $3 }' | \
+-b ${WRKDIR}/data/misc/Affy6_probes.bed.gz | awk -v OFS="\t" '{ if ($4<=3) print $1, $2, $3 }' | \
 sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
 ${WRKDIR}/data/misc/Affy6_probeDeserts.bed
 bedtools intersect -c -a ${WRKDIR}/data/misc/GRCh37_autosomes.100kbBins_10kbSteps.bed \
--b ${WRKDIR}/data/misc/Omni_probes.bed.gz | awk -v OFS="\t" '{ if ($4<=14) print $1, $2, $3 }' | \
+-b ${WRKDIR}/data/misc/Omni_probes.bed.gz | awk -v OFS="\t" '{ if ($4<=8) print $1, $2, $3 }' | \
 sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
 ${WRKDIR}/data/misc/Omni_probeDeserts.bed
 cat ${WRKDIR}/data/misc/Affy6_probeDeserts.bed \
