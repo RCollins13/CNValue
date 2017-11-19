@@ -112,7 +112,7 @@ for pheno in GERM NEURO NDD PSYCH SOMA; do
     for CNV in DEL; do
       for filt in haplosufficient; do
         while read class path; do
-          bsub -q short -sla miket_sc -u nobody -J ${pheno}_${CNV}_haploinsuff_${class} \
+          bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_haploinsuff_${class} \
           "${WRKDIR}/bin/rCNVmap/bin/gather_annoScore_data.sh -z \
           -p ${class} \
           -o ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.haplosufficient.${class}.annoScoreData.bed \
@@ -125,7 +125,7 @@ for pheno in GERM NEURO NDD PSYCH SOMA; do
     for CNV in DUP; do
       for filt in noncoding; do
         while read class path; do
-          bsub -q short -sla miket_sc -u nobody -J ${pheno}_${CNV}_noncoding_${class} \
+          bsub -q normal -sla miket_sc -u nobody -J ${pheno}_${CNV}_noncoding_${class} \
           "${WRKDIR}/bin/rCNVmap/bin/gather_annoScore_data.sh -z \
           -p ${class} \
           -o ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.noncoding.${class}.annoScoreData.bed \
