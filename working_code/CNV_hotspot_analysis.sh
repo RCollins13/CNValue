@@ -333,163 +333,232 @@ for VF in E2; do
   done
 done
 
-############################################################
-#####Count significant loci per germline & cancer phenotypes
-############################################################
-VF=E2
-filt=all
-#Get count (any pheno)
-cat ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed | wc -l
-#Get count significant in any germline pheno
-while read pheno; do
-  for CNV in DEL DUP; do
-    bedtools intersect -wa -u \
-    -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
-    -b ${WRKDIR}/analysis/large_CNV_segments/${pheno}/${pheno}_${CNV}_${VF}_${filt}.signif.bed
-  done
-done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-      fgrep -v CTRL | awk '{ if ($2=="GERM") print $1 }' ) | \
-  sort -Vk1,1 -k2,2n -k3,3n | uniq > ${TMPDIR}/GERM.sig.loci.bed
-cat ${TMPDIR}/GERM.sig.loci.bed | wc -l
-#Get count significant in any cancer pheno
-while read pheno; do
-  for CNV in DEL DUP; do
-    bedtools intersect -wa -u \
-    -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
-    -b ${WRKDIR}/analysis/large_CNV_segments/${pheno}/${pheno}_${CNV}_${VF}_${filt}.signif.bed
-  done
-done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-      fgrep -v CTRL | awk '{ if ($2=="CNCR") print $1 }' ) | \
-  sort -Vk1,1 -k2,2n -k3,3n | uniq > ${TMPDIR}/CNCR.sig.loci.bed
-cat ${TMPDIR}/CNCR.sig.loci.bed | wc -l
+# ############################################################
+# #####Count significant loci per germline & cancer phenotypes
+# ############################################################
+# VF=E2
+# filt=all
+# #Get count (any pheno)
+# cat ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed | wc -l
+# #Get count significant in any germline pheno
+# while read pheno; do
+#   for CNV in DEL DUP; do
+#     bedtools intersect -wa -u \
+#     -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
+#     -b ${WRKDIR}/analysis/large_CNV_segments/${pheno}/${pheno}_${CNV}_${VF}_${filt}.signif.bed
+#   done
+# done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+#       fgrep -v CTRL | awk '{ if ($2=="GERM") print $1 }' ) | \
+#   sort -Vk1,1 -k2,2n -k3,3n | uniq > ${TMPDIR}/GERM.sig.loci.bed
+# cat ${TMPDIR}/GERM.sig.loci.bed | wc -l
+# #Get count significant in any cancer pheno
+# while read pheno; do
+#   for CNV in DEL DUP; do
+#     bedtools intersect -wa -u \
+#     -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
+#     -b ${WRKDIR}/analysis/large_CNV_segments/${pheno}/${pheno}_${CNV}_${VF}_${filt}.signif.bed
+#   done
+# done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+#       fgrep -v CTRL | awk '{ if ($2=="CNCR") print $1 }' ) | \
+#   sort -Vk1,1 -k2,2n -k3,3n | uniq > ${TMPDIR}/CNCR.sig.loci.bed
+# cat ${TMPDIR}/CNCR.sig.loci.bed | wc -l
 
 ########################################
 #####Locus overlaps vs positive controls
 ########################################
-#Get overlap between germline & cancer significant loci
-bedtools intersect \
--a ${TMPDIR}/GERM.sig.loci.bed \
--b ${TMPDIR}/CNCR.sig.loci.bed | wc -l
-#Get overlap of germline significant loci & known loci
-bedtools intersect -u -a ${TMPDIR}/GERM.sig.loci.bed \
--b ${WRKDIR}/data/master_annotations/noncoding/syndromic_CNVs.elements.bed | wc -l
-#Get overlap of cancer significant loci & known loci
-bedtools intersect -u -a ${TMPDIR}/CNCR.sig.loci.bed \
--b ${WRKDIR}/data/master_annotations/noncoding/cancer_CNVs.elements.bed | wc -l
-#Overlap each pan CNCR-significant locus w/COSMIC genes
-VF=E2
-filt=all
-for CNV in DEL DUP; do
-  while read chr start end; do
-    for dummy in 1; do
-      echo -e "${chr}\t${start}\t${end}"
-      TS=$( bedtools intersect -wb -a <( echo -e "${chr}\t${start}\t${end}" ) \
-        -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
-        awk '{ print $NF }' | fgrep -wf ${WRKDIR}/data/master_annotations/genelists/COSMIC_tumor_suppressor.genes.list | \
-        paste -s -d, )
-      if [ -z ${TS} ]; then
-        echo "."
-      else
-        echo "${TS}"
-      fi
-      ONCO=$( bedtools intersect -wb -a <( echo -e "${chr}\t${start}\t${end}" ) \
-        -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
-        awk '{ print $NF }' | fgrep -wf ${WRKDIR}/data/master_annotations/genelists/COSMIC_oncogene.genes.list | \
-        paste -s -d, )
-      if [ -z ${ONCO} ]; then
-        echo "."
-      else
-        echo "${ONCO}"
-      fi
-    done | paste -s
-  done < <( bedtools intersect -wa -u \
-    -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
-    -b ${WRKDIR}/analysis/large_CNV_segments/CNCR/CNCR_${CNV}_${VF}_${filt}.signif.bed )
-done
-
-##################################################
-#####Overlap of genes hit versus constrained genes
-##################################################
-#Get median count of protein-coding genes per significant locus
-VF=E2
-filt=all
-bedtools intersect -c \
--a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
--b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
-cut -f4 | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
-#Get lists of significant loci per phenotype/CNV combo
-for CNV in DEL DUP; do
-  #All phenos
-  while read pheno; do
-    bedtools intersect -wa -u \
-    -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
-    -b ${WRKDIR}/analysis/large_CNV_segments/${pheno}/${pheno}_${CNV}_${VF}_${filt}.signif.bed
-  done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-            fgrep -v CTRL | cut -f1 ) | sort -Vk1,1 -k2,2n -k3,3n | uniq > \
-  ${TMPDIR}/ALL_PHENOS.${CNV}.sig.loci.bed
-  #CNCR or GERM only
-  for group in CNCR GERM; do
-    while read pheno; do
-      bedtools intersect -wa -u \
-      -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
-      -b ${WRKDIR}/analysis/large_CNV_segments/${pheno}/${pheno}_${CNV}_${VF}_${filt}.signif.bed
-    done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-              fgrep -v CTRL | awk -v group=${group} '{ if ($2==group) print $1 }' ) | \
-              sort -Vk1,1 -k2,2n -k3,3n | uniq > \
-    ${TMPDIR}/${group}.${CNV}.sig.loci.bed
-  done
-done
-#Get counts of constrained genes per phenotype/CNV combo
-if ! [ -e ${WRKDIR}/analysis/large_CNV_segments/constrained_enrichments ]; then
-  mkdir ${WRKDIR}/analysis/large_CNV_segments/constrained_enrichments
+#Create positive control lists
+if ! [ -e ${WRKDIR}/data/misc/known_CNV_segments ]; then
+  mkdir ${WRKDIR}/data/misc/known_CNV_segments
 fi
+while read study; do
+  fgrep -w ${study} ${SFARI_ANNO}/misc/PathogenicCNVs_allSources_nonredundant_hg19_CER.bed | \
+  sort -Vk1,1 -k2,2n -k3,3n | cut -f1-3 | grep -e '^[0-9]' | bedtools merge -i - > \
+  ${WRKDIR}/data/misc/known_CNV_segments/${study}.Redin.bed
+done < <( sed '1d' ${SFARI_ANNO}/misc/PathogenicCNVs_allSources_nonredundant_hg19_CER.bed | \
+          awk '{ print $NF }' | sed 's/,/\n/g' | sort | uniq )
+while read study; do
+  fgrep -w ${study} ${SFARI_ANNO}/misc/recurrent_CNV_loci_hg19.bed | cut -f1-3 | \
+  sed 's/,//g' | sort -Vk1,1 -k2,2n -k3,3n | grep -e '^[0-9]' | \
+  bedtools merge -i - > ${WRKDIR}/data/misc/known_CNV_segments/${study}.Collins.bed
+done < <( sed '1d' ${SFARI_ANNO}/misc/recurrent_CNV_loci_hg19.bed | \
+          awk '{ print $NF }' | sed 's/,/\n/g' | sort | uniq )
+cut -f1-3 ${WRKDIR}/data/misc/PGC_CNV_sig.bed | grep -e '^[0-9]' | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+${WRKDIR}/data/misc/known_CNV_segments/PGC.Collins.bed
+cat ${WRKDIR}/data/misc/known_CNV_segments/*Redin* \
+    ${WRKDIR}/data/misc/known_CNV_segments/*Collins* | \
+  sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
+  ${WRKDIR}/data/misc/known_CNV_segments/all.merged.bed
+#Iterate over all positive control sets and compute observed & expected overlap
+while read ref; do
+  echo -e "${ref}.observed\t${ref}.expected"
+done < <( cat <( echo -e "all.merged" ) \
+                <( sed '1d' ${SFARI_ANNO}/misc/PathogenicCNVs_allSources_nonredundant_hg19_CER.bed | \
+                   awk '{ print $NF }' | sed 's/,/\n/g' | sort | uniq | \
+                   awk '{ print $1".Redin" }' ) \
+                <( sed '1d' ${SFARI_ANNO}/misc/recurrent_CNV_loci_hg19.bed | \
+                   awk '{ print $NF }' | sed 's/,/\n/g' | sort | uniq | \
+                   awk '{ print $1".Collins" }' ) ) | \
+paste -s | awk -v OFS="\t" '{ print "CNV", "total", $0 }' > \
+${WRKDIR}/analysis/large_CNV_segments/known_locus_overlap.txt
+VF=E2; filt=all
 for CNV in DEL DUP; do
-  for group in ALL_PHENOS GERM CNCR; do
-    paste <( fgrep -wf ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list \
-      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed |
-      bedtools intersect -c -b - -a ${TMPDIR}/${group}.${CNV}.sig.loci.bed ) \
-      <( bedtools intersect -c -a ${TMPDIR}/${group}.${CNV}.sig.loci.bed \
-      -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed ) | \
-    awk -v OFS="\t" '{ print $4, $8 }' > \
-    ${WRKDIR}/analysis/large_CNV_segments/constrained_enrichments/${group}.${CNV}.constrained_genes_count.txt
-  done
-done 
-#Get counts of missense-constrained genes per phenotype/CNV combo
-for CNV in DEL DUP; do
-  for group in ALL_PHENOS GERM CNCR; do
-    paste <( fgrep -wf ${WRKDIR}/data/master_annotations/genelists/ExAC_missense_constrained.genes.list \
-      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed |
-      bedtools intersect -c -b - -a ${TMPDIR}/${group}.${CNV}.sig.loci.bed ) \
-      <( bedtools intersect -c -a ${TMPDIR}/${group}.${CNV}.sig.loci.bed \
-      -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed ) | \
-    awk -v OFS="\t" '{ print $4, $8 }' > \
-    ${WRKDIR}/analysis/large_CNV_segments/constrained_enrichments/${group}.${CNV}.missense_constrained_genes_count.txt
-  done
-done 
+  for wrapper in 1; do
+    #Print CNV & total number of sites
+    echo ${CNV}
+    cat ${WRKDIR}/analysis/large_CNV_segments/master_lists/${CNV}_${VF}_${filt}.signif.bed | wc -l
+    while read ref; do
+      #Get observed overlap (>50% coverage vs known interval)
+      bedtools coverage -a ${WRKDIR}/data/misc/known_CNV_segments/${ref}.bed \
+      -b ${WRKDIR}/analysis/large_CNV_segments/master_lists/${CNV}_${VF}_${filt}.signif.bed | \
+      awk '{ if ($NF>=0.5) print $1 }' | wc -l
+      #Get expected overlap (average of 100 shuffles)
+      #CODE:
+      for i in $( seq 1 100 ); do
+        bedtools shuffle -noOverlapping -seed ${i} \
+        -excl ${WRKDIR}/data/master_annotations/other/hotspotAnalysis.excluded_loci.bed \
+        -i ${WRKDIR}/analysis/large_CNV_segments/master_lists/${CNV}_${VF}_${filt}.signif.bed \
+        -g /data/talkowski/rlc47/src/GRCh37.genome | \
+        bedtools coverage -b - -a ${WRKDIR}/data/misc/known_CNV_segments/${ref}.bed | \
+        awk '{ if ($NF>=0.5) print $1 }' | wc -l
+      done > ${TMPDIR}/${CNV}.${ref}.simulated.txt
+      #COLLECT:
 
-####################################################################################
-#####Get count of cases carrying at least one DEL or DUP at a significant GERM locus
-####################################################################################
-VF=E2
-filt=all
-group=GERM
-if ! [ -e ${WRKDIR}/${WRKDIR}/analysis/large_CNV_segments/prevalance ]; then
-  mkdir ${WRKDIR}/analysis/large_CNV_segments/prevalance
-fi
-#Iterate over phenotypes & count CNVs (≥25% overlap)
-for CNV in DEL DUP; do
-  while read pheno nSamp; do
-    for dummy in 1; do
-      echo "${pheno}"
-      bedtools intersect -f 0.25 -wb -a ${TMPDIR}/${group}.${CNV}.sig.loci.bed \
-      -b ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz | \
-      cut -f7 | sort | uniq | wc -l
-      echo "${nSamp}"
-    done | paste -s
-  done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-            sed -n '1,23p' | awk -v OFS="\t" '{ print $1, $NF }' ) > \
-  ${WRKDIR}/analysis/large_CNV_segments/prevalance/GERM_${CNV}.prevalance.txt
-done
+    done < <( cat <( echo -e "all.merged" ) \
+                  <( sed '1d' ${SFARI_ANNO}/misc/PathogenicCNVs_allSources_nonredundant_hg19_CER.bed | \
+                     awk '{ print $NF }' | sed 's/,/\n/g' | sort | uniq | \
+                     awk '{ print $1".Redin" }' ) \
+                  <( sed '1d' ${SFARI_ANNO}/misc/recurrent_CNV_loci_hg19.bed | \
+                     awk '{ print $NF }' | sed 's/,/\n/g' | sort | uniq | \
+                     awk '{ print $1".Collins" }' ) )
+  done | paste -s
+done >> ${WRKDIR}/analysis/large_CNV_segments/known_locus_overlap.txt
+
+
+# #Get overlap between germline & cancer significant loci
+# bedtools intersect \
+# -a ${TMPDIR}/GERM.sig.loci.bed \
+# -b ${TMPDIR}/CNCR.sig.loci.bed | wc -l
+# #Get overlap of germline significant loci & known loci
+# bedtools intersect -u -a ${TMPDIR}/GERM.sig.loci.bed \
+# -b ${WRKDIR}/data/master_annotations/noncoding/syndromic_CNVs.elements.bed | wc -l
+# #Get overlap of cancer significant loci & known loci
+# bedtools intersect -u -a ${TMPDIR}/CNCR.sig.loci.bed \
+# -b ${WRKDIR}/data/master_annotations/noncoding/cancer_CNVs.elements.bed | wc -l
+# #Overlap each pan CNCR-significant locus w/COSMIC genes
+# VF=E2
+# filt=all
+# for CNV in DEL DUP; do
+#   while read chr start end; do
+#     for dummy in 1; do
+#       echo -e "${chr}\t${start}\t${end}"
+#       TS=$( bedtools intersect -wb -a <( echo -e "${chr}\t${start}\t${end}" ) \
+#         -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
+#         awk '{ print $NF }' | fgrep -wf ${WRKDIR}/data/master_annotations/genelists/COSMIC_tumor_suppressor.genes.list | \
+#         paste -s -d, )
+#       if [ -z ${TS} ]; then
+#         echo "."
+#       else
+#         echo "${TS}"
+#       fi
+#       ONCO=$( bedtools intersect -wb -a <( echo -e "${chr}\t${start}\t${end}" ) \
+#         -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
+#         awk '{ print $NF }' | fgrep -wf ${WRKDIR}/data/master_annotations/genelists/COSMIC_oncogene.genes.list | \
+#         paste -s -d, )
+#       if [ -z ${ONCO} ]; then
+#         echo "."
+#       else
+#         echo "${ONCO}"
+#       fi
+#     done | paste -s
+#   done < <( bedtools intersect -wa -u \
+#     -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
+#     -b ${WRKDIR}/analysis/large_CNV_segments/CNCR/CNCR_${CNV}_${VF}_${filt}.signif.bed )
+# done
+
+# ##################################################
+# #####Overlap of genes hit versus constrained genes
+# ##################################################
+# #Get median count of protein-coding genes per significant locus
+# VF=E2
+# filt=all
+# bedtools intersect -c \
+# -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
+# -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed | \
+# cut -f4 | sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
+# #Get lists of significant loci per phenotype/CNV combo
+# for CNV in DEL DUP; do
+#   #All phenos
+#   while read pheno; do
+#     bedtools intersect -wa -u \
+#     -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
+#     -b ${WRKDIR}/analysis/large_CNV_segments/${pheno}/${pheno}_${CNV}_${VF}_${filt}.signif.bed
+#   done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+#             fgrep -v CTRL | cut -f1 ) | sort -Vk1,1 -k2,2n -k3,3n | uniq > \
+#   ${TMPDIR}/ALL_PHENOS.${CNV}.sig.loci.bed
+#   #CNCR or GERM only
+#   for group in CNCR GERM; do
+#     while read pheno; do
+#       bedtools intersect -wa -u \
+#       -a ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed \
+#       -b ${WRKDIR}/analysis/large_CNV_segments/${pheno}/${pheno}_${CNV}_${VF}_${filt}.signif.bed
+#     done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+#               fgrep -v CTRL | awk -v group=${group} '{ if ($2==group) print $1 }' ) | \
+#               sort -Vk1,1 -k2,2n -k3,3n | uniq > \
+#     ${TMPDIR}/${group}.${CNV}.sig.loci.bed
+#   done
+# done
+# #Get counts of constrained genes per phenotype/CNV combo
+# if ! [ -e ${WRKDIR}/analysis/large_CNV_segments/constrained_enrichments ]; then
+#   mkdir ${WRKDIR}/analysis/large_CNV_segments/constrained_enrichments
+# fi
+# for CNV in DEL DUP; do
+#   for group in ALL_PHENOS GERM CNCR; do
+#     paste <( fgrep -wf ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list \
+#       ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed |
+#       bedtools intersect -c -b - -a ${TMPDIR}/${group}.${CNV}.sig.loci.bed ) \
+#       <( bedtools intersect -c -a ${TMPDIR}/${group}.${CNV}.sig.loci.bed \
+#       -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed ) | \
+#     awk -v OFS="\t" '{ print $4, $8 }' > \
+#     ${WRKDIR}/analysis/large_CNV_segments/constrained_enrichments/${group}.${CNV}.constrained_genes_count.txt
+#   done
+# done 
+# #Get counts of missense-constrained genes per phenotype/CNV combo
+# for CNV in DEL DUP; do
+#   for group in ALL_PHENOS GERM CNCR; do
+#     paste <( fgrep -wf ${WRKDIR}/data/master_annotations/genelists/ExAC_missense_constrained.genes.list \
+#       ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed |
+#       bedtools intersect -c -b - -a ${TMPDIR}/${group}.${CNV}.sig.loci.bed ) \
+#       <( bedtools intersect -c -a ${TMPDIR}/${group}.${CNV}.sig.loci.bed \
+#       -b ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed ) | \
+#     awk -v OFS="\t" '{ print $4, $8 }' > \
+#     ${WRKDIR}/analysis/large_CNV_segments/constrained_enrichments/${group}.${CNV}.missense_constrained_genes_count.txt
+#   done
+# done 
+
+# ####################################################################################
+# #####Get count of cases carrying at least one DEL or DUP at a significant GERM locus
+# ####################################################################################
+# VF=E2
+# filt=all
+# group=GERM
+# if ! [ -e ${WRKDIR}/${WRKDIR}/analysis/large_CNV_segments/prevalance ]; then
+#   mkdir ${WRKDIR}/analysis/large_CNV_segments/prevalance
+# fi
+# #Iterate over phenotypes & count CNVs (≥25% overlap)
+# for CNV in DEL DUP; do
+#   while read pheno nSamp; do
+#     for dummy in 1; do
+#       echo "${pheno}"
+#       bedtools intersect -f 0.25 -wb -a ${TMPDIR}/${group}.${CNV}.sig.loci.bed \
+#       -b ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz | \
+#       cut -f7 | sort | uniq | wc -l
+#       echo "${nSamp}"
+#     done | paste -s
+#   done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+#             sed -n '1,23p' | awk -v OFS="\t" '{ print $1, $NF }' ) > \
+#   ${WRKDIR}/analysis/large_CNV_segments/prevalance/GERM_${CNV}.prevalance.txt
+# done
 
 
 
