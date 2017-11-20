@@ -9,7 +9,7 @@
 # Contact: Ryan L. Collins <rlcollins@g.harvard.edu>
 # Code development credits availble on GitHub
 
-#Code to identify large CNV hotspots (>500kb) for rare CNV project
+#Code to identify large CNV hotspots for rare CNV project
 
 ###############
 #Set parameters
@@ -386,13 +386,14 @@ cut -f1-3 ${WRKDIR}/data/misc/PGC_CNV_sig.bed | grep -e '^[0-9]' | \
 sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
 ${WRKDIR}/data/misc/known_CNV_segments/PGC.Collins.bed
 cat ${WRKDIR}/data/misc/known_CNV_segments/*Redin* \
-    ${WRKDIR}/data/misc/known_CNV_segments/*Collins* | \
+    ${WRKDIR}/data/misc/known_CNV_segments/*Collins* \
+    ${WRKDIR}/data/misc/known_CNV_segments/PGC.Collins.bed | \
   sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > \
   ${WRKDIR}/data/misc/known_CNV_segments/all.merged.bed
 #Iterate over all positive control sets and compute observed & expected overlap
 while read ref; do
   echo -e "${ref}.observed\t${ref}.expected"
-done < <( cat <( echo -e "all.merged" ) \
+done < <( cat <( echo -e "all.merged\nPGC.Collins" ) \
                 <( sed '1d' ${SFARI_ANNO}/misc/PathogenicCNVs_allSources_nonredundant_hg19_CER.bed | \
                    awk '{ print $NF }' | sed 's/,/\n/g' | sort | uniq | \
                    awk '{ print $1".Redin" }' ) \
@@ -413,18 +414,22 @@ for CNV in DEL DUP; do
       -b ${WRKDIR}/analysis/large_CNV_segments/master_lists/${CNV}_${VF}_${filt}.signif.bed | \
       awk '{ if ($NF>=0.5) print $1 }' | wc -l
       #Get expected overlap (average of 100 shuffles)
-      #CODE:
-      for i in $( seq 1 100 ); do
-        bedtools shuffle -noOverlapping -seed ${i} \
-        -excl ${WRKDIR}/data/master_annotations/other/hotspotAnalysis.excluded_loci.bed \
-        -i ${WRKDIR}/analysis/large_CNV_segments/master_lists/${CNV}_${VF}_${filt}.signif.bed \
-        -g /data/talkowski/rlc47/src/GRCh37.genome | \
-        bedtools coverage -b - -a ${WRKDIR}/data/misc/known_CNV_segments/${ref}.bed | \
-        awk '{ if ($NF>=0.5) print $1 }' | wc -l
-      done > ${TMPDIR}/${CNV}.${ref}.simulated.txt
+      # #CODE:
+      # for i in $( seq 1 100 ); do
+      #   bedtools shuffle -noOverlapping -seed ${i} \
+      #   -excl ${WRKDIR}/data/master_annotations/other/hotspotAnalysis.excluded_loci.bed \
+      #   -i ${WRKDIR}/analysis/large_CNV_segments/master_lists/${CNV}_${VF}_${filt}.signif.bed \
+      #   -g /data/talkowski/rlc47/src/GRCh37.genome | \
+      #   bedtools coverage -b - -a ${WRKDIR}/data/misc/known_CNV_segments/${ref}.bed | \
+      #   awk '{ if ($NF>=0.5) print $1 }' | wc -l
+      # done > ${TMPDIR}/${CNV}.${ref}.simulated.txt
+      # #SUBMIT:
+      # bsub -q short -sla miket_sc -J shuffle_${CNV}_${ref} -u nobody \
+      # "${WRKDIR}/bin/rCNVmap/analysis_scripts/simulate_segment_overlap_wKnownSites.sh \
+      # ${CNV} ${ref}"
       #COLLECT:
-
-    done < <( cat <( echo -e "all.merged" ) \
+      awk '{ sum+=$1 }END{ print sum/NR }' ${TMPDIR}/${CNV}.${ref}.simulated.txt
+    done < <( cat <( echo -e "all.merged\nPGC.Collins" ) \
                   <( sed '1d' ${SFARI_ANNO}/misc/PathogenicCNVs_allSources_nonredundant_hg19_CER.bed | \
                      awk '{ print $NF }' | sed 's/,/\n/g' | sort | uniq | \
                      awk '{ print $1".Redin" }' ) \

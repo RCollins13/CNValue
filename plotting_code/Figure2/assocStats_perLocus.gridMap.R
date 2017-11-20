@@ -14,14 +14,7 @@
 ####################################
 WRKDIR <- "/Users/rlc/Desktop/Collins/Talkowski/CNV_DB/rCNV_map/"
 options(scipen=1000,stringsAsFactors=F)
-phenos <- c("GERM","NEURO","NDD","ASD","DD","ID","PSYCH","SCHIZ","BEHAV","SEIZ",
-            "HYPO","UNK","NONN","DRU","GROW","SKIN","SKEL","HEAD","MUSC","HEART",
-            "EE","EMI","CNCR","CLIV","CBRN","CBLD","CGST","CSKN","CRNL","CMSC",
-            "CREP","CHNK","CBST","CLNG","CEND")
-phenos.reorder <- c(1,12,
-                        2,3,5,7,8,4,10,11,9,6,
-                        13,18,15,20,17,14,19,21,16,22,
-                        23,31,28,27,29,25,34,33,35,32,24,30,26)
+phenos <- c("GERM","NEURO","NDD","PSYCH","NONN")
 require(plotrix)
 
 ######################
@@ -31,12 +24,10 @@ cols.CTRL <- c("#A5A6A7","#DCDDDF","#EAEBEC","#F8F8F9")
 cols.GERM <- c("#7B2AB3","#B07FD1","#CAAAE1","#E5D4F0")
 cols.NEURO <- c("#00BFF4","#66D9F8","#99E5FB","#CCF2FD")
 cols.SOMA <- c("#EC008D","#F466BB","#F799D1","#FBCCE8")
-cols.CNCR <- c("#FFCB00","#FFCB00","#FFE066","#FFF5CC")
+# cols.CNCR <- c("#FFCB00","#FFCB00","#FFE066","#FFF5CC")
 cols.allPhenos <- c(cols.GERM[1],
-                    rep(cols.NEURO[1],10),
-                    cols.GERM[1],
-                    rep(cols.SOMA[1],10),
-                    rep(cols.CNCR[1],13))
+                    rep(cols.NEURO[1],3),
+                    cols.SOMA[1])
 
 ##############
 #####Read data
@@ -44,17 +35,13 @@ cols.allPhenos <- c(cols.GERM[1],
 #P-values
 DEL.p <- read.table(paste(WRKDIR,"plot_data/figure2/DEL_DUP_union.E2_all.signif.filtered.DEL_pVal.bed",sep=""),header=F)
 colnames(DEL.p) <- c("chr","start","end",phenos)
-DEL.p <- DEL.p[c(1:3,phenos.reorder+3)]
 DUP.p <- read.table(paste(WRKDIR,"plot_data/figure2/DEL_DUP_union.E2_all.signif.filtered.DUP_pVal.bed",sep=""),header=F)
 colnames(DUP.p) <- c("chr","start","end",phenos)
-DUP.p <- DUP.p[c(1:3,phenos.reorder+3)]
 #Odds ratios
 DEL.OR <- read.table(paste(WRKDIR,"plot_data/figure2/DEL_DUP_union.E2_all.signif.filtered.DEL_OR.bed",sep=""),header=F)
 colnames(DEL.OR) <- c("chr","start","end",phenos)
-DEL.OR <- DEL.OR[c(1:3,phenos.reorder+3)]
 DUP.OR <- read.table(paste(WRKDIR,"plot_data/figure2/DEL_DUP_union.E2_all.signif.filtered.DUP_OR.bed",sep=""),header=F)
 colnames(DUP.OR) <- c("chr","start","end",phenos)
-DUP.OR <- DUP.OR[c(1:3,phenos.reorder+3)]
 
 # #Dev: take top 20 sites for test plot
 # DEL.p <- head(DEL.p,20)
@@ -92,9 +79,9 @@ semicircles <- function(x,y,cols,radii){
 #####Prepare plotting area & background
 #######################################
 #Set graphical parameters
-scale=0.3
+scale=1
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure2/assoc_stats_per_locus.gridPlot.pdf",sep=""),
-    width=scale*length(phenos),height=scale*nrow(DEL.p))
+    width=6,height=scale*nrow(DEL.p))
 par(mar=c(0.5,9.5,4,0.5))
 #Each cell is a 3x3 square
 plot(x=c(0,3*length(phenos)),y=c(0,-3*nrow(DEL.p)),
@@ -111,7 +98,7 @@ sapply(1:nrow(DEL.p),function(i){
 })
 #Add phenotype groups as X-axis labels
 sapply(1:length(phenos),function(i){
-  axis(3,at=(3*i)-1.5,tick=F,line=-0.8,las=2,labels=phenos[phenos.reorder[i]])
+  axis(3,at=(3*i)-1.5,tick=F,line=-0.8,las=2,labels=phenos[i])
 })
 
 #####################################
@@ -122,10 +109,10 @@ sapply(1:nrow(DEL.p),function(i){
   sapply(4:(length(phenos)+3),function(p){
     #Get colors
     piecols <- rep(cols.CTRL[1],2)
-    if(DEL.p[i,p]<10^-8){
+    if(DEL.p[i,p]<0.05/12480){
       piecols[1] <- "red"
     }
-    if(DUP.p[i,p]<10^-8){
+    if(DUP.p[i,p]<0.05/12480){
       piecols[2] <- "blue"
     }
     #Get odds ratios

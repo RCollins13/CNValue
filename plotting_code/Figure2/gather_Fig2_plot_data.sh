@@ -43,6 +43,10 @@ for pheno in GERM NEURO NDD PSYCH SOMA; do
   ${WRKDIR}/data/plot_data/figure2/${pheno}.${VF}.${filt}.manhattan_pvals.bed
 done
 
+#####Copy positive control dataset overlaps
+cp ${WRKDIR}/analysis/large_CNV_segments/known_locus_overlap.txt \
+${WRKDIR}/data/plot_data/figure2/
+
 # #####Gather data for constrained gene enrichment analysis
 # cp -r ${WRKDIR}/analysis/large_CNV_segments/constrained_enrichments \
 # ${WRKDIR}/data/plot_data/figure2/
