@@ -255,9 +255,6 @@ for pheno in GERM NEURO NDD PSYCH SOMA; do
 done
 
 
-
-####NOTE!!! THIS MUST BE MODIFIED TO TAKE NEW FILTERED CNVS!!!
-
 #####Collect significant elements across all tracks per phenotype
 #Make lists of tissue-defined elements
 while read tissue; do
@@ -315,16 +312,19 @@ for pheno in GERM NEURO NDD PSYCH SOMA; do
     mkdir ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged
   fi
   for CNV in DEL DUP; do
+    if [ ${CNV} == "DEL" ]; then
+      filt=haplosufficient
+    else
+      filt=noncoding
+    fi
     for VF in E4; do
-      for filt in haplosufficient noncoding; do
-        #Launch merge & filtering script across all annotations
-        bsub -q normal -u nobody -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_mergeSignificantElements_all \
-        "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_significant_elements_merged_perPheno_annoScore.sh \
-        ${pheno} ${CNV} ${VF} ${filt} \
-        ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.alternative_sort.list \
-        bonf \
-        ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.${CNV}.${VF}.${filt}.bonf_sig_elements_merged.all_classes.bed"
-      done
+      #Launch merge & filtering script across all annotations
+      bsub -q normal -u nobody -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_mergeSignificantElements_all \
+      "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_significant_elements_merged_perPheno_annoScore.sh \
+      ${pheno} ${CNV} ${VF} ${filt} \
+      ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.alternative_sort.list \
+      bonf \
+      ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.${CNV}.${VF}.${filt}.bonf_sig_elements_merged.all_classes.bed"
     done
   done
 done
@@ -351,10 +351,13 @@ for pheno in GERM NEURO NDD PSYCH SOMA; do
   for dummy in 1; do
     echo ${pheno}
     for CNV in DEL DUP; do
-      for filt in haplosufficient noncoding; do
-        fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.${CNV}.${VF}.${filt}.bonf_sig_elements_merged.all_classes.bed | \
-        awk '{ if ($3-$2>=5000 && $3-$2<500000) print $0 }' | wc -l
-      done
+      if [ ${CNV} == "DEL" ]; then
+        filt=haplosufficient
+      else
+        filt=noncoding
+      fi
+      fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.${CNV}.${VF}.${filt}.bonf_sig_elements_merged.all_classes.bed | \
+      awk '{ if ($3-$2>=5000 && $3-$2<500000) print $0 }' | wc -l
     done
   done | paste -s
 done
@@ -374,54 +377,57 @@ maxSize=500000
 VF=E4
 for annoSet in all_classes; do
   for CNV in DEL DUP; do
-    for filt in haplosufficient noncoding; do
-      echo -e "${annoSet}_${CNV}_${filt}"
-      #Create master list of all significant elements
-      for pheno in GERM NEURO NDD PSYCH SOMA; do
-        fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.${CNV}.${VF}.${filt}.bonf_sig_elements_merged.all_classes.bed | \
-        awk -v OFS="\t" -v pheno=${pheno} -v CNV=${CNV} -v filt=${filt} -v minSize=${minSize} -v maxSize=${maxSize} \
-        '{ if ($3-$2>=minSize && $3-$2<=maxSize) print $1, $2, $3, pheno"_"CNV"_"filt"_"NR, pheno"_"CNV"_"filt"_"NR, CNV }' 
-      done | sort -Vk1,1 -k2,2n -k3,3n > \
-      ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_${CNV}_${VF}_${filt}.signif_loci.pre_merge.bed
-      #Run bedtools intersect (50% recip)
-      bedtools intersect -r -f 0.5 -wa -wb \
-      -a ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_${CNV}_${VF}_${filt}.signif_loci.pre_merge.bed \
-      -b ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_${CNV}_${VF}_${filt}.signif_loci.pre_merge.bed > \
-      ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_${CNV}_${VF}_${filt}.signif_loci.pre_merge.all_vs_all.bed
-      #Run bedcluster
-      cut -f4 ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_${CNV}_${VF}_${filt}.signif_loci.pre_merge.bed | \
-      sort | uniq > ${TMPDIR}/${annoSet}_${CNV}_${VF}_${filt}.input_element_IDs.tmp
-      /data/talkowski/rlc47/code/svcf/scripts/bedcluster -p ${annoSet}_${CNV}_${VF}_${filt}_mergedSignificantLoci -m \
-      ${TMPDIR}/${annoSet}_${CNV}_${VF}_${filt}.input_element_IDs.tmp \
-      ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_${CNV}_${VF}_${filt}.signif_loci.pre_merge.all_vs_all.bed \
-      ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_${CNV}_${VF}_${filt}.signif_loci.merged.bed
-    done
+    if [ ${CNV} == "DEL" ]; then
+      filt=haplosufficient
+    else
+      filt=noncoding
+    fi
+    echo -e "${annoSet}_${CNV}_${filt}"
+    #Create master list of all significant elements
+    for pheno in GERM NEURO NDD PSYCH SOMA; do
+      fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.${CNV}.${VF}.${filt}.bonf_sig_elements_merged.all_classes.bed | \
+      awk -v OFS="\t" -v pheno=${pheno} -v CNV=${CNV} -v filt=${filt} -v minSize=${minSize} -v maxSize=${maxSize} \
+      '{ if ($3-$2>=minSize && $3-$2<=maxSize) print $1, $2, $3, pheno"_"CNV"_"filt"_"NR, pheno"_"CNV"_"filt"_"NR, CNV }' 
+    done | sort -Vk1,1 -k2,2n -k3,3n > \
+    ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_${CNV}_${VF}_${filt}.signif_loci.pre_merge.bed
+    #Run bedtools intersect (50% recip)
+    bedtools intersect -r -f 0.5 -wa -wb \
+    -a ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_${CNV}_${VF}_${filt}.signif_loci.pre_merge.bed \
+    -b ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_${CNV}_${VF}_${filt}.signif_loci.pre_merge.bed > \
+    ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_${CNV}_${VF}_${filt}.signif_loci.pre_merge.all_vs_all.bed
+    #Run bedcluster
+    cut -f4 ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_${CNV}_${VF}_${filt}.signif_loci.pre_merge.bed | \
+    sort | uniq > ${TMPDIR}/${annoSet}_${CNV}_${VF}_${filt}.input_element_IDs.tmp
+    /data/talkowski/rlc47/code/svcf/scripts/bedcluster -p ${annoSet}_${CNV}_${VF}_${filt}_mergedSignificantLoci -m \
+    ${TMPDIR}/${annoSet}_${CNV}_${VF}_${filt}.input_element_IDs.tmp \
+    ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_${CNV}_${VF}_${filt}.signif_loci.pre_merge.all_vs_all.bed \
+    ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_${CNV}_${VF}_${filt}.signif_loci.merged.bed
   done
 done
 #Bedcluster across DEL/DUP with 50% reciprocal overlap required
-for annoSet in all_classes; do
-  for filt in haplosufficient noncoding; do
-    echo -e "${annoSet}_${filt}"
-    #Create master list of all significant elements
-    for CNV in DEL DUP; do
-      fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_${CNV}_${VF}_${filt}.signif_loci.merged.bed | \
-      awk -v OFS="\t" '{ print $1, $2, $3, $7, $7, "element" }' | uniq
-    done | sort -Vk1,1 -k2,2n -k3,3n -k4,4 | uniq > \
-    ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_DELDUP_${VF}_${filt}.signif_loci.pre_merge.bed
-    #Run bedtools intersect (50% recip)
-    bedtools intersect -r -f 0.5 -wa -wb \
-    -a ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_DELDUP_${VF}_${filt}.signif_loci.pre_merge.bed \
-    -b ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_DELDUP_${VF}_${filt}.signif_loci.pre_merge.bed > \
-    ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_DELDUP_${VF}_${filt}.signif_loci.pre_merge.all_vs_all.bed
-    #Run bedcluster
-    cut -f4 ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_DELDUP_${VF}_${filt}.signif_loci.pre_merge.all_vs_all.bed | \
-    sort | uniq > ${TMPDIR}/${annoSet}_DELDUP_${VF}_${filt}.input_element_IDs.tmp
-    /data/talkowski/rlc47/code/svcf/scripts/bedcluster -p ${annoSet}_DELDUP_${VF}_${filt}_mergedSignificantLoci -m \
-    ${TMPDIR}/${annoSet}_DELDUP_${VF}_${filt}.input_element_IDs.tmp \
-    ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_DELDUP_${VF}_${filt}.signif_loci.pre_merge.all_vs_all.bed \
-    ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_DELDUP_${VF}_${filt}.signif_loci.merged.bed
-  done
-done 
+# for annoSet in all_classes; do
+#   for filt in haplosufficient noncoding; do
+#     echo -e "${annoSet}_${filt}"
+#     #Create master list of all significant elements
+#     for CNV in DEL DUP; do
+#       fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_${CNV}_${VF}_${filt}.signif_loci.merged.bed | \
+#       awk -v OFS="\t" '{ print $1, $2, $3, $7, $7, "element" }' | uniq
+#     done | sort -Vk1,1 -k2,2n -k3,3n -k4,4 | uniq > \
+#     ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_DELDUP_${VF}_${filt}.signif_loci.pre_merge.bed
+#     #Run bedtools intersect (50% recip)
+#     bedtools intersect -r -f 0.5 -wa -wb \
+#     -a ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_DELDUP_${VF}_${filt}.signif_loci.pre_merge.bed \
+#     -b ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_DELDUP_${VF}_${filt}.signif_loci.pre_merge.bed > \
+#     ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_DELDUP_${VF}_${filt}.signif_loci.pre_merge.all_vs_all.bed
+#     #Run bedcluster
+#     cut -f4 ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_DELDUP_${VF}_${filt}.signif_loci.pre_merge.all_vs_all.bed | \
+#     sort | uniq > ${TMPDIR}/${annoSet}_DELDUP_${VF}_${filt}.input_element_IDs.tmp
+#     /data/talkowski/rlc47/code/svcf/scripts/bedcluster -p ${annoSet}_DELDUP_${VF}_${filt}_mergedSignificantLoci -m \
+#     ${TMPDIR}/${annoSet}_DELDUP_${VF}_${filt}.input_element_IDs.tmp \
+#     ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_DELDUP_${VF}_${filt}.signif_loci.pre_merge.all_vs_all.bed \
+#     ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_DELDUP_${VF}_${filt}.signif_loci.merged.bed
+#   done
+# done 
 #< <( cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_Linkers.list | \
 #                  sort | uniq | cat <( echo -e "all_classes\ntissue_agnostic" ) - )
 #Bedcluster for haplosufficient DEL and noncoding DUP (analysis for paper)
@@ -449,8 +455,7 @@ for annoSet in all_classes; do
 done
 #FILTER FINAL LOCI
 #If two elements overlap, keep the smaller of the two
-#Remove any regulatory blocks overlapping significant large segments
-#Remove 
+#Remove any elements overlapping probe deserts
 VF=E4
 for annoSet in all_classes; do
   echo -e "${annoSet}"
@@ -471,51 +476,54 @@ for annoSet in all_classes; do
   done < <( cut -f4 ${TMPDIR}/all_overlaps.bed | sort -Vk1,1 | uniq | \
             fgrep -wvf ${TMPDIR}/elements_to_keep.IDs.list ) | \
   sort -Vk1,1 | uniq >> ${TMPDIR}/elements_to_keep.IDs.list
-  #Finally, get those IDs from the original bed file and write to new file
+  #Finally, get those IDs from the original bed file, remove those overlapping probe deserts, and write to file
   fgrep -wf ${TMPDIR}/elements_to_keep.IDs.list \
   ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.bed | \
-  cut -f1-3,7 | sort -Vk1,1 -k2,2n -k3,3n -Vk4,4 | uniq > \
+  cut -f1-3,7 | bedtools coverage -a ${WRKDIR}/data/misc/CTRL_probeDeserts.bed -b - | \
+  awk -v OFS="\t" '{ if ($NF<=0.5) print $1, $2, $3, $4 }' | \
+  sort -Vk1,1 -k2,2n -k3,3n -Vk4,4 | uniq > \
   ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.filtered.bed
 done
 
-#Split final clustered loci by phenotype
-#NOTE: UPDATED FOR FINAL ANALYSIS -- ONLY RUN ON GERM/NEURO/NDD/PSYCH/SOMA
-#Create output directory
-if ! [ -e ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci ]; then
-  mkdir ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci
-fi
-for pheno in GERM NEURO NDD PSYCH SOMA; do
-  echo ${pheno}
-  if [ -e ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno} ]; then
-    rm -rf ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}
-  fi
-  mkdir ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}
-  for annoSet in all_classes; do
-    #Haplosuff DEL
-    bedtools intersect -f 0.5 -a ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.filtered.bed \
-    -b ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.DEL.${VF}.haplosufficient.bonf_sig_elements_merged.${annoSet}.bed | \
-    sort -Vk1,1 -k2,2n -k3,3n -Vk4,4 | uniq > \
-    ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DEL_${VF}.final_merged_loci.${annoSet}.bed
-    #Noncoding DUP
-    bedtools intersect -f 0.5 -a ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.filtered.bed \
-    -b ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.DUP.${VF}.noncoding.bonf_sig_elements_merged.${annoSet}.bed | \
-    sort -Vk1,1 -k2,2n -k3,3n -Vk4,4 | uniq > \
-    ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DUP_${VF}.final_merged_loci.${annoSet}.bed
-  done
-done
+# #Split final clustered loci by phenotype
+# #NOTE: UPDATED FOR FINAL ANALYSIS -- ONLY RUN ON GERM/NEURO/NDD/PSYCH/SOMA
+# #Create output directory
+# if ! [ -e ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci ]; then
+#   mkdir ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci
+# fi
+# for pheno in GERM NEURO NDD PSYCH SOMA; do
+#   echo ${pheno}
+#   if [ -e ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno} ]; then
+#     rm -rf ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}
+#   fi
+#   mkdir ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}
+#   for annoSet in all_classes; do
+#     #Haplosuff DEL
+#     bedtools intersect -f 0.5 -a ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.filtered.bed \
+#     -b ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.DEL.${VF}.haplosufficient.bonf_sig_elements_merged.${annoSet}.bed | \
+#     sort -Vk1,1 -k2,2n -k3,3n -Vk4,4 | uniq > \
+#     ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DEL_${VF}.final_merged_loci.${annoSet}.bed
+#     #Noncoding DUP
+#     bedtools intersect -f 0.5 -a ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.filtered.bed \
+#     -b ${WRKDIR}/analysis/perAnno_burden/signif_elements/${pheno}/merged/${pheno}.DUP.${VF}.noncoding.bonf_sig_elements_merged.${annoSet}.bed | \
+#     sort -Vk1,1 -k2,2n -k3,3n -Vk4,4 | uniq > \
+#     ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DUP_${VF}.final_merged_loci.${annoSet}.bed
+#   done
+# done
 
 #####Calculate pairwise correlations for all elements
+VF=E4
 for pheno in GERM; do
-  zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.DEL.E4.GRCh37.haplosufficient.bed.gz
-  zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.DUP.E4.GRCh37.noncoding.bed.gz
+  zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.DEL.${VF}.GRCh37.haplosufficient_largeSegmentExcluded_sigGeneExcluded.bed.gz
+  zcat ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.DUP.${VF}.GRCh37.noncoding_largeSegmentExcluded.bed.gz
 done | fgrep -v "#" | sort -Vk1,1 -k2,2n -k3,3n | cut -f1-4 | uniq > \
-${TMPDIR}/GERM_CNCR_CNVs_pooled.bed
+${TMPDIR}/GERM_CNVs_pooled.bed
 # zcat ${WRKDIR}/analysis/perAnno_burden/cleaned_noncoding_loci.wAnnotations.forManualCuration.txt.gz | \
 # cut -f1-4 | sed '1d' | sort -Vk1,1 -k2,2n -k3,3n | uniq > ${TMPDIR}/loci_for_jaccard.bed
 bsub -q normal -sla miket_sc -J noncoding_CNVjaccard -u nobody \
 "${WRKDIR}/bin/rCNVmap/analysis_scripts/calc_CNV_correlation_between_locusPairs.sh \
  ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/all_classes_haplosuffDELnoncodingDUP_E4.signif_loci.merged.filtered.bed \
- ${TMPDIR}/GERM_CNCR_CNVs_pooled.bed \
+ ${TMPDIR}/GERM_CNVs_pooled.bed \
  ${WRKDIR}/analysis/perAnno_burden/cleaned_noncoding_loci.jaccard_matrix.txt"
 
 #####Cluster significant elements into regulatory blocks
@@ -540,11 +548,6 @@ while read eIDs; do
 done < ${WRKDIR}/analysis/perAnno_burden/clustered_elements_regBlocks.list | \
 sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" '{ print $1, $2, $3, $4"_"NR, $5, $6 }' > \
 ${WRKDIR}/analysis/perAnno_burden/signifRegulatoryBlocks.preFilter.bed
-#Filter regulatory 
-
-
-
-
 
 
 #####Calculate final p-values and ORs per regulatory block separately for dels and dups

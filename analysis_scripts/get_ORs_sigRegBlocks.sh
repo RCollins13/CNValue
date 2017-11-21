@@ -20,6 +20,16 @@ VF=$1
 filt=$2
 CNV=$3
 
+#Determine CNV files
+if [ ${CNV} == "DEL" ]; then
+  CTRL_CNVs=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.haplosufficient_largeSegmentExcluded_sigGeneExcluded.bed.gz
+  CASE_CNVs=${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.haplosufficient_largeSegmentExcluded_sigGeneExcluded.bed.gz
+elif [ ${CNV} == "DUP" ]; then
+    CTRL_CNVs=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.noncoding_largeSegmentExcluded.bed.gz
+    CASE_CNVs=${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.noncoding_largeSegmentExcluded.bed.gz
+fi
+
+
 #####Run
 while read chr start end blockID elements eIDs; do
   for dummy in 1; do
@@ -27,12 +37,10 @@ while read chr start end blockID elements eIDs; do
     #iterate over phenos
     while read pheno nCASE; do
       #Get counts of case/control CNVs
-      caseCNV=$( echo ${elements} | sed -e 's/\;/\n/g' -e 's/_/\t/g' | bedtools intersect -u -b - \
-      -a ${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz | \
-      cut -f4 | sort | uniq | wc -l )
-      controlCNV=$( echo ${elements} | sed -e 's/\;/\n/g' -e 's/_/\t/g' | bedtools intersect -u -b - \
-      -a ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz | \
-      cut -f4 | sort | uniq | wc -l )
+      caseCNV=$( echo ${elements} | sed -e 's/\;/\n/g' -e 's/_/\t/g' | \
+      bedtools intersect -u -b - -a ${CASE_CNVs} | cut -f4 | sort | uniq | wc -l )
+      controlCNV=$( echo ${elements} | sed -e 's/\;/\n/g' -e 's/_/\t/g' | \
+      bedtools intersect -u -b - -a ${CTRL_CNVs} | cut -f4 | sort | uniq | wc -l )
       caseNoCNV=$( echo "${nCASE}-${caseCNV}" | bc )
       controlNoCNV=$( echo "38628-${controlCNV}" | bc )
       if [ ${pheno} == "GERM" ]; then
