@@ -64,11 +64,22 @@ Rscript -e "x <- read.table(\"${sigSites_intervals}\",header=F); \
 #####Retest significant bins and keep those passing a nominal p-value threshold from Fisher's test
 sigBins_data=`mktemp`
 #Gathers data for test
+if [ ${CNV} == "DEL" ]; then
+  CTRL_CNVs=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.haplosufficient_largeSegmentExcluded_sigGeneExcluded.bed.gz
+  CASE_CNVs=${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.haplosufficient_largeSegmentExcluded_sigGeneExcluded.bed.gz
+elif [ ${CNV} == "DUP" ]; then
+    CTRL_CNVs=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.noncoding_largeSegmentExcluded.bed.gz
+    CASE_CNVs=${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.noncoding_largeSegmentExcluded.bed.gz
+else
+  echo "CHECK INPUT CNVS"
+  exit 0
+fi
+
 ${WRKDIR}/bin/rCNVmap/bin/gather_annoScore_data.sh -z -N \
 -p sigBins \
 -o ${sigBins_data} \
-${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
-${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz \
+${CTRL_CNVs} \
+${CASE_CNVs} \
 ${sigBins} \
 ${h37}
 #Get number of cases & controls

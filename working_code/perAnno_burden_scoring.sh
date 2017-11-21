@@ -137,10 +137,6 @@ for pheno in GERM NEURO NDD PSYCH SOMA; do
     done
   done
 done
-#Gzip all output files after completion
-      if [ -e ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed ]; then
-        gzip -f ${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed
-      fi
 
 
 #####Submit annoScore model for all phenotypes
@@ -173,6 +169,43 @@ while read pheno; do
   done
 done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
           cut -f1 | fgrep -v CTRL )
+#Final analysis: subset of all possible combinations
+for pheno in GERM NEURO NDD PSYCH SOMA; do 
+  #Get number of subjects in group
+  nCASE=$( awk -v pheno=${pheno} '{ if ($1==pheno) print $4 }' \
+           ${WRKDIR}/data/plot_data/figure1/sample_counts_by_group.txt )
+  nCTRL=38628
+  for CNV in DEL DUP; do
+    if [ ${CNV} == "DEL" ]; then
+      filt=haplosufficient
+    else
+      filt=noncoding
+    fi
+    for VF in E4; do
+      #Iterates over elements list and runs model
+      while read class path; do
+        annoScoreData=${WRKDIR}/data/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScoreData.bed.gz
+        if [ -e ${annoScoreData} ]; then
+          OUTFILE=${WRKDIR}/analysis/perAnno_burden/${pheno}/${CNV}/${VF}/${filt}/${pheno}.${CNV}.${VF}.${filt}.${class}.annoScore_stats.bed
+          #Runs model from gzipped file
+          bsub -q normal -u nobody -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_annoScoreModel_${class} \
+          "${WRKDIR}/bin/rCNVmap/bin/run_annoScore_model.R \
+          -o ${OUTFILE} \
+          ${annoScoreData} \
+          ${nCTRL} \
+          ${nCASE}
+          #Compress output
+          if [ -e ${OUTFILE} ]; then
+            gzip -f ${OUTFILE}
+          fi"
+        else
+          echo "OUTPUT FOR ${pheno} ${CNV} ${VF} ${filt} vs ${path} IS MISSING. SKIPPING..."
+        fi
+      done < ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prioritized_for_annoScore_modeling.list
+    done
+  done
+done
+
 
 #####Collect significant elements per track per phenotype
 while read pheno; do
@@ -206,14 +239,17 @@ for pheno in GERM NEURO NDD PSYCH SOMA; do
     mkdir ${WRKDIR}/analysis/perAnno_burden/signif_elements/CTRL
   fi
   for CNV in DEL DUP; do
+    if [ ${CNV} == "DEL" ]; then
+      filt=haplosufficient
+    else
+      filt=noncoding
+    fi
     for VF in E4; do
-      for filt in haplosufficient noncoding; do
-        #Launch collection script for all annotations
-        bsub -q normal -u nobody -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_annoScoreModel \
-        "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_significant_elements_perClass_perPheno_annoScore.sh \
-        ${pheno} ${CNV} ${VF} ${filt} \
-        ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prioritized_for_annoScore_modeling.list"
-      done
+      #Launch collection script for all annotations
+      bsub -q normal -u nobody -sla miket_sc -J ${pheno}_${CNV}_${VF}_${filt}_annoScoreModel \
+      "${WRKDIR}/bin/rCNVmap/analysis_scripts/collect_significant_elements_perClass_perPheno_annoScore.sh \
+      ${pheno} ${CNV} ${VF} ${filt} \
+      ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.prioritized_for_annoScore_modeling.list"
     done
   done
 done

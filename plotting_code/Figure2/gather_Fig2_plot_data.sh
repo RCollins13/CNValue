@@ -32,6 +32,7 @@ for CNV in DEL DUP; do
 done
 
 #####Gather data for manhattan plots
+#Association data
 VF=E2
 filt=all
 for pheno in GERM NEURO NDD PSYCH SOMA; do
@@ -42,6 +43,13 @@ for pheno in GERM NEURO NDD PSYCH SOMA; do
      sed '1d' | awk -v OFS="\t" '{ print $(NF-1) }' ) > \
   ${WRKDIR}/data/plot_data/figure2/${pheno}.${VF}.${filt}.manhattan_pvals.bed
 done
+#Novel hits
+bedtools coverage \
+-a ${WRKDIR}/data/misc/known_CNV_segments/all.merged.bed \
+-b ${WRKDIR}/analysis/large_CNV_segments/master_lists/filtered/DEL_DUP_union.${VF}_${filt}.signif.filtered.bed | \
+awk '{ if ($NF==0) print $0 }' | cut -f1-3 | sort -Vk1,1 -k2,2n -k3,3n > \
+${WRKDIR}/data/plot_data/figure2/novel_loci.bed
+
 
 #####Copy positive control dataset overlaps
 cp ${WRKDIR}/analysis/large_CNV_segments/known_locus_overlap.txt \
