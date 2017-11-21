@@ -547,7 +547,7 @@ while read eIDs; do
   done | paste -s
 done < ${WRKDIR}/analysis/perAnno_burden/clustered_elements_regBlocks.list | \
 sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" '{ print $1, $2, $3, $4"_"NR, $5, $6 }' > \
-${WRKDIR}/analysis/perAnno_burden/signifRegulatoryBlocks.preFilter.bed
+${WRKDIR}/analysis/perAnno_burden/signifRegulatoryBlocks.final.bed
 
 
 #####Calculate final p-values and ORs per regulatory block separately for dels and dups
@@ -560,92 +560,92 @@ for VF in E4; do
 done
 
 
-#####Get counts of significant loci by phenotype after merging
-#Merged across all annotations
-VF=E4
-annoSet=all_classes
-while read pheno; do
-  for dummy in 1; do
-    echo ${pheno}
-    for CNV in DEL DUP; do
-      fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_${CNV}_${VF}.final_merged_loci.all_classes.bed | wc -l
-    done
-  done | paste -s
-done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-          cut -f1 | fgrep -v CTRL )
-#Specific to cancer (i.e. not observed in any germline group)
-while read pheno; do
-  for CNV in DEL DUP; do
-    fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_${CNV}_${VF}.final_merged_loci.all_classes.bed | \
-    cut -f4
-  done
-done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-          awk '{ if ($2=="GERM") print $1 }' ) | sort | uniq | \
-fgrep -wvf - \
-${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.filtered.bed | wc -l
-#Count of del-only, del+dup, and dup-only
-VF=E4
-while read pheno; do
-  for dummy in 1; do
-    echo ${pheno}
-    #DEL-only
-    fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DUP_${VF}.final_merged_loci.all_classes.bed | \
-    cut -f4 | fgrep -wvf - \
-    ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DEL_${VF}.final_merged_loci.all_classes.bed | wc -l
-    #DEL+DUP
-    fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DUP_${VF}.final_merged_loci.all_classes.bed | \
-    cut -f4 | fgrep -wf - \
-    ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DEL_${VF}.final_merged_loci.all_classes.bed | wc -l
-    #DUP-only
-    fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DEL_${VF}.final_merged_loci.all_classes.bed | \
-    cut -f4 | fgrep -wvf - \
-    ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DUP_${VF}.final_merged_loci.all_classes.bed | wc -l
-  done | paste -s
-done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
-          cut -f1 | fgrep -v CTRL )
+# #####Get counts of significant loci by phenotype after merging
+# #Merged across all annotations
+# VF=E4
+# annoSet=all_classes
+# while read pheno; do
+#   for dummy in 1; do
+#     echo ${pheno}
+#     for CNV in DEL DUP; do
+#       fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_${CNV}_${VF}.final_merged_loci.all_classes.bed | wc -l
+#     done
+#   done | paste -s
+# done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+#           cut -f1 | fgrep -v CTRL )
+# #Specific to cancer (i.e. not observed in any germline group)
+# while read pheno; do
+#   for CNV in DEL DUP; do
+#     fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_${CNV}_${VF}.final_merged_loci.all_classes.bed | \
+#     cut -f4
+#   done
+# done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+#           awk '{ if ($2=="GERM") print $1 }' ) | sort | uniq | \
+# fgrep -wvf - \
+# ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.filtered.bed | wc -l
+# #Count of del-only, del+dup, and dup-only
+# VF=E4
+# while read pheno; do
+#   for dummy in 1; do
+#     echo ${pheno}
+#     #DEL-only
+#     fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DUP_${VF}.final_merged_loci.all_classes.bed | \
+#     cut -f4 | fgrep -wvf - \
+#     ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DEL_${VF}.final_merged_loci.all_classes.bed | wc -l
+#     #DEL+DUP
+#     fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DUP_${VF}.final_merged_loci.all_classes.bed | \
+#     cut -f4 | fgrep -wf - \
+#     ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DEL_${VF}.final_merged_loci.all_classes.bed | wc -l
+#     #DUP-only
+#     fgrep -v "#" ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DEL_${VF}.final_merged_loci.all_classes.bed | \
+#     cut -f4 | fgrep -wvf - \
+#     ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_DUP_${VF}.final_merged_loci.all_classes.bed | wc -l
+#   done | paste -s
+# done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+#           cut -f1 | fgrep -v CTRL )
 
-#Get significant germline elements within 1Mb of high-confidence autosomal disease genes
-VF=E4
-dist=1000000
-for pheno in GERM NEURO NDD DD PSYCH SCZ SOMA; do
-  cat ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_*_${VF}.final_merged_loci.all_classes.bed
-done | bedtools intersect -wa -u -b - \
--a <( fgrep -wf ${WRKDIR}/data/master_annotations/genelists/DDD_2017.genes.list \
-      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed | \
-      awk -v OFS="\t" -v dist=${dist} '{ print $1, $2-dist, $3+dist, $4 }' | \
-      awk -v OFS="\t" '{ if ($2<1) $2=1; print $0 }' | grep -e '^[0-9]' ) | \
-cut -f4 | sed 's/\-/\t/g' | cut -f1 | sort | uniq | fgrep -wf - \
-${WRKDIR}/data/master_annotations/genelists/ExAC_haplosufficient.genes.list
-#Haplosufficient genes that appear in the above list because of coding effects (exclude): MEF2C
-#Get significant germline elements within 1Mb of rCNV-burdened genes that are also pLI-constrained
-for pheno in GERM NEURO SOMA NDD DD PSYCH SCZ; do
-  for CNV in DEL DUP; do
-    cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_E4_exonic.geneScore_Bonferroni_sig.union.genes.list
-  done
-done | sort | uniq > ${TMPDIR}/GERM_all.genes.list
-for pheno in GERM NEURO NDD DD PSYCH SCZ SOMA; do
-  cat ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_*_${VF}.final_merged_loci.all_classes.bed
-done | bedtools intersect -wa -u -b - \
--a <( fgrep -wf ${TMPDIR}/GERM_all.genes.list \
-      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed | \
-      awk -v OFS="\t" -v dist=${dist} '{ print $1, $2-dist, $3+dist, $4 }' | \
-      awk -v OFS="\t" '{ if ($2<1) $2=1; print $0 }' | grep -e '^[0-9]' ) | \
-cut -f4 | sed 's/\-/\t/g' | cut -f1 | sort | uniq | fgrep -wf \
-${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list
+# #Get significant germline elements within 1Mb of high-confidence autosomal disease genes
+# VF=E4
+# dist=1000000
+# for pheno in GERM NEURO NDD DD PSYCH SCZ SOMA; do
+#   cat ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_*_${VF}.final_merged_loci.all_classes.bed
+# done | bedtools intersect -wa -u -b - \
+# -a <( fgrep -wf ${WRKDIR}/data/master_annotations/genelists/DDD_2017.genes.list \
+#       ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed | \
+#       awk -v OFS="\t" -v dist=${dist} '{ print $1, $2-dist, $3+dist, $4 }' | \
+#       awk -v OFS="\t" '{ if ($2<1) $2=1; print $0 }' | grep -e '^[0-9]' ) | \
+# cut -f4 | sed 's/\-/\t/g' | cut -f1 | sort | uniq | fgrep -wf - \
+# ${WRKDIR}/data/master_annotations/genelists/ExAC_haplosufficient.genes.list
+# #Haplosufficient genes that appear in the above list because of coding effects (exclude): MEF2C
+# #Get significant germline elements within 1Mb of rCNV-burdened genes that are also pLI-constrained
+# for pheno in GERM NEURO SOMA NDD DD PSYCH SCZ; do
+#   for CNV in DEL DUP; do
+#     cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_E4_exonic.geneScore_Bonferroni_sig.union.genes.list
+#   done
+# done | sort | uniq > ${TMPDIR}/GERM_all.genes.list
+# for pheno in GERM NEURO NDD DD PSYCH SCZ SOMA; do
+#   cat ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_*_${VF}.final_merged_loci.all_classes.bed
+# done | bedtools intersect -wa -u -b - \
+# -a <( fgrep -wf ${TMPDIR}/GERM_all.genes.list \
+#       ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed | \
+#       awk -v OFS="\t" -v dist=${dist} '{ print $1, $2-dist, $3+dist, $4 }' | \
+#       awk -v OFS="\t" '{ if ($2<1) $2=1; print $0 }' | grep -e '^[0-9]' ) | \
+# cut -f4 | sed 's/\-/\t/g' | cut -f1 | sort | uniq | fgrep -wf \
+# ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list
 
-#Get significant cancer elements within 1Mb of high-confidence cancer driver genes
-VF=E4
-dist=1000000
-for pheno in CNCR; do
-  cat ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_*_${VF}.final_merged_loci.all_classes.bed
-done | bedtools intersect -wa -u -b - \
--a <( fgrep -wf ${WRKDIR}/data/master_annotations/genelists/COSMIC_all.genes.list \
-      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed | \
-      awk -v OFS="\t" -v dist=${dist} '{ print $1, $2-dist, $3+dist, $4 }' | \
-      awk -v OFS="\t" '{ if ($2<1) $2=1; print $0 }' | grep -e '^[0-9]' ) | \
-cut -f4 | sed 's/\-/\t/g' | cut -f1 | sort | uniq | fgrep -wf - \
-${WRKDIR}/data/master_annotations/genelists/ExAC_haplosufficient.genes.list
-#Haplosufficient genes that appear in the list because of coding effects (exclude): FHIT, PTPN13, RAD51B, TGFBR2
+# #Get significant cancer elements within 1Mb of high-confidence cancer driver genes
+# VF=E4
+# dist=1000000
+# for pheno in CNCR; do
+#   cat ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_*_${VF}.final_merged_loci.all_classes.bed
+# done | bedtools intersect -wa -u -b - \
+# -a <( fgrep -wf ${WRKDIR}/data/master_annotations/genelists/COSMIC_all.genes.list \
+#       ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed | \
+#       awk -v OFS="\t" -v dist=${dist} '{ print $1, $2-dist, $3+dist, $4 }' | \
+#       awk -v OFS="\t" '{ if ($2<1) $2=1; print $0 }' | grep -e '^[0-9]' ) | \
+# cut -f4 | sed 's/\-/\t/g' | cut -f1 | sort | uniq | fgrep -wf - \
+# ${WRKDIR}/data/master_annotations/genelists/ExAC_haplosufficient.genes.list
+# #Haplosufficient genes that appear in the list because of coding effects (exclude): FHIT, PTPN13, RAD51B, TGFBR2
 
 
 
