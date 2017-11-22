@@ -1575,6 +1575,10 @@ ${WRKDIR}/data/misc/Omni_probeDeserts.bed
 cat ${WRKDIR}/data/misc/Affy6_probeDeserts.bed \
 ${WRKDIR}/data/misc/Omni_probeDeserts.bed | sort -Vk1,1 -k2,2n -k3,3n | \
 bedtools merge -i - > ${WRKDIR}/data/misc/CTRL_probeDeserts.bed
+#Disease-associated enhancers (DiseaseEnhancer)
+http://biocc.hrbmu.edu.cn/DiseaseEnhancer/RFunctions/diseaseEnh5.1.txt
+#Disease-associated enhancers (HEDD)
+
 
 ########################################
 #####ANNOTATIONS FOR EXAMPLE LOCUS PLOTS

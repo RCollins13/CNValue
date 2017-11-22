@@ -553,6 +553,33 @@ done < ${WRKDIR}/analysis/perAnno_burden/clustered_elements_regBlocks.list | \
 sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" '{ print $1, $2, $3, $4"_"NR, $5, $6 }' > \
 ${WRKDIR}/analysis/perAnno_burden/signifRegulatoryBlocks.final.bed
 
+#####NOTE: MANUALLY EVALUATE REG BLOCKS WITH SIGNIFICANT GENES
+#####MANUALLY DECIDE WHICH TO KEEP AS GENES OR REG BLOCKS
+#Step 1: get overlapping genes & reg blocks
+cut -f1-3 ${WRKDIR}/analysis/perAnno_burden/signifRegulatoryBlocks.final.bed | \
+bedtools intersect -wa -wb -a - -b \
+<( fgrep -wf ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_DELDUPUnion_E4_exonic.geneScore_FINAL_sig.genes.list \
+    ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed ) | cut -f1-3,7 | sort -Vk1,1 -k2,2n -k3,3n -k4,4 | uniq
+#Step 2: get gene set annotations for these genes
+while read gene; do
+  echo -e "\n\n${gene}"
+  fgrep -w ${gene} ${WRKDIR}/data/master_annotations/genelists/* | \
+  awk -v FS="/" '{ print $NF }' | sed 's/\.genes/\t/g' | cut -f1 | grep -ve 'GTEx\|Expr\|Gencode'
+done < <( cut -f1-3 ${WRKDIR}/analysis/perAnno_burden/signifRegulatoryBlocks.final.bed | \
+          bedtools intersect -wa -wb -a - -b \
+          <( fgrep -wf ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_DELDUPUnion_E4_exonic.geneScore_FINAL_sig.genes.list \
+              ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed ) | cut -f1-3,7 | sort -Vk1,1 -k2,2n -k3,3n -k4,4 | uniq | \
+          cut -f4 | sort | uniq )
+#Step 3a: exclude reg blocks where manual analysis prioritizes coding effect
+#Genes to exclude: ADAMTS18, CHL1, DOCK8, FBXL4, GBE1, ISPD, KCNV2, KIAA0020, MAD1L1, NKAIN2, SAMSN1, SLC1A1, SLCO1B1, VIPR2, SMYD3, CD82
+echo -e "ADAMTS18\nCHL1\nDOCK8\nFBXL4\nGBE1\nISPD\nKCNV2\nKIAA0020\nMAD1L1\nNKAIN2\nSAMSN1\nSLC1A1\nSLCO1B1\nVIPR2\nSMYD3\nCD82" | \
+fgrep -wf - ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed | \
+bedtools intersect -v -b - \
+-a ${WRKDIR}/analysis/perAnno_burden/signifRegulatoryBlocks.final.bed > \
+${WRKDIR}/analysis/perAnno_burden/signifRegulatoryBlocks.final.bed2
+mv ${WRKDIR}/analysis/perAnno_burden/signifRegulatoryBlocks.final.bed2 \
+${WRKDIR}/analysis/perAnno_burden/signifRegulatoryBlocks.final.bed
+
 
 #####Calculate final p-values and ORs per regulatory block separately for dels and dups
 #Final analysis: subset of all combinations

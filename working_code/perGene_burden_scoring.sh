@@ -496,9 +496,25 @@ done | paste -s
 
 
 #####Final analysis: get list of all del-significant, dup-significant, and any-significant E4 exonic genes in top 5 phenos
+#MANUALLY REMOVE GENES WHERE REGULATORY EFFECT IS MORE LIKELY
+#SEE perAnno_burden_scoring.sh FOR DETAILS
+#GENES TO EXCLUDE: CDH19, ERICH1, GNAT3, GPC5, GTDC1, LRRFIP2, OVGP1, SEL1L2, ZNF257, ZNF676
+VF=E4
+for context in exonic; do
+  for CNV in DEL DUP; do
+    for pheno in GERM NEURO NDD PSYCH SOMA; do
+      echo -e "CDH19\nERICH1\nGNAT3\nGPC5\nGTDC1\nLRRFIP2\nOVGP1\nSEL1L2\nZNF257\nZNF676" | \
+      fgrep -wvf - ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list > \
+      ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list2
+      mv ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list2 \
+      ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list
+    done
+  done
+done
+
 #DEL OR DUP SEPARATELY
 VF=E4
-for context in exonic wholegene; do
+for context in exonic; do
   for CNV in DEL DUP; do
     for pheno in GERM NEURO NDD PSYCH SOMA; do
       cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/${pheno}_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list
@@ -506,7 +522,7 @@ for context in exonic wholegene; do
   done
 done
 #DEL AND DUP UNION
-for context in exonic wholegene; do
+for context in exonic; do
   for CNV in DEL DUP; do
     cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list
   done | sort | uniq > ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_DELDUPUnion_${VF}_${context}.geneScore_FINAL_sig.genes.list
