@@ -59,6 +59,8 @@ for mode in LOF GOF Unknown; do
   <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed ) | \
   grep -e '^[0-9]' | cut -f4 | sort | uniq > ${WRKDIR}/analysis/DD_geneLists/DDG2P_${mode}.genes.list
 done
+#SFARIGene
+
 ASD_SFARIGene.genes.list
 ClinGen_haploinsufficient_low_confidence.genes.list
 #OMIM

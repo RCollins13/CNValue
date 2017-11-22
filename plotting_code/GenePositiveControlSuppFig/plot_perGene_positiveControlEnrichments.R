@@ -43,19 +43,19 @@ x <- x[nrow(x):1,]
 #Set plot params
 fold.max <- 10
 set.labels <- c("LoF Constrained (ExAC; pLI>0.9)","LoF Tolerant (ExAC; pLI<0.1)",
-                "","Haploinsufficient (ClinGen)","Disease Associated (ClinVar)",
+                "Missense Constrained (ExAC; Z>3.08","Missense Tolerant (ExAC; Z<0)","",
+                "Haploinsufficient (ClinGen)","Disease Associated (ClinVar)",
                 "Recurrent dnLoF in DDs (DDD)","DD Associated (Nguyen; extTADA)",
-                "ASD Associated (Nguyen; extTADA)","ID Associated (Nguyen; extTADA)",
-                "","Autosomal Dominant Disease (Berg + Blekhman)","Dominant LoF in DDs (DECIPHER)",
-                "Dominant GoF in DDs (DECIPHER)","","Autosomal Recessive Disease (Berg + Blekhman)",
-                "Recessive LoF in DDs (DECIPHER)","Recessive GoF in DDs (DECIPHER)")
+                "ASD Associated (Nguyen; extTADA)","ID Associated (Nguyen; extTADA)","",
+                "Autosomal Dominant Disease (Berg + Blekhman)","Dominant LoF in DDs (DECIPHER)","Dominant GoF in DDs (DECIPHER)","",
+                "Autosomal Recessive Disease (Berg + Blekhman)","Recessive LoF in DDs (DECIPHER)","Recessive GoF in DDs (DECIPHER)")
 set.labels <- rev(set.labels)
 
 #Prep plot area
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/GenePositiveControlSuppFig/",
           "GenePositiveControlSuppFig.dotplots.pdf",sep=""),
-    height=8,width=12)
-par(mar=c(0.5,21,3,1.5),bty="n",lend=1)
+    height=9,width=12)
+par(mar=c(0.5,21,3,1.5),bty="n",lend="round")
 plot(x=c(-0.1,fold.max+0.1),y=c(0,nrow(x)),type="n",
      xaxs="i",xlab="",ylab="",xaxt="n",yaxt="n")
 
@@ -75,31 +75,41 @@ sapply(1:nrow(x),function(i){
   if(x[i,]$set!="SKIP"){
     #Account for NA fold-enrichments
     if(!is.na(plotVals[10]) & !is.na(plotVals[11])){
+      #Set point colors
+      plotCols <- c("red","blue")
+      plotBor <- c("black","black")
       #Account for fold-enrichments > fold.max
       if(plotVals[10]>fold.max){
         plotVals[10] <- fold.max
-        plotVals[12] <- NA
-        plotVals[13] <- NA
+        plotCols[1] <- "white"
+        plotBor[1] <- "red"
+        # plotVals[12] <- NA
+        # plotVals[13] <- NA
       }
       if(plotVals[11]>fold.max){
         plotVals[11] <- fold.max
-        plotVals[14] <- NA
-        plotVals[15] <- NA
+        plotCols[2] <- "white"
+        plotBor[2] <- "blue"
+        # plotVals[14] <- NA
+        # plotVals[15] <- NA
       }
       #Shading
       rect(xleft=par("usr")[1],xright=par("usr")[2],
            ybottom=i-0.85,ytop=i-0.15,
            border=NA,col=adjustcolor("gray60",alpha=0.15))
-      segments(x0=c(1,1),x1=plotVals[c(10,11)],
-               y0=c(i-0.35,i-0.65),y1=c(i-0.35,i-0.65),
-               lwd=6,col=adjustcolor(c("red","blue"),alpha=0.3))
+      # segments(x0=c(1,1),x1=plotVals[c(10,11)],
+      #          y0=c(i-0.35,i-0.65),y1=c(i-0.35,i-0.65),
+      #          lwd=6,col=adjustcolor(c("red","blue"),alpha=0.3))
       #CIs
+      # segments(x0=plotVals[c(12,14)],x1=plotVals[c(13,15)],
+      #          y0=c(i-0.35,i-0.65),y1=c(i-0.35,i-0.65),
+      #          lwd=1,col="gray20")
       segments(x0=plotVals[c(12,14)],x1=plotVals[c(13,15)],
                y0=c(i-0.35,i-0.65),y1=c(i-0.35,i-0.65),
-               lwd=1,col="gray20")
+               lwd=6,col=adjustcolor(c("red","blue"),alpha=0.3))
       #Point estimates
       points(x=plotVals[c(10,11)],y=c(i-0.35,i-0.65),
-             pch=21,bg=c("red","blue"))
+             pch=21,col=plotBor,bg=plotCols,cex=1.3)
       #Significance marks
       if(plotVals[16]<0.001){
         axis(4,at=i-0.35,line=-0.9,tick=F,las=2,labels="***",col.axis="red")

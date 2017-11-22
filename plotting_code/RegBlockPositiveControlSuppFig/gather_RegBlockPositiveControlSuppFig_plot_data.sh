@@ -21,8 +21,7 @@ if [ -e ${WRKDIR}/data/plot_data/RegBlockControlSuppFig ]; then
 fi
 mkdir ${WRKDIR}/data/plot_data/RegBlockControlSuppFig
 
-#####Step 1a: calcuate distance to nearest constrained, DD-associated, or clingen HI gene
-#Determine eligible regions of the genome to place shuffled segments
+#####Step 0: Determine eligible regions of the genome to place shuffled segments
 #Exclude probe deserts ±50kb
 #Exclude gene boundaries from pLI>0.9 genes
 #Exclude gene boundaries from dominant disease genes
@@ -53,39 +52,30 @@ sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | \
 bedtools subtract -a - -b ${TMPDIR}/regBlock_shuffle_blacklist.bed > \
 ${TMPDIR}/regBlock_shuffle_whitelist.bed
 #Restrict to regions >5kb & remove unplaced contigs
-awk '{ if ($3-$2>5000) print $0 }' ${TMPDIR}/regBlock_shuffle_whitelist.bed | \
+awk '{ if ($3-$2>5000 && $1<=22) print $0 }' ${TMPDIR}/regBlock_shuffle_whitelist.bed | \
 fgrep -v random | fgrep -v gl | fgrep -v hap > ${TMPDIR}/regBlock_shuffle_whitelist.bed2
 mv ${TMPDIR}/regBlock_shuffle_whitelist.bed2 ${TMPDIR}/regBlock_shuffle_whitelist.bed
+
+#####Step 1a: calcuate distance to nearest constrained gene
 #Write lists of protein-coding exons for distance calculations
 sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list | \
 fgrep -wf - ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed | \
 cut -f1-3 | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | grep -e '^[0-9]' | \
 awk -v OFS="\t" '{ print $1, $2, $3, ".", "+" }' > \
 ${TMPDIR}/constrained_exons.bed
-sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/DDD_2017.genes.list | \
-fgrep -wf - ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed | \
-cut -f1-3 | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | grep -e '^[0-9]' | \
-awk -v OFS="\t" '{ print $1, $2, $3, ".", "+" }' > \
-${TMPDIR}/DDD_exons.bed
-sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/ClinGen_haploinsufficient_low_confidence.genes.list | \
-fgrep -wf - ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed | \
-cut -f1-3 | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | grep -e '^[0-9]' | \
-awk -v OFS="\t" '{ print $1, $2, $3, ".", "+" }' > \
-${TMPDIR}/ClinGen_HI_exons.bed
 #Get empirical distance results
 for CNV in DEL DUP; do
   #Oerlap upstream & downstream separately
   paste <( sed '1d' ${WRKDIR}/data/plot_data/suppTables/suppTables_5_6_${CNV}.txt | cut -f1-3 | \
            awk -v OFS="\t" '{ print $1, $2, $3, ".", "+" }' | bedtools closest -D ref -id -io \
            -a - -g /data/talkowski/rlc47/src/GRCh37.genome \
-           -b ${TMPDIR}/constrained_exons.bed | awk '{ if ($NF==-1) $NF="NA"; print $NF }' ) \
+           -b ${TMPDIR}/DDD_exons.bed | awk '{ if ($NF==-1) $NF="NA"; print $NF }' ) \
         <( sed '1d' ${WRKDIR}/data/plot_data/suppTables/suppTables_5_6_${CNV}.txt | cut -f1-3 | \
            awk -v OFS="\t" '{ print $1, $2, $3, ".", "+" }' | bedtools closest -D ref -iu -io \
            -a - -g /data/talkowski/rlc47/src/GRCh37.genome \
-           -b ${TMPDIR}/constrained_exons.bed | awk '{ if ($NF==-1) $NF="NA"; print $NF }' )
-done
-#Quick test: shuffle
-for CNV in DEL DUP; do
+           -b ${TMPDIR}/DDD_exons.bed | awk '{ if ($NF==-1) $NF="NA"; print $NF }' ) > \
+           ${TMPDIR}/test_distances.txt
+  #Quick test: shuffle
   for i in $( seq 1 100 ); do
     #Shuffle
     shuffled=`mktemp`
@@ -98,12 +88,50 @@ for CNV in DEL DUP; do
     paste <( awk -v OFS="\t" '{ print $1, $2, $3, ".", "+" }' ${shuffled} | sort -Vk1,1 -k2,2n -k3,3n | \
              bedtools closest -D ref -id -io \
              -a - -g /data/talkowski/rlc47/src/GRCh37.genome \
-             -b ${TMPDIR}/constrained_exons.bed | awk '{ if ($NF==-1) $NF="NA"; print $NF }' ) \
+             -b ${TMPDIR}/DDD_exons.bed | awk '{ if ($NF==-1) $NF="NA"; print $NF }' ) \
           <( awk -v OFS="\t" '{ print $1, $2, $3, ".", "+" }' ${shuffled} | sort -Vk1,1 -k2,2n -k3,3n | \
              bedtools closest -D ref -iu -io \
-             -a - -g /data/talkowski/rlc47/src/GRCh37.genome \
-             -b ${TMPDIR}/constrained_exons.bed | awk '{ if ($NF==-1) $NF="NA"; print $NF }' )
+             -a - -g <( grep -e '^[0-9]' /data/talkowski/rlc47/src/GRCh37.genome ) \
+             -b ${TMPDIR}/DDD_exons.bed | awk '{ if ($NF==-1) $NF="NA"; print $NF }' )
+  done > ${TMPDIR}/test_shuf.txt
 done 
+
+
+
+
+
+
+sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/DDD_2017.genes.list | \
+fgrep -wf - ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed | \
+cut -f1-3 | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | grep -e '^[0-9]' | \
+awk -v OFS="\t" '{ print $1, $2, $3, ".", "+" }' > \
+${TMPDIR}/DDD_exons.bed
+
+sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/DDG2P_HighConf_Dominant_LOF.genes.list | \
+fgrep -wf - ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed | \
+cut -f1-3 | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | grep -e '^[0-9]' | \
+awk -v OFS="\t" '{ print $1, $2, $3, ".", "+" }' > \
+${TMPDIR}/DECIPHER_LOF_exons.bed
+
+sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/DDG2P_HighConf_Dominant_GOF.genes.list | \
+fgrep -wf - ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed | \
+cut -f1-3 | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | grep -e '^[0-9]' | \
+awk -v OFS="\t" '{ print $1, $2, $3, ".", "+" }' > \
+${TMPDIR}/DECIPHER_GOF_exons.bed
+
+
+sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/BRAIN_MASTER_INTERSECTION.Highly_Expressed.genes.list | \
+fgrep -wf - ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed | \
+cut -f1-3 | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | grep -e '^[0-9]' | \
+awk -v OFS="\t" '{ print $1, $2, $3, ".", "+" }' > \
+${TMPDIR}/BrainExpr_exons.bed
+
+
+sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/ClinGen_haploinsufficient_low_confidence.genes.list | \
+fgrep -wf - ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed | \
+cut -f1-3 | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | grep -e '^[0-9]' | \
+awk -v OFS="\t" '{ print $1, $2, $3, ".", "+" }' > \
+${TMPDIR}/ClinGen_HI_exons.bed
 
 
 

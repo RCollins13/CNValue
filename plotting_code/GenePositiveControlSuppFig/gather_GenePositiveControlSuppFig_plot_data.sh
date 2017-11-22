@@ -30,8 +30,8 @@ cut -f2 | sed 's/\-/_/g' | sort | uniq > ${TMPDIR}/gene_universe.txt
 
 #####Step 2: iterate over DEL/DUP, count observed overlap and expected overlap based on fraction of genes in list
 VF=E4; context=exonic
-for list in ExAC_constrained ExAC_haplosufficient SKIP ClinGen_haploinsufficient_low_confidence \
-            ClinVar_disease_associated DDD_2017 extTADA_DD extTADA_ASD extTADA_ID SKIP \
+for list in ExAC_constrained ExAC_haplosufficient ExAC_missense_constrained ExAC_missense_tolerant SKIP \
+            ClinGen_haploinsufficient_low_confidence ClinVar_disease_associated DDD_2017 extTADA_DD extTADA_ASD extTADA_ID SKIP \
             Autosomal_dominant_disease DDG2P_AnyConf_Dominant_LOF DDG2P_AnyConf_Dominant_GOF SKIP \
             Autosomal_recessive_disease DDG2P_AnyConf_Recessive_LOF DDG2P_AnyConf_Recessive_GOF; do
   for wrapper in 1; do
