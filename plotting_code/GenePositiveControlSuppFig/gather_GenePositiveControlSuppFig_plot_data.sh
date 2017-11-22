@@ -30,37 +30,29 @@ cut -f2 | sed 's/\-/_/g' | sort | uniq > ${TMPDIR}/gene_universe.txt
 
 #####Step 2: iterate over DEL/DUP, count observed overlap and expected overlap based on fraction of genes in list
 VF=E4; context=exonic
-for CNV in DEL DUP; do
-  for list in ExAC_constrained ExAC_extremely_constrained ExAC_missense_constrained ExAC_haplosufficient \
-              ClinGen_haploinsufficient_low_confidence ClinVar_disease_associated \
-              DDD_2017 extTADA_DD ASD_TADA_q0.3 extTADA_ASD extTADA_ID \
-              Coe2017_ASD_ID_denovolyzeR_LGD Coe2017_ASD_ID_denovolyzeR_MIS \
-              Autosomal_dominant_disease Autosomal_recessive_disease \
-              DDG2P_HighConf_Dominant_LOF DDG2P_AnyConf_Dominant_LOF DDG2P_HighConf_Recessive_LOF DDG2P_AnyConf_Recessive_LOF \
-              DDG2P_HighConf_Dominant_GOF DDG2P_AnyConf_Dominant_GOF \
-              DDG2P_HighConf_Dominant_Unknown DDG2P_AnyConf_Dominant_Unknown DDG2P_HighConf_Recessive_Unknown DDG2P_AnyConf_Recessive_Unknown; do
-    for wrapper in 1; do
-      echo -e "${CNV}\t${list}"
-      #Sig genes (all)
-      cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list | wc -l
-      #Sig genes (in set)
-      if [ -e ${WRKDIR}/data/master_annotations/genelists/${list}.genes.list ]; then
-        sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list | \
-        fgrep -wf - <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/${list}.genes.list | \
-                       fgrep -wf ${TMPDIR}/gene_universe.txt ) | wc -l
-      else
-        echo NA
-      fi
+for list in ExAC_constrained ExAC_haplosufficient SKIP ClinGen_haploinsufficient_low_confidence \
+            ClinVar_disease_associated DDD_2017 extTADA_DD extTADA_ASD extTADA_ID SKIP \
+            Autosomal_dominant_disease DDG2P_AnyConf_Dominant_LOF DDG2P_AnyConf_Dominant_GOF SKIP \
+            Autosomal_recessive_disease DDG2P_AnyConf_Recessive_LOF DDG2P_AnyConf_Recessive_GOF; do
+  for wrapper in 1; do
+    echo -e "${list}"
+    if [ -e ${WRKDIR}/data/master_annotations/genelists/${list}.genes.list ]; then
       #Universe genes (all)
       cat ${TMPDIR}/gene_universe.txt | wc -l
       #Universe genes (in set)
-      if [ -e ${WRKDIR}/data/master_annotations/genelists/${list}.genes.list ]; then
-        sed 's/\-/_/g' ${TMPDIR}/gene_universe.txt | \
+      sed 's/\-/_/g' ${TMPDIR}/gene_universe.txt | \
+      fgrep -wf - <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/${list}.genes.list | \
+                     fgrep -wf ${TMPDIR}/gene_universe.txt ) | wc -l
+      for CNV in DEL DUP; do
+        #Sig genes (all)
+        cat ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list | wc -l
+        #Sig genes (in set)
+        sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list | \
         fgrep -wf - <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/genelists/${list}.genes.list | \
                        fgrep -wf ${TMPDIR}/gene_universe.txt ) | wc -l
-      else
-        echo NA
-      fi
-    done | paste -s
-  done 
-done 
+      done
+    else
+      echo -e "NA\tNA\tNA\tNA\tNA\tNA"
+    fi
+  done | paste -s
+done > ${WRKDIR}/data/plot_data/GenePositiveControlSuppFig/signifGenes_positiveControlData.txt

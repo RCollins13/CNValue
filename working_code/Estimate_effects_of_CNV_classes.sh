@@ -1,8 +1,7 @@
 for CNV in DEL DUP; do
-  for pheno in GERM NEURO NDD PSYCH SOMA; do  
-    cat ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_${CNV}_${VF}.final_merged_loci.${annoSet}.bed
-  done | sort -Vk1,1 -k2,2n -k3,3n -k4,4 | uniq | fgrep -wf - \
-  ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/${annoSet}_haplosuffDELnoncodingDUP_${VF}.signif_loci.merged.filtered.bed > \
+  cut -f5 ${WRKDIR}/data/plot_data/suppTables/suppTables_5_6_${CNV}.txt | \
+  sed -e 's/\;/\n/g' -e 's/\_/\t/g' | sort -Vk1,1 -k2,2n -k3,3n | \
+  grep -e '^[0-9]' | bedtools merge -i - > \
   ${TMPDIR}/noncoding_${CNV}.sites.bed
 done
 
@@ -29,31 +28,35 @@ done
 #Genes
 for CNV in DEL DUP; do
   for wrapper in 1; do
-    fgrep -wf ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_E4_exonic.geneScore_FINAL_sig.genes.list \
-    ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed |
+    fgrep -wf \
+    <( sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_E4_exonic.geneScore_FINAL_sig.genes.list ) \
+    <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed ) |
     bedtools intersect -u -b - \
-    -a ${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.${CNV}.E4.GRCh37.coding.bed.gz | \
+    -a ${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.${CNV}.${VF}.GRCh37.all_largeSegmentExcluded.bed.gz | \
     cut -f4 | sort | uniq | wc -l
-    fgrep -wf ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_E4_exonic.geneScore_FINAL_sig.genes.list \
-    ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed |
+    fgrep -wf \
+    <( sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_E4_exonic.geneScore_FINAL_sig.genes.list ) \
+    <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed ) |
     bedtools intersect -u -b - \
-    -a ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.E4.GRCh37.coding.bed.gz | \
+    -a ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.all_largeSegmentExcluded.bed.gz | \
     cut -f4 | sort | uniq | wc -l
   done | paste -s | awk -v OFS="\t" '{ print $1/63629, $2/38628 }' | awk -v OFS="\t" '{ print $1, $2, $1-$2 }'
 done
 #Noncoding
 for CNV in DEL DUP; do
   if [ ${CNV} == "DEL" ]; then
-    filt=haplosufficient
-  else
-    filt=noncoding
+    CTRL_CNVs=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.haplosufficient_largeSegmentExcluded_sigGeneExcluded.bed.gz
+    CASE_CNVs=${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.${CNV}.${VF}.GRCh37.haplosufficient_largeSegmentExcluded_sigGeneExcluded.bed.gz
+  elif [ ${CNV} == "DUP" ]; then
+    CTRL_CNVs=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.noncoding_largeSegmentExcluded.bed.gz
+    CASE_CNVs=${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.${CNV}.${VF}.GRCh37.noncoding_largeSegmentExcluded.bed.gz
   fi
   for wrapper in 1; do
     bedtools intersect -u -b ${TMPDIR}/noncoding_${CNV}.sites.bed \
-    -a ${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.${CNV}.E4.GRCh37.${filt}.bed.gz | \
+    -a ${CASE_CNVs} | \
     cut -f4 | sort | uniq | wc -l
     bedtools intersect -u -b ${TMPDIR}/noncoding_${CNV}.sites.bed \
-    -a ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.E4.GRCh37.${filt}.bed.gz | \
+    -a ${CTRL_CNVs} | \
     cut -f4 | sort | uniq | wc -l
   done | paste -s | awk -v OFS="\t" '{ print $1/63629, $2/38628 }' | awk -v OFS="\t" '{ print $1, $2, $1-$2 }'
 done
@@ -130,15 +133,17 @@ awk -v OFS="\t" '{ print $1, $2, 63629-$1, 388628-$2 }' | awk '{ print ($1/($1+$
 #Genes
 for CNV in DEL DUP; do
   for wrapper in 1; do
-    fgrep -wf ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_E4_exonic.geneScore_FINAL_sig.genes.list \
-    ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed |
+    fgrep -wf \
+    <( sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_E4_exonic.geneScore_FINAL_sig.genes.list ) \
+    <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed ) |
     bedtools intersect -u -b - \
-    -a ${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.${CNV}.E4.GRCh37.coding.bed.gz | \
+    -a ${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.${CNV}.${VF}.GRCh37.all_largeSegmentExcluded.bed.gz | \
     cut -f4 | sort | uniq | wc -l
-    fgrep -wf ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_E4_exonic.geneScore_FINAL_sig.genes.list \
-    ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed |
+    fgrep -wf \
+    <( sed 's/\-/_/g' ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_E4_exonic.geneScore_FINAL_sig.genes.list ) \
+    <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed ) |
     bedtools intersect -u -b - \
-    -a ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.E4.GRCh37.coding.bed.gz | \
+    -a ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.all_largeSegmentExcluded.bed.gz | \
     cut -f4 | sort | uniq | wc -l
   done | paste -s
 done | awk -v OFS="\t" '{ case_sum+=$1; ctrl_sum+=$2}END{ print case_sum, ctrl_sum }' | \
@@ -146,16 +151,18 @@ awk -v OFS="\t" '{ print $1, $2, 63629-$1, 388628-$2 }' | awk '{ print ($1/($1+$
 #Noncoding
 for CNV in DEL DUP; do
   if [ ${CNV} == "DEL" ]; then
-    filt=haplosufficient
-  else
-    filt=noncoding
+    CTRL_CNVs=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.haplosufficient_largeSegmentExcluded_sigGeneExcluded.bed.gz
+    CASE_CNVs=${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.${CNV}.${VF}.GRCh37.haplosufficient_largeSegmentExcluded_sigGeneExcluded.bed.gz
+  elif [ ${CNV} == "DUP" ]; then
+    CTRL_CNVs=${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.${VF}.GRCh37.noncoding_largeSegmentExcluded.bed.gz
+    CASE_CNVs=${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.${CNV}.${VF}.GRCh37.noncoding_largeSegmentExcluded.bed.gz
   fi
   for wrapper in 1; do
     bedtools intersect -u -b ${TMPDIR}/noncoding_${CNV}.sites.bed \
-    -a ${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.${CNV}.E4.GRCh37.${filt}.bed.gz | \
+    -a ${CASE_CNVs} | \
     cut -f4 | sort | uniq | wc -l
     bedtools intersect -u -b ${TMPDIR}/noncoding_${CNV}.sites.bed \
-    -a ${WRKDIR}/data/CNV/CNV_MASTER/CTRL/CTRL.${CNV}.E4.GRCh37.${filt}.bed.gz | \
+    -a ${CTRL_CNVs} | \
     cut -f4 | sort | uniq | wc -l
   done | paste -s | awk -v OFS="\t" '{ print $1/63629, $2/38628 }' | awk -v OFS="\t" '{ print $1, $2, $1-$2 }'
 done | awk -v OFS="\t" '{ case_sum+=$1; ctrl_sum+=$2}END{ print case_sum, ctrl_sum }' | \
