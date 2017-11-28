@@ -79,7 +79,7 @@ for CNV in DEL DUP; do
   for i in $( seq 1 100 ); do
     #Shuffle
     shuffled=`mktemp`
-    bedtools shuffle -g /data/talkowski/rlc47/src/GRCh37.genome \
+    bedtools shuffle -g <( grep -e '^[0-9]' /data/talkowski/rlc47/src/GRCh37.genome ) \
     -excl ${TMPDIR}/regBlock_shuffle_blacklist.bed \
     -seed ${i} \
     -i <( sed '1d' ${WRKDIR}/data/plot_data/suppTables/suppTables_5_6_${CNV}.txt | cut -f1-3 ) > \
@@ -132,6 +132,12 @@ fgrep -wf - ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_
 cut -f1-3 | sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - | grep -e '^[0-9]' | \
 awk -v OFS="\t" '{ print $1, $2, $3, ".", "+" }' > \
 ${TMPDIR}/ClinGen_HI_exons.bed
+
+
+
+
+
+
 
 
 

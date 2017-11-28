@@ -641,18 +641,16 @@ sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
 # done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
 #           cut -f1 | fgrep -v CTRL )
 
-# #Get significant germline elements within 1Mb of high-confidence autosomal disease genes
-# VF=E4
-# dist=1000000
-# for pheno in GERM NEURO NDD DD PSYCH SCZ SOMA; do
-#   cat ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/${pheno}/${pheno}_*_${VF}.final_merged_loci.all_classes.bed
-# done | bedtools intersect -wa -u -b - \
-# -a <( fgrep -wf ${WRKDIR}/data/master_annotations/genelists/DDD_2017.genes.list \
-#       ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed | \
-#       awk -v OFS="\t" -v dist=${dist} '{ print $1, $2-dist, $3+dist, $4 }' | \
-#       awk -v OFS="\t" '{ if ($2<1) $2=1; print $0 }' | grep -e '^[0-9]' ) | \
-# cut -f4 | sed 's/\-/\t/g' | cut -f1 | sort | uniq | fgrep -wf - \
-# ${WRKDIR}/data/master_annotations/genelists/ExAC_haplosufficient.genes.list
+#Get significant germline elements within 1Mb of high-confidence autosomal disease genes
+VF=E4
+dist=1000000
+bedtools intersect -wa -u -b ${WRKDIR}/analysis/perAnno_burden/signifRegulatoryBlocks.final.bed \
+-a <( fgrep -wf ${WRKDIR}/data/master_annotations/genelists/DDD_2017.genes.list \
+      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed | \
+      awk -v OFS="\t" -v dist=${dist} '{ print $1, $2-dist, $3+dist, $4 }' | \
+      awk -v OFS="\t" '{ if ($2<1) $2=1; print $0 }' | grep -e '^[0-9]' | grep -v '\-' ) | \
+cut -f4 | sed 's/\-/\t/g' | cut -f1 | sort | uniq | fgrep -wf - \
+${WRKDIR}/data/master_annotations/genelists/ExAC_haplosufficient.genes.list
 # #Haplosufficient genes that appear in the above list because of coding effects (exclude): MEF2C
 # #Get significant germline elements within 1Mb of rCNV-burdened genes that are also pLI-constrained
 # for pheno in GERM NEURO SOMA NDD DD PSYCH SCZ; do
@@ -683,6 +681,35 @@ sort -nk1,1 | perl -e '$d=.5;@l=<>;print $l[int($d*$#l)]'
 # cut -f4 | sed 's/\-/\t/g' | cut -f1 | sort | uniq | fgrep -wf - \
 # ${WRKDIR}/data/master_annotations/genelists/ExAC_haplosufficient.genes.list
 # #Haplosufficient genes that appear in the list because of coding effects (exclude): FHIT, PTPN13, RAD51B, TGFBR2
+
+
+#Get genes with at least one noncoding significant regulatory element within 1Mb AND coding CNV hit AND ExAC constrained
+VF=E4
+dist=1000000
+context=exonic
+bedtools intersect -wa -u -b ${WRKDIR}/analysis/perAnno_burden/signifRegulatoryBlocks.final.bed \
+-a <( cat ${WRKDIR}/data/master_annotations/genelists/ExAC_*constrained*.genes.list | fgrep -wf - \
+      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed | \
+      awk -v OFS="\t" -v dist=${dist} '{ print $1, $2-dist, $3+dist, $4 }' | \
+      awk -v OFS="\t" '{ if ($2<1) $2=1; print $0 }' | grep -e '^[0-9]' | grep -v '\-' | \
+      fgrep -wf ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_DELDUPUnion_${VF}_${context}.geneScore_FINAL_sig.genes.list )
+
+
+#Get final regulatory blocks shared with old cancer regulatory blocks
+dist=1000000
+for CNV_GERM in DEL DUP; do
+  for CNV_CNCR in DEL DUP; do
+    echo -e "\n\n${CNV_GERM} in GERM and ${CNV_CNCR} in CNCR:"
+    bedtools intersect -wa -u -a <( sed '1d' ${WRKDIR}/data/plot_data/suppTables/suppTables_5_6_${CNV_GERM}.txt | cut -f1-3 ) \
+    -b ${WRKDIR}/analysis/perAnno_burden/signif_elements/all_merged/final_loci/CNCR/CNCR_${CNV_CNCR}_E4.final_merged_loci.all_classes.bed | \
+    bedtools intersect -wa -u -b - \
+    -a <( fgrep -wf ${WRKDIR}/data/master_annotations/genelists/*constrained*.genes.list \
+      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.all.bed | \
+       cut -f2- -d\: | awk -v OFS="\t" -v dist=${dist} '{ print $1, $2-dist, $3+dist, $4 }' | \
+      awk -v OFS="\t" '{ if ($2<1) $2=1; print $0 }' | grep -e '^[0-9]' | grep -v '\-' )
+  done
+done
+
 
 
 

@@ -32,8 +32,9 @@ cut -f2 | sed 's/\-/_/g' | sort | uniq > ${TMPDIR}/gene_universe.txt
 VF=E4; context=exonic
 for list in ExAC_constrained ExAC_haplosufficient ExAC_missense_constrained ExAC_missense_tolerant SKIP \
             ClinGen_haploinsufficient_low_confidence ClinVar_disease_associated DDD_2017 extTADA_DD extTADA_ASD extTADA_ID SKIP \
-            Autosomal_dominant_disease DDG2P_AnyConf_Dominant_LOF DDG2P_AnyConf_Dominant_GOF SKIP \
-            Autosomal_recessive_disease DDG2P_AnyConf_Recessive_LOF DDG2P_AnyConf_Recessive_GOF; do
+            Autosomal_dominant_disease Autosomal_recessive_disease SKIP \
+            DDG2P_AnyConf_Dominant_LOF DDG2P_AnyConf_Recessive_LOF SKIP \
+            DDG2P_AnyConf_Dominant_GOF DDG2P_AnyConf_Recessive_GOF SKIP; do
   for wrapper in 1; do
     echo -e "${list}"
     if [ -e ${WRKDIR}/data/master_annotations/genelists/${list}.genes.list ]; then
@@ -56,3 +57,6 @@ for list in ExAC_constrained ExAC_haplosufficient ExAC_missense_constrained ExAC
     fi
   done | paste -s
 done > ${WRKDIR}/data/plot_data/GenePositiveControlSuppFig/signifGenes_positiveControlData.txt
+
+
+

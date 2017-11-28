@@ -544,7 +544,29 @@ while read gene; do
   fgrep -w ${gene} ${WRKDIR}/data/master_annotations/genelists/* | cut -f1 -d\: | \
   awk -v FS="/" '{ print $NF }' | sed 's/\.genes\.list//g' | fgrep -v Gencode | \
   fgrep -v GTEx
-done < <( echo -e "ACTR3B\nADCY9\nANKFY1\nASB7\nBPTF\nC16orf72\nCLUH\nCOLEC12\nFAM196A\nFCGR1B\nFNTA\nGMDS\nGPR89A\nLRRK1\nMPRIP\nNCS1\nOR4F17\nOR4F4\nOTUD7A\nRAP1GAP2\nRAP1GDS1\nRMND5A\nRPSAP58\nTAOK3\nUBAP1\nUSP34\nZNF195" )
+done < <( echo -e "ACTR3B\nADCY9\nANKFY1\nBPTF\nC16orf72\nCLUH\nCOLEC12\nFAM196A\nGMDS\nIBTK\nNCS1\nRAP1GAP2\nRAP1GDS1\nRMND5A\nRPSAP58\nUBAP1\nUSP34\nZNF195" )
+
+
+#####Get genes with reciprocal associations in germline & cancer (note: OLD model for cancer CNVs)
+context=exonic; VF=E4
+for CNV_GERM in DEL DUP; do
+  for CNV_CNCR in DEL DUP; do
+    echo -e "\n\n${CNV_GERM} in GERM and ${CNV_CNCR} in CNCR:"
+    fgrep -wf ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV_GERM}_${VF}_${context}.geneScore_FINAL_sig.genes.list \
+    ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/CNCR_${CNV_CNCR}_E4_exonic.geneScore_Bonferroni_sig.union.genes.list | sort | uniq
+  done
+done
+
+
+#####Get genes with no constraint, high expression in one tissue, low/no expression in one tissue, and dup-significant
+VF=E4; context=exonic; CNV=DUP
+fgrep -wvf ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list \
+${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV_GERM}_${VF}_${context}.geneScore_FINAL_sig.genes.list | \
+fgrep -wf <( cat ${WRKDIR}/data/master_annotations/genelists/*MASTER*Highly_Expressed* | grep -v '\-' ) | \
+fgrep -wf <( cat ${WRKDIR}/data/master_annotations/genelists/*MASTER*Lowly_Expressed* | grep -v '\-' ) | \
+fgrep -wf - ${WRKDIR}/data/master_annotations/genelists/ExAC_missense_constrained.genes.list
+
+
 
 
 

@@ -1580,7 +1580,10 @@ cat ${WRKDIR}/data/misc/Affy6_probeDeserts.bed \
 ${WRKDIR}/data/misc/Omni_probeDeserts.bed | sort -Vk1,1 -k2,2n -k3,3n | \
 bedtools merge -i - > ${WRKDIR}/data/misc/CTRL_probeDeserts.bed
 #Disease-associated enhancers (DiseaseEnhancer)
-http://biocc.hrbmu.edu.cn/DiseaseEnhancer/RFunctions/diseaseEnh5.1.txt
+cd ${WRKDIR}/data/misc/
+wget http://biocc.hrbmu.edu.cn/DiseaseEnhancer/RFunctions/diseaseEnh5.1.txt
+sed 's/\ /_/g' ${WRKDIR}/data/misc/diseaseEnh5.1.txt | cut -f2- | sed 's/^chr//g' | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - -c 4,5 -o distinct
 #Disease-associated enhancers (HEDD)
 
 
