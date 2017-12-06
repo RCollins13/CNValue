@@ -545,6 +545,13 @@ while read gene; do
   awk -v FS="/" '{ print $NF }' | sed 's/\.genes\.list//g' | fgrep -v Gencode | \
   fgrep -v GTEx
 done < <( echo -e "ACTR3B\nADCY9\nANKFY1\nBPTF\nC16orf72\nCLUH\nCOLEC12\nFAM196A\nGMDS\nIBTK\nNCS1\nRAP1GAP2\nRAP1GDS1\nRMND5A\nRPSAP58\nUBAP1\nUSP34\nZNF195" )
+#Get associations for each gene of interest
+VF=E4; context=exonic
+for CNV in DEL DUP; do
+  echo -e "ACTR3B\nADCY9\nANKFY1\nBPTF\nC16orf72\nCLUH\nCOLEC12\nFAM196A\nGMDS\nIBTK\nNCS1\nRAP1GAP2\nRAP1GDS1\nRMND5A\nRPSAP58\nUBAP1\nUSP34\nZNF195" | \
+  fgrep -wf - ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list | \
+  sort | uniq | paste -s -d,
+done
 
 
 #####Get genes with reciprocal associations in germline & cancer (note: OLD model for cancer CNVs)
@@ -555,13 +562,13 @@ for CNV_GERM in DEL DUP; do
     fgrep -wf ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV_GERM}_${VF}_${context}.geneScore_FINAL_sig.genes.list \
     ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/CNCR_${CNV_CNCR}_E4_exonic.geneScore_Bonferroni_sig.union.genes.list | sort | uniq
   done
-done
+done | fgrep -wvf <( echo -e "ARHGEF10\nDLGAP2\nFAM19A5\nAUTS2\nMACROD2\nSNTG1" )
 
 
 #####Get genes with no constraint, high expression in one tissue, low/no expression in one tissue, and dup-significant
 VF=E4; context=exonic; CNV=DUP
 fgrep -wvf ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list \
-${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV_GERM}_${VF}_${context}.geneScore_FINAL_sig.genes.list | \
+${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list | \
 fgrep -wf <( cat ${WRKDIR}/data/master_annotations/genelists/*MASTER*Highly_Expressed* | grep -v '\-' ) | \
 fgrep -wf <( cat ${WRKDIR}/data/master_annotations/genelists/*MASTER*Lowly_Expressed* | grep -v '\-' ) | \
 fgrep -wf - ${WRKDIR}/data/master_annotations/genelists/ExAC_missense_constrained.genes.list

@@ -19,6 +19,8 @@ cols.SOMA <- c("#EC008D","#F466BB","#F799D1","#FBCCE8")
 cols.LOCI <- c("#1A5B22","#FFCB00","#34BFAD")
 nsamps <- c(63629,57760,35693,22119,13361)
 names(nsamps) <- c("GERM","NEURO","NDD","PSYCH","NONN")
+require(beeswarm)
+require(MASS)
 
 #####PLOT A: incidence per pheno by category
 #Read data
@@ -107,7 +109,7 @@ readORs <- function(CNV){
         ncase.total <- nsamps[which(names(nsamps)==pheno)]
         nctrl.total <- 38628
         OR <- ((vals[case.idx]+0.5)/(vals[ctrl.idx]+0.5))/
-              ((ncase.total-vals[case.idx]+0.5)/(nctrl.total-vals[ctrl.idx]+0.5))
+          ((ncase.total-vals[case.idx]+0.5)/(nctrl.total-vals[ctrl.idx]+0.5))
         risk <- (vals[case.idx]/ncase.total)-(vals[ctrl.idx]/nctrl.total)
         return(c(OR,risk))
       }else{
@@ -129,7 +131,7 @@ readORs <- function(CNV){
 
     #Return values
     return(c(OR.final,risk.final,ID))
-   }))
+  }))
   seg.vals <- as.data.frame(seg.vals)
   colnames(seg.vals) <- c("OR","risk","ID")
   seg.vals$class <- "seg"
@@ -139,7 +141,7 @@ readORs <- function(CNV){
   ###Read & clean gene data
   #Read table
   genes <- read.table(paste(WRKDIR,"plot_data/suppTables/suppTables_",
-                           "3_4_",CNV,".txt",sep=""),header=T)
+                            "3_4_",CNV,".txt",sep=""),header=T)
   #Iterate over sites & return OR & excess risk per signif pheno
   gene.vals <- t(apply(genes,1,function(vals){
     #Get genement ID
@@ -187,7 +189,7 @@ readORs <- function(CNV){
   ###Read & clean reg block data
   #Read table
   blocks <- read.table(paste(WRKDIR,"plot_data/suppTables/suppTables_",
-                            "5_6_",CNV,".txt",sep=""),header=T)
+                             "5_6_",CNV,".txt",sep=""),header=T)
   #Iterate over sites & return OR & excess risk per signif pheno
   block.vals <- t(apply(blocks,1,function(vals){
     #Get blockment ID
@@ -256,7 +258,7 @@ rankBarplot <- function(vals,classes,
 
   #Prep plot area
   par(mar=c(1.2,2.8,1,1),bty="n")
-  plot(x=c(0,length(vals)+1),y=c(0,ymax),type="n",
+  plot(x=c(0,length(vals)+1),y=c(0,1.02*ymax),type="n",
        yaxs="i",xlab="",ylab="",xaxt="n",yaxt="n")
 
   #Add gridlines
@@ -273,7 +275,7 @@ rankBarplot <- function(vals,classes,
 
   #Plot rectangles
   rect(xleft=seq(0,length(vals)-1),xright=seq(1,length(vals)),
-       ybottom=0,ytop=vals,border=cols,col=cols)
+       ybottom=0,ytop=vals,border=NA,col=cols)
 
   #Add asterixes above plot for sites that extend above ymax
   sapply(which(vals>ymax),function(i){
@@ -287,8 +289,149 @@ rankBarplot <- function(vals,classes,
 }
 
 #Helper function to make swarmplots of ORs
+swarmORs <- function(vals,classes,ymax=NULL){
+  #Convert classes to colors
+  cols <- classes
+  cols <- gsub("seg",cols.LOCI[1],cols)
+  cols <- gsub("gene",cols.LOCI[2],cols)
+  cols <- gsub("reg",cols.LOCI[3],cols)
+
+  #Log2-transform vals
+  vals <- log2(vals)
+
+  #Set ymax
+  if(is.null(ymax)){
+    ymax <- 1.02*max(vals)
+  }
+
+  #Round values down to ymax
+  vals[which(vals>ymax)] <- ymax
+
+  #Prep plot area
+  par(mar=c(1.2,2.8,1,1),bty="n")
+  plot(x=c(0,3),y=c(0,1.02*ymax),type="n",
+       yaxs="i",xlab="",ylab="",xaxt="n",yaxt="n")
+
+  #Add gridlines
+  abline(h=seq(0,ceiling(par("usr")[4]),0.5),lwd=0.5,col=cols.CTRL[3])
+  abline(h=seq(0,ceiling(par("usr")[4])),lwd=0.75,col=cols.CTRL[2])
+
+  #Add axes & labels
+  # sapply(1:3,function(i){
+  #   axis(1,at=i-0.5,tick=F,line=0.2,
+  #        labels=paste(c("Seg.","Gene","Reg.")[i],"\n(n=",
+  #                     prettyNum(length(which(classes==c("seg","gene","reg")[i])),big.mark=","),
+  #                     ")",sep=""))
+  # })
+  axis(2,at=seq(0,ceiling(par("usr")[4]),0.5),tck=-0.01,col=cols.CTRL[1],labels=NA)
+  axis(2,at=seq(0,ceiling(par("usr")[4])),labels=NA)
+  axis(2,at=seq(0,ceiling(par("usr")[4])),tick=F,las=2,line=-0.3,cex.axis=0.8,
+       labels=2^seq(0,ceiling(par("usr"))[4]))
+  # mtext(2,text=expression(paste(OR,phantom(x),(log[2]-scaled))),line=1.5)
+
+  #Swarmplots
+  sapply(1:3,function(i){
+    vals.c <- vals[which(classes==c("seg","gene","reg")[i])]
+    #Swarmplot
+    beeswarm(vals.c,add=T,xlab="",ylab="",xaxt="n",yaxt="n",
+             at=i-0.5,corral="random",corralWidth=0.8,
+             pch=19,col=cols.LOCI[i],cex=0.5)
+  })
+
+  # #Reference marker line
+  # means <- sapply(c("seg","gene","reg"),function(class){
+  #   return(mean(vals[which(classes==class)]))
+  # })
+  # segments(x0=0.5:1.5,x1=1.5:2.5,
+  #          y0=means[1:2],y1=means[2:3],
+  #          lwd=6,col=cols.CTRL[3])
+
+  #Mean & IQR
+  sapply(1:3,function(i){
+    vals.c <- vals[which(classes==c("seg","gene","reg")[i])]
+    #IQR
+    quants <- quantile(vals.c,p=c(0.25,0.75))
+    segments(x0=i-0.65,x1=i-0.35,y0=quants,y1=quants,lwd=2)
+    # segments(x0=i-0.5,x1=i-0.5,y0=quants[1],y1=quants[2],lwd=2)
+    #Mean
+    points(x=i-0.5,y=mean(vals.c),pch=23,col="black",bg="white",lwd=2,cex=1.5)
+  })
+}
 
 #Helper function to make scatterplots of OR vs excess risk
+RiskVsOR <- function(OR,risk,classes,xmax=NULL,ymax=NULL,xstep=0.00025){
+  #Convert classes to colors
+  cols <- classes
+  cols <- gsub("seg",cols.LOCI[1],cols)
+  cols <- gsub("gene",cols.LOCI[2],cols)
+  cols <- gsub("reg",cols.LOCI[3],cols)
+
+  #Log2-transform ORs
+  OR <- log2(OR)
+
+  #Set xmax and ymax
+  if(is.null(ymax)){
+    ymax <- 1.02*max(OR)
+  }
+  if(is.null(xmax)){
+    xmax <- 1.02*max(risk)
+  }
+
+  #Round values down to max
+  OR[which(OR>ymax)] <- ymax
+  risk[which(risk>xmax)] <- xmax
+
+  #Prep plot area
+  par(mar=c(2.8,2.8,1,1),bty="n")
+  plot(x=c(0,1.02*xmax),y=c(0,1.02*ymax),type="n",
+       xaxs="i",yaxs="i",xlab="",ylab="",xaxt="n",yaxt="n")
+
+  #Add gridlines
+  abline(h=seq(0,ceiling(par("usr")[4]),0.5),lwd=0.5,col=cols.CTRL[3])
+  abline(h=seq(0,ceiling(par("usr")[4])),lwd=0.75,col=cols.CTRL[2])
+  abline(v=seq(0,par("usr")[2]+0.001,xstep),lwd=0.5,col=cols.CTRL[3])
+  abline(v=seq(0,par("usr")[2]+0.001,2*xstep),lwd=0.75,col=cols.CTRL[2])
+
+  #Add axes & labels
+  # sapply(1:3,function(i){
+  #   axis(1,at=i-0.5,tick=F,line=0.2,
+  #        labels=paste(c("Seg.","Gene","Reg.")[i],"\n(n=",
+  #                     prettyNum(length(which(classes==c("seg","gene","reg")[i])),big.mark=","),
+  #                     ")",sep=""))
+  # })
+  axis(2,at=seq(0,ceiling(par("usr")[4]),0.5),tck=-0.01,col=cols.CTRL[1],labels=NA)
+  axis(2,at=seq(0,ceiling(par("usr")[4])),labels=NA)
+  axis(2,at=seq(0,ceiling(par("usr")[4])),tick=F,las=2,line=-0.3,cex.axis=0.8,
+       labels=2^seq(0,ceiling(par("usr"))[4]))
+  mtext(2,text=expression(paste(OR,phantom(x),(log[2]-scaled))),line=1.5)
+  axis(1,at=seq(0,par("usr")[2]+0.001,xstep),tck=-0.01,col=cols.CTRL[1],labels=NA)
+  axis(1,at=seq(0,par("usr")[2]+0.001,2*xstep),labels=NA)
+  axis(1,at=seq(0,par("usr")[2]+0.001,2*xstep),tick=F,line=-0.4,cex.axis=0.8,
+       labels=paste(100*seq(0,par("usr")[2]+0.001,2*xstep),"%",sep=""))
+  mtext(1,text="Excess case risk (% cases - % controls)",line=1.5)
+
+  #Convex hulls
+  sapply(c("seg","gene","reg"),function(class){
+    col.class <- cols.LOCI[which(c("seg","gene","reg")==class)]
+    k <- chull(risk[which(classes==class)],
+          OR[which(classes==class)])
+    polygon(x=risk[which(classes==class)][k],
+            y=OR[which(classes==class)][k],
+            border=adjustcolor(col.class,alpha=0.7),lty=2,
+            col=adjustcolor(col.class,alpha=0.3))
+  })
+
+  #Scatterplot
+  points(x=risk,y=OR,pch=19,col=cols)
+
+  #Means
+  sapply(c("seg","gene","reg"),function(class){
+    col.class <- cols.LOCI[which(c("seg","gene","reg")==class)]
+    m.x <- mean(risk[which(classes==class)])
+    m.y <- mean(OR[which(classes==class)])
+    points(x=m.x,y=m.y,pch=21,cex=1.5,col="black",bg="white")
+  })
+}
 
 
 
@@ -299,12 +442,21 @@ DUP <- readORs("DUP")
 #Plot ranked barplots
 pdf(paste(WRKDIR,"rCNV_map_paper/Figures/riskEstimatesFigure/",
           "ORs_per_locus.barplots.pdf",sep=""),
-    height=4.8,width=4)
+    height=4.8,width=3)
 par(mfrow=c(2,1))
 rankBarplot(log2(DEL$OR),DEL$class,ymax=7,
-            xlab="DEL-significant Loci",meanBar="red")
+            xlab="DEL Loci",meanBar="red")
 rankBarplot(log2(DUP$OR),DUP$class,ymax=7,
-            xlab="DUP-significant Loci",meanBar="blue")
+            xlab="DUP Loci",meanBar="blue")
+dev.off()
+
+#Plot swarmplots
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/riskEstimatesFigure/",
+          "ORs_per_locus.swarmplots.pdf",sep=""),
+    height=4.8,width=1.8)
+par(mfrow=c(2,1))
+swarmORs(DEL$OR,DEL$class,ymax=7)
+swarmORs(DUP$OR,DUP$class,ymax=7)
 dev.off()
 
 
@@ -313,9 +465,9 @@ boxplot(log2(DEL[which(DEL$class=="seg"),1]),
         log2(DEL[which(DEL$class=="reg"),1]),
         col=cols.LOCI,ylim=c(0,8))
 
-boxplot(log2(DUP[which(DEL$class=="seg"),1]),
-        log2(DUP[which(DEL$class=="gene"),1]),
-        log2(DUP[which(DEL$class=="reg"),1]),
+boxplot(log2(DUP[which(DUP$class=="seg"),1]),
+        log2(DUP[which(DUP$class=="gene"),1]),
+        log2(DUP[which(DUP$class=="reg"),1]),
         col=cols.LOCI,ylim=c(0,8))
 
 boxplot(DEL[which(DEL$class=="seg"),2],
