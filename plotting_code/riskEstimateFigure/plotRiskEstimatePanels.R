@@ -354,7 +354,9 @@ swarmORs <- function(vals,classes,ymax=NULL){
     segments(x0=i-0.65,x1=i-0.35,y0=quants,y1=quants,lwd=2)
     # segments(x0=i-0.5,x1=i-0.5,y0=quants[1],y1=quants[2],lwd=2)
     #Mean
-    points(x=i-0.5,y=mean(vals.c),pch=23,col="black",bg="white",lwd=2,cex=1.5)
+    # points(x=i-0.5,y=mean(vals.c),pch=23,col="black",bg="white",lwd=2,cex=1.5)
+    points(x=i-0.5,y=mean(vals.c),pch=23,cex=1.5,col="black",bg="white")
+    points(x=i-0.5,y=mean(vals.c),pch=23,cex=0.75,lwd=0.7,col="black",bg=cols.LOCI[i])
   })
 }
 
@@ -382,7 +384,7 @@ RiskVsOR <- function(OR,risk,classes,xmax=NULL,ymax=NULL,xstep=0.00025){
   risk[which(risk>xmax)] <- xmax
 
   #Prep plot area
-  par(mar=c(2.8,2.8,1,1),bty="n")
+  par(mar=c(2.8,2.8,1.5,1.5),bty="n")
   plot(x=c(0,1.02*xmax),y=c(0,1.02*ymax),type="n",
        xaxs="i",yaxs="i",xlab="",ylab="",xaxt="n",yaxt="n")
 
@@ -408,28 +410,29 @@ RiskVsOR <- function(OR,risk,classes,xmax=NULL,ymax=NULL,xstep=0.00025){
   axis(1,at=seq(0,par("usr")[2]+0.001,2*xstep),labels=NA)
   axis(1,at=seq(0,par("usr")[2]+0.001,2*xstep),tick=F,line=-0.4,cex.axis=0.8,
        labels=paste(100*seq(0,par("usr")[2]+0.001,2*xstep),"%",sep=""))
-  mtext(1,text="Excess case risk (% cases - % controls)",line=1.5)
+  mtext(1,text="Excess case risk",line=1.5)
+
+  #Scatterplot
+  points(x=risk,y=OR,pch=19,cex=0.5,col=cols)
 
   #Convex hulls
   sapply(c("seg","gene","reg"),function(class){
     col.class <- cols.LOCI[which(c("seg","gene","reg")==class)]
     k <- chull(risk[which(classes==class)],
-          OR[which(classes==class)])
+               OR[which(classes==class)])
     polygon(x=risk[which(classes==class)][k],
             y=OR[which(classes==class)][k],
             border=adjustcolor(col.class,alpha=0.7),lty=2,
             col=adjustcolor(col.class,alpha=0.3))
   })
 
-  #Scatterplot
-  points(x=risk,y=OR,pch=19,col=cols)
-
   #Means
   sapply(c("seg","gene","reg"),function(class){
     col.class <- cols.LOCI[which(c("seg","gene","reg")==class)]
     m.x <- mean(risk[which(classes==class)])
     m.y <- mean(OR[which(classes==class)])
-    points(x=m.x,y=m.y,pch=21,cex=1.5,col="black",bg="white")
+    points(x=m.x,y=m.y,pch=23,cex=1.5,col="black",bg="white")
+    points(x=m.x,y=m.y,pch=23,cex=0.75,lwd=0.7,col="black",bg=col.class)
   })
 }
 
@@ -459,6 +462,14 @@ swarmORs(DEL$OR,DEL$class,ymax=7)
 swarmORs(DUP$OR,DUP$class,ymax=7)
 dev.off()
 
+#Plot scatterplots
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/riskEstimatesFigure/",
+          "ORs_vs_risk_per_locus.scatterplots.pdf",sep=""),
+    height=5,width=2.5)
+par(mfrow=c(2,1))
+RiskVsOR(DEL$OR,DEL$risk,DEL$class,ymax=7,xmax=0.003,xstep=0.0005)
+RiskVsOR(DUP$OR,DUP$risk,DUP$class,ymax=7,xmax=0.003,xstep=0.0005)
+dev.off()
 
 boxplot(log2(DEL[which(DEL$class=="seg"),1]),
         log2(DEL[which(DEL$class=="gene"),1]),
