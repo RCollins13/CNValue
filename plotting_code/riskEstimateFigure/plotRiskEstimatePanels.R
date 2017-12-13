@@ -492,6 +492,113 @@ boxplot(DUP[which(DEL$class=="seg"),2],
         col=cols.LOCI)
 
 
+#####Test plots when prototyping the SSC proband-sibling filter
+keep_DEL_genes_bonf <- c("AC132872.2","ADAMTS18","ADRBK2","AGAP1","AHCTF1","ASTN2","ATP9B",
+                    "AUTS2","BACH2","BNC2","C14orf132","C7orf10","CADM1","CALN1","CD82",
+                    "CDH18","CDH19","CDKAL1","CHL1","CNBD1","CSGALNACT1","CSMD1","CSMD3",
+                    "CSNK1D","CTNND2","DLG2","DLGAP1","DLGAP2","DOCK8","DTWD2","EHMT1",
+                    "EML6","ERBB4","ERICH1","FAM46C","FARS2","FBN2","FBXL4","FGD4","FRG1",
+                    "GBE1","GLIS3","GOLPH3","GPC5","GRIP1","GTDC1","HS3ST2","IMMP2L","ISPD",
+                    "KANK1","KCNV2","KIAA0020","LARGE","LPIN2","LPP","LTBP1","MAD1L1","MBD5",
+                    "MED13L","MEF2C","MEI4","MME","MNAT1","NAALADL2","NEGR1","NKAIN2","NRXN1",
+                    "ORC4","OVGP1","PACRG","PCDH9","PDE4D","PDZD2","PLD5","PPP2R2B","PTPRD",
+                    "PTPRT","RAB3GAP2","RAPGEF2","RXRA","SDK1","SGCZ","SIX2","SLC16A3","SLC1A1",
+                    "SLC2A1","SMYD3","SOX5","SPAG16","STK17B","SUMF1","SUPT3H","SYT1","TBC1D22A",
+                    "TBL1XR1","TCF4","THADA","TRANK1","TRIM32","VIPR2","WNT11","WSCD1","ZEB2",
+                    "ZFP42","ZNF385D","ZNF804B")
+keep_DEL_genes_pheno <- c("AC132872.2","ASTN2","AUTS2","B3GNTL1","BACH2","CD82","CDC42","CDKAL1",
+                          "CSNK1D","CTNND2","DLG2","ERICH1","FAM19A5","FAM46C","FARS2","GBE1",
+                          "GNAT3","GOLPH3","GTDC1","HS3ST2","ISPD","KCNV2","KIAA0020","LEF1",
+                          "LRRFIP2","LYRM4","MBD5","MED13L","MEF2C","NRXN1","ORC4","PDZD2","RAB3GAP2",
+                          "RFX3","SAMSN1","SIX2","SLC16A3","SLC1A1","SLC2A1","SLCO1B1","SMARCA2","SOX5",
+                          "STK17B","TBL1XR1","TCF4","TPD52L3","TRIM32","VIPR2","WNT11","ZEB2","ZMYND11")
+keep_DEL_genes <- intersect(keep_DEL_genes_pheno,keep_DEL_genes_bonf)
+DEL <- DEL[which(DEL$ID %in% keep_DEL_genes),]
+gt_DEL_genes <- c("NRXN1","MBD5","ORC4","ARHGEF10","GBE1","ISPD","MALL","ATP9B",
+                  "CDC42","COL6A2","DLGAP2","ERBB4","FAM196A","FAM19A5","FBXO25",
+                  "GLIS3","KCNV2","KIAA0020","PSMD7","SLCO1B1","SOX5","TNRC6B")
+lt_DEL_genes <- c("CDH18","DLG2","DOCK8","DTWD2","ZNF14")
+keep_DUP_genes_bonf <- c("A1CF","ABCC1","ABCC6","AC092850.1","ACSM4","ACTR3B","ACTRT2","ADAMTS17",
+                    "ADAMTS2","ADCYAP1","AHI1","AHR","AJAP1","AL450307.1","ALG10B","ANGPT1",
+                    "ANKFY1","ANKRD30B","AP003062.1","APBA2","ASAH2B","ATAD5","ATG5","ATP2C2",
+                    "AUTS2","BPTF","C16orf62","C16orf72","C17orf51","C17orf58","C18orf42",
+                    "C2orf27A","C5orf42","CACNA1B","CACNA2D1","CALN1","CCDC50","CEP85L",
+                    "CHL1","CLIC5","CNTN4","CNTN5","CNTNAP4","CRLF3","CSMD1","CSMD3","CTNNA2",
+                    "CTNND2","CWH43","CYB5D2","DEFB115","DIP2C","DLG1","DMRT1","DMRT2","DOK6",
+                    "DPP6","EMB","ERC1","ERC2","FAM110C","FAM150A","FAM194B","FAM19A5","FBRSL1",
+                    "FBXL7","FOXD2","FRG2C","GALNT11","GALNTL6","GHR","GJA5","GK5","GLDC","GLRA1",
+                    "GMDS","GPBP1","GRM3","HERC2","IMMP2L","KANK1","KDM4C","KIF26B","KIRREL3",
+                    "KMT2C","LAMA1","LINC00955","LINGO1","LTBP1","LYZL1","MACROD2","MALL","MARCH1",
+                    "MEI4","METTL4","MPRIP","MRGPRE","MRPL1","MSR1","MTRNR2L1","MTX2","MUC8",
+                    "NCALD","NEBL","NEK10","NINL","NPHP1","NRXN1","NTN1","NUDT12","NUP155","OR4A5",
+                    "PAPPA","PARD3","PCNX","PDE5A","PFKP","PLEKHM1","PLN","PODXL","PRIM2","PTPRJ",
+                    "PTPRM","PTPRN2","PVRL1","RABL2A","RAF1","RASA3","RBFOX1","RHOU","RREB1","RRM1",
+                    "RYR2","SAMD5","SCAPER","SDK1","SEMA5A","SGCZ","SHANK3","SHCBP1","SLIT3","SLITRK6",
+                    "SMOC2","SMYD3","SNTG1","SPOCK3","SRBD1","ST18","ST3GAL3","SUCLG1","SYK","TAS2R1",
+                    "TBCE","TCERG1L","TFRC","TGM6","THBS2","TMEM179","TMEM18","TPO","TRIM48","TRIML1",
+                    "TRIML2","TTC40","TUSC1","UBAP1","UBBP4","USP7","UTS2B","VIPR2","VWDE","XPO6","YES1",
+                    "ZFAND3","ZFP42","ZMYND11","ZNF195","ZNF385D","ZNF717")
+keep_DUP_genes_pheno <- c("ABCC6","AC093802.1","ACP1","ACTRT2","ADAMTS17","ADAMTS2","AHI1","AL450307.1",
+                          "ANKFY1","ANKRD30A","ANKRD30B","AP003062.1","APBA2","ARHGAP28","ATAD5","ATG5",
+                          "AUTS2","BICC1","BPTF","C11orf44","C14orf144","C16orf72","C17orf58","C20orf187",
+                          "C5orf42","CACNA1B","CD8A","CLIC5","CLUH","CNGA1","COL23A1","COLEC12","CRLF3",
+                          "CWH43","CYB5D2","DEFB115","DIP2C","DLG5","DMRT1","DMRT2","DOK6","EFCAB2","EMB",
+                          "ESYT2","EXOC2","FAM110C","FAM150B","FAM19A5","FGF12","FRMPD2","GALNT11","GEM",
+                          "GFRAL","GMDS","GRM3","HERC2","HUS1B","KIF26B","LINC00955","LRRC30","MACROD2",
+                          "MALL","MARCH1","MEI4","MRGPRE","MSH3","MTRNR2L1","MTX2","MYLK3","NAMPTL","NBPF3",
+                          "NCAPG2","NINL","NIPAL1","NPHP1","NTN1","NUDT12","ORC6","PARD3","PFKP","PLEKHM1",
+                          "PPP2R3C","PTPRJ","RAB11FIP4","RAF1","RAP1GAP2","RASA3","RMND5A","RPSAP58","RXFP2",
+                          "SAMD5","SGCZ","SH3YL1","SHANK3","SHCBP1","SMARCA2","SMOC2","SMYD3","SNCAIP","SNTG1",
+                          "SPOCK3","SUCLG1","TAS2R1","TMEM179","TPO","TRIML1","TRIML2","TUSC1","TXNRD1",
+                          "UBAP1","UNCX","USP7","VIPR2","VPS35","WDR60","YES1","ZFP42","ZNF14","ZNF195","ZNF675","ZNF681")
+keep_DUP_genes <- intersect(keep_DUP_genes_pheno,keep_DUP_genes_bonf)
+DUP <- DUP[which(DUP$ID %in% keep_DUP_genes),]
+gt_DUP_genes <- c("HERC2","DMRT1","GJA5","NPHP1","ATAD5","CRLF3","NUP155","SGCZ",
+                  "C5orf42","CTDP1","DEFB115","DLG1","DMRT2","DNAH5","PROP1","RASA3",
+                  "SRBD1","USP7","ADAMTS17","ADAMTS2","AGRN","AL450307.1","APBA2",
+                  "ATP2C2","C16orf45","C16orf72","CD8A","CHMP4B","CHST9","CNTNAP4",
+                  "COLEC12","DOK6","FAM189A1","FAM53A","FRMPD2","GMDS","KIAA0020",
+                  "LINC00955","MALL","NINL","RMND5A","RNF223","ROCK1","SMARCA2",
+                  "SPAG16","SPOCK3","TMEM179","TMEM18","TPTE2","ZNF732")
+lt_DUP_genes <- c("ADCYAP1","ANKRD30B","ARHGAP28","C18orf42","C1orf222","CNGA1",
+                  "EFCAB2","EXOC2","GALNTL6","GLRA1","HUS1B","LRRC30","MRGPRE",
+                  "NIPAL1","OR2V1","PARD3","PFKP","PPP2R3C","PRR26","RPSAP58","SHANK3",
+                  "TRAT1","WDR60","YES1","ZNF195","ZNF675","ZNF681","ANKFY1","CYB5D2",
+                  "EMB","GFRAL","OR4A15","OR4A16","TMEM40","TRIM48","TRIML1","TRIML2",
+                  "VIPR2","ZMYND11","ZNF66","CACNA1B","RAF1","MTRNR2L1","SMYD3")
+plot(x=c(0,6),y=c(0,7),type="n",xaxt="n",yaxt="n",xlab="",ylab="")
+axis(2,at=seq(0,ceiling(par("usr")[4]),0.5),tck=-0.01,col=cols.CTRL[1],labels=NA)
+axis(2,at=seq(0,ceiling(par("usr")[4])),labels=NA)
+axis(2,at=seq(0,ceiling(par("usr")[4])),tick=F,las=2,line=-0.3,cex.axis=0.8,
+     labels=2^seq(0,ceiling(par("usr"))[4]))
+mtext(2,text=expression(paste(OR,phantom(x),(log[2]-scaled))),line=1.5)
+axis(1,at=0.5:5.5,labels=c("DEL\nPro>Sib","DEL\nPro=Sib\nOr no CNVs","DEL\nPro<Sib",
+                           "DUP\nPro>Sib","DUP\nPro=Sib\nOr no CNVs","DUP\nPro<Sib"),
+     tick=F,line=2)
+#Mini func
+plotVals <- function(vals,col,at){
+  beeswarm(vals,col=col,add=T,at=at,pch=19,corral="random",corralWidth=0.8,xaxt="n",yaxt="n")
+  boxplot(vals,add=T,at=at,col=NA,lwd=3,xaxt="n",yaxt="n")
+}
+#DEL gt
+plotVals(log2(DEL[which(DEL$ID %in% gt_DEL_genes),1]),
+         "red",0.5)
+#DEL eq/NA
+plotVals(log2(DEL[which(!(DEL$ID %in% gt_DEL_genes) & !(DEL$ID %in% lt_DEL_genes)),1]),
+         "red",1.5)
+#DEL lt
+plotVals(log2(DEL[which(DEL$ID %in% lt_DEL_genes),1]),
+         "red",2.5)
+#DUP gt
+plotVals(log2(DUP[which(DUP$ID %in% gt_DUP_genes),1]),
+         "blue",3.5)
+#DUP eq/NA
+plotVals(log2(DUP[which(!(DUP$ID %in% gt_DUP_genes) & !(DUP$ID %in% lt_DUP_genes)),1]),
+         "blue",4.5)
+#DUP lt
+plotVals(log2(DUP[which(DUP$ID %in% lt_DUP_genes),1]),
+         "blue",5.5)
+title("Comparison of Gene ORs by SSC CNV Evidence (Analysis-wide Bonferroni-sig AND just GERM/NEURO/NDD)")
 
 
 

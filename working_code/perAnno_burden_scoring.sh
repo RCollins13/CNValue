@@ -713,3 +713,28 @@ done
 
 
 
+#####Find reg blocks in the same TAD as at least one gene expressed in LCLs
+for CNV in DEL DUP; do
+  while read ID sites; do
+    for wrapper in 1; do
+      echo -e "${ID}\t${CNV}"
+      #Check
+      echo -e "${sites}" | sed -e 's/\_/\t/g' -e 's/\;/\n/g' | \
+        bedtools intersect -u -b - \
+        -a ${WRKDIR}/data/master_annotations/ | \
+        cut -f4 | sort | uniq | wc -l
+      done
+      #De novo CNVs only
+      for mem in probands siblings; do
+        echo -e "${sites}" | sed -e 's/\_/\t/g' -e 's/\;/\n/g' | \
+        bedtools intersect -u -b - \
+        -a ${TMPDIR}/SSC_CNVs.p10E9.hg19.${mem}.${CNV}.bed | fgrep DeNovo | \
+        cut -f4 | sort | uniq | wc -l
+      done
+    done | paste -s
+  done < <( sed '1d' ${WRKDIR}/data/plot_data/suppTables/suppTables_5_6_${CNV}.txt | \
+            cut -f4,5 )
+done
+
+
+
