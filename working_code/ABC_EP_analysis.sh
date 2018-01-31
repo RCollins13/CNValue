@@ -56,18 +56,70 @@ bedtools merge -c 4,5 -o distinct > \
 ${WRKDIR}/data/misc/ABC_EP/RLC_processed/ABC_EP.merged_tissues.10kb_max.bed
 
 
-#####Intersect cleaned enhancers with significant regulatory blocks
-#Print genes with enhancers 
-for CNV in DEL DUP; do
-  sed '1d' ${WRKDIR}/data/plot_data/suppTables/suppTables_5_6_${CNV}.txt | \
-  cut -f1-4 | bedtools intersect -wa -wb -a - \
-  -b ${WRKDIR}/data/misc/ABC_EP/RLC_processed/ABC_EP.merged_tissues.10kb_max.bed
+#####Intersect cleaned enhancers with cleaned deletion regulatory blocks
+CNV=DEL; VF=E4
+#Get list of high-confidence deletion regulatory blocks
+while read ID sites; do
+  for wrapper in 1; do
+    echo -e "${ID}\t${CNV}"
+    #Any inheritance
+    for mem in probands siblings; do
+      echo -e "${sites}" | sed -e 's/\_/\t/g' -e 's/\;/\n/g' | \
+      bedtools intersect -u -b - \
+      -a ${TMPDIR}/SSC_CNVs.p10E9.hg19.${mem}.${CNV}.bed | \
+      cut -f4 | sort | uniq | wc -l
+    done
+    #De novo CNVs only
+    for mem in probands siblings; do
+      echo -e "${sites}" | sed -e 's/\_/\t/g' -e 's/\;/\n/g' | \
+      bedtools intersect -u -b - \
+      -a ${TMPDIR}/SSC_CNVs.p10E9.hg19.${mem}.${CNV}.bed | fgrep DeNovo | \
+      cut -f4 | sort | uniq | wc -l
+    done
+  done | paste -s
+done < <( sed '1d' ${WRKDIR}/data/plot_data/suppTables/suppTables_5_6_${CNV}.txt | \
+          cut -f4,5 ) | awk -v OFS="\t" \
+'{ if ($3>=$4 && $5>=$6 && $3<10) print $1 }' | \
+fgrep -wf - ${WRKDIR}/data/plot_data/suppTables/suppTables_5_6_${CNV}.txt | \
+awk -v OFS="\t" '{ if ($6<10 && $7>5) print $0 }' | cut -f1-4 | \
+sort -Vk1,1 -k2,2n -k3,3n > ${TMPDIR}/HC_DEL_regBlocks.bed
+#Print list of hotspots with enhancers of constrained or disease-associated genes
+bedtools intersect -wa -wb -a ${TMPDIR}/HC_DEL_regBlocks.bed \
+-b ${WRKDIR}/data/misc/ABC_EP/RLC_processed/ABC_EP.merged_tissues.10kb_max.bed | \
+fgrep -wf <( cat ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list \
+                 ${WRKDIR}/data/master_annotations/genelists/DDG2P_AnyConf_Dominant_LOF.genes.list \
+                 ${WRKDIR}/data/master_annotations/genelists/ClinGen_haploinsufficient_low_confidence.genes.list | \
+                 sort | uniq )
+
+
+#####Estimate expected number of hits by chance
+#Build list of excluded loci
+cat <( awk -v OFS="\t" '{ print $1, $2-40000, $3+40000 }' \
+       ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.notHaplosufficient.bed | \
+       sort -Vk1,1 -k2,2n -k3,3n | awk -v OFS="\t" '{ if ($2<0) $2=0; print $0 }') \
+${WRKDIR}/data/master_annotations/other/hotspotAnalysis.excluded_loci.bed | \
+sort -Vk1,1 -k2,2n -k3,3n | bedtools merge -i - > ${TMPDIR}/excluded_loci.tmp.bed
+#Subset enhancers to genes of interest and not within 40kb of an exon of a non-haplosufficient gene
+cat ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list \
+${WRKDIR}/data/master_annotations/genelists/DDG2P_AnyConf_Dominant_LOF.genes.list \
+${WRKDIR}/data/master_annotations/genelists/ClinGen_haploinsufficient_low_confidence.genes.list | \
+sort | uniq | fgrep -wf - \
+${WRKDIR}/data/misc/ABC_EP/RLC_processed/ABC_EP.merged_tissues.10kb_max.bed | \
+bedtools intersect -v -a - -b ${TMPDIR}/excluded_loci.tmp.bed | cut -f1-3 > \
+${TMPDIR}/eligible_enhancers.bed
+#Get observed overlap
+bedtools intersect -u \
+-a ${TMPDIR}/HC_DEL_regBlocks.bed \
+-b ${TMPDIR}/eligible_enhancers.bed | wc -l
+#Shuffle 100 times to estimate expected overlap
+for i in $( seq 1 100 ); do
+  bedtools shuffle -noOverlapping -seed ${i} \
+  -excl ${TMPDIR}/excluded_loci.tmp.bed \
+  -i ${TMPDIR}/HC_DEL_regBlocks.bed \
+  -g /data/talkowski/rlc47/src/GRCh37.genome | \
+  bedtools intersect -u -a - \
+  -b ${TMPDIR}/eligible_enhancers.bed | wc -l
 done
-
-
-
-
-
 
 
 
