@@ -124,8 +124,33 @@ for CNV in DEL DUP; do
 done
 
 
-
-
+#####Count proband/sibling riCNVs from WGS for all genes
+#Write WGS-based variant files
+for CNV in DEL DUP; do
+  for mem in p1 s1; do
+    fgrep -wf /data/talkowski/Samples/SFARI/DeepSeq/HarrisonCompare/GT_Filtering/final_enrichment/Rare_SV0.001/Rare_SV0.001.variant.list \
+    /data/talkowski/Samples/SFARI/DeepSeq/HarrisonCompare/GT_Filtering/final_enrichment/SSC.all.bed | \
+    fgrep -w ${CNV} | fgrep ${mem} | cut -f1-4 > \
+    ${TMPDIR}/${CNV}.${mem}.riCNV.bed
+  done
+done
+#Genes
+context=exonic; VF=E4
+for CNV in DEL DUP; do
+  while read gene; do
+    for wrapper in 1; do
+      echo -e "${gene}\t${CNV}"
+      #Any inheritance
+      for mem in p1 s1; do
+        fgrep -w $( echo ${gene} | sed 's/\-/_/g' ) \
+        <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed ) | \
+        bedtools intersect -u -b - \
+        -a ${TMPDIR}/${CNV}.${mem}.riCNV.bed | \
+        cut -f4 | sort | uniq | wc -l
+      done
+    done | paste -s
+  done < ${WRKDIR}/analysis/perGene_burden/signif_genes/merged/MasterPhenoGroups_${CNV}_${VF}_${context}.geneScore_FINAL_sig.genes.list
+done
 
 
 

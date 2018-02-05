@@ -83,9 +83,20 @@ done < <( sed '1d' ${WRKDIR}/data/plot_data/suppTables/suppTables_5_6_${CNV}.txt
 fgrep -wf - ${WRKDIR}/data/plot_data/suppTables/suppTables_5_6_${CNV}.txt | \
 awk -v OFS="\t" '{ if ($6<10 && $7>5) print $0 }' | cut -f1-4 | \
 sort -Vk1,1 -k2,2n -k3,3n > ${TMPDIR}/HC_DEL_regBlocks.bed
+#Further restrict HC DEL blocks to not overlap lots of uninterpretable annotations 
+for category in ZNFGenesRepeats Repressed Heterochromatin Quiescent; do
+  cat ${WRKDIR}/data/master_annotations/noncoding/*${category}*
+done | sort -Vk1,1 -k2,2n -k3,3n | cut -f1-3 | bedtools merge -i - | \
+bedtools coverage -b ${TMPDIR}/HC_DEL_regBlocks.bed -a - | sort -nk7,7 | \
+head -n35 | cut -f1-4 > ${TMPDIR}/HC_DEL_regBlocks.bed2
+sort -Vk1,1 -k2,2n -k3,3n ${TMPDIR}/HC_DEL_regBlocks.bed2 > \
+${TMPDIR}/HC_DEL_regBlocks.bed
 #Print list of hotspots with enhancers of constrained or disease-associated genes
 bedtools intersect -wa -wb -a ${TMPDIR}/HC_DEL_regBlocks.bed \
 -b ${WRKDIR}/data/misc/ABC_EP/RLC_processed/ABC_EP.merged_tissues.10kb_max.bed | \
+fgrep -wf <( cat ${WRKDIR}/data/master_annotations/genelists/DDG2P_AnyConf_Dominant_LOF.genes.list \
+                 ${WRKDIR}/data/master_annotations/genelists/ClinGen_haploinsufficient_low_confidence.genes.list | \
+                 sort | uniq )
 fgrep -wf <( cat ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.genes.list \
                  ${WRKDIR}/data/master_annotations/genelists/DDG2P_AnyConf_Dominant_LOF.genes.list \
                  ${WRKDIR}/data/master_annotations/genelists/ClinGen_haploinsufficient_low_confidence.genes.list | \
@@ -107,6 +118,13 @@ sort | uniq | fgrep -wf - \
 ${WRKDIR}/data/misc/ABC_EP/RLC_processed/ABC_EP.merged_tissues.10kb_max.bed | \
 bedtools intersect -v -a - -b ${TMPDIR}/excluded_loci.tmp.bed | cut -f1-3 > \
 ${TMPDIR}/eligible_enhancers.bed
+#Smaller subset (option)
+cat ${WRKDIR}/data/master_annotations/genelists/DDG2P_AnyConf_Dominant_LOF.genes.list \
+${WRKDIR}/data/master_annotations/genelists/ClinGen_haploinsufficient_low_confidence.genes.list | \
+sort | uniq | fgrep -wf - \
+${WRKDIR}/data/misc/ABC_EP/RLC_processed/ABC_EP.merged_tissues.10kb_max.bed | \
+bedtools intersect -v -a - -b ${TMPDIR}/excluded_loci.tmp.bed | cut -f1-3 > \
+${TMPDIR}/eligible_enhancers.bed
 #Get observed overlap
 bedtools intersect -u \
 -a ${TMPDIR}/HC_DEL_regBlocks.bed \
@@ -120,6 +138,68 @@ for i in $( seq 1 100 ); do
   bedtools intersect -u -a - \
   -b ${TMPDIR}/eligible_enhancers.bed | wc -l
 done
+
+
+#####Overlap regulatory blocks vs. Jesse's Rao et al domains
+#Get observed overlap -- all boundaries
+bedtools intersect -u \
+-a ${TMPDIR}/HC_DEL_regBlocks.bed \
+-b ${WRKDIR}/data/misc/Rao_domains/all_domain_boundaries.autosomes.bed | wc -l
+#Shuffle 100 times to estimate expected overlap -- all boundaries
+for i in $( seq 1 100 ); do
+  bedtools shuffle -noOverlapping -seed ${i} \
+  -excl ${TMPDIR}/excluded_loci.tmp.bed \
+  -i ${TMPDIR}/HC_DEL_regBlocks.bed \
+  -g /data/talkowski/rlc47/src/GRCh37.genome | \
+  bedtools intersect -u -a - \
+  -b ${WRKDIR}/data/misc/Rao_domains/all_domain_boundaries.autosomes.bed | wc -l
+done | awk '{ sum+=$1 }END{ print sum/NR }'
+#Write list of whitelisted boundaries, pass 1
+bedtools intersect -wa -v \
+-a ${WRKDIR}/data/misc/Rao_domains/all_domain_boundaries.autosomes.bed \
+-b ${TMPDIR}/excluded_loci.tmp.bed > \
+${TMPDIR}/eligible_TBRs.bed
+#Get observed overlap -- whitelist pass 1
+bedtools intersect -u \
+-a ${TMPDIR}/HC_DEL_regBlocks.bed \
+-b ${TMPDIR}/eligible_TBRs.bed | wc -l
+#Shuffle 100 times to estimate expected overlap -- whitelist pass 2
+for i in $( seq 1 100 ); do
+  bedtools shuffle -noOverlapping -seed ${i} \
+  -excl ${TMPDIR}/excluded_loci.tmp.bed \
+  -i ${TMPDIR}/HC_DEL_regBlocks.bed \
+  -g /data/talkowski/rlc47/src/GRCh37.genome | \
+  bedtools intersect -u -a - \
+  -b ${TMPDIR}/eligible_TBRs.bed | wc -l
+done | awk '{ sum+=$1 }END{ print sum/NR }'
+#Write list of whitelisted boundaries, pass 2
+cat ${WRKDIR}/data/master_annotations/genelists/DDG2P_AnyConf_Dominant_*.genes.list \
+${WRKDIR}/data/master_annotations/genelists/ClinGen_haploinsufficient_low_confidence.genes.list | \
+fgrep -wf - <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.gene_boundaries.protein_coding.bed ) | \
+bedtools intersect -wa -u -b - \
+-a <( sed 's/^chr//g' ${WRKDIR}/data/misc/Rao_domains/all_domainlist.bed ) | \
+fgrep -v "X" | fgrep -v "Y" | awk -v OFS="\t" \
+'{ print $1, $2, $2+10000"\n"$1, $3, $3+10000 }' | \
+bedtools intersect -wa -v -a - \
+-b ${TMPDIR}/excluded_loci.tmp.bed | sort -Vk1,1 -k2,2n -k3,3n | \
+bedtools merge -i - > ${TMPDIR}/eligible_TBRs_round2.bed
+#Get observed overlap -- whitelist pass 1
+bedtools intersect -u \
+-a ${TMPDIR}/HC_DEL_regBlocks.bed \
+-b ${TMPDIR}/eligible_TBRs_round2.bed | wc -l
+#Shuffle 100 times to estimate expected overlap -- whitelist pass 2
+for i in $( seq 1 100 ); do
+  bedtools shuffle -noOverlapping -seed ${i} \
+  -excl ${TMPDIR}/excluded_loci.tmp.bed \
+  -i ${TMPDIR}/HC_DEL_regBlocks.bed \
+  -g /data/talkowski/rlc47/src/GRCh37.genome | \
+  bedtools intersect -u -a - \
+  -b ${TMPDIR}/eligible_TBRs_round2.bed | wc -l
+done | awk '{ sum+=$1 }END{ print sum/NR }'
+
+
+
+
 
 
 
