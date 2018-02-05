@@ -105,18 +105,18 @@ genome=$2
 # CNVs=${WRKDIR}/data/CNV/CNV_MASTER/${pheno}/${pheno}.${CNV}.${VF}.GRCh37.${filt}.bed.gz
 # genome=/data/talkowski/rlc47/src/GRCh37.genome
 
-#DEBUG: print arguments & options
-echo -e "GZIP=${GZ}"
-echo -e "WINDOW=${WINDOW}"
-echo -e "STEP=${STEP}"
-echo -e "DIST=${DIST}"
-echo -e "SMOOTH=${SMOOTH}"
-echo -e "WINDOW_SMOOTH=${WSMOOTH}"
-echo -e "OVERLAP=${OVERLAP}"
-echo -e "EXCLUDE=${EXCLUDE}"
-echo -e "OUTFILE=${OUTFILE}"
-echo -e "CNVs=${CNVs}"
-echo -e "genome=${genome}"
+# #DEBUG: print arguments & options
+# echo -e "GZIP=${GZ}"
+# echo -e "WINDOW=${WINDOW}"
+# echo -e "STEP=${STEP}"
+# echo -e "DIST=${DIST}"
+# echo -e "SMOOTH=${SMOOTH}"
+# echo -e "WINDOW_SMOOTH=${WSMOOTH}"
+# echo -e "OVERLAP=${OVERLAP}"
+# echo -e "EXCLUDE=${EXCLUDE}"
+# echo -e "OUTFILE=${OUTFILE}"
+# echo -e "CNVs=${CNVs}"
+# echo -e "genome=${genome}"
 
 #Check for required input
 if [ -z ${CNVs} ] || [ -z ${genome} ]; then
