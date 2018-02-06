@@ -271,6 +271,8 @@ cut -f1 ${WRKDIR}/bin/rCNVmap/misc/OrganGroup_Consolidation_NoncodingAnnotation_
 sort | uniq | fgrep -vf - \
 ${WRKDIR}/bin/rCNVmap/misc/master_noncoding_annotations.alternative_sort.list > \
 ${WRKDIR}/lists/tissue_agnostic_genome_annotations.list
+#Make list of enhancer prioritization annotations
+
 #Iterate over phenotypes
 while read pheno; do
   #Make output directories (if necessary)
