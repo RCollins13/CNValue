@@ -103,6 +103,10 @@ fgrep -wf <( cat ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.ge
                  sort | uniq )
 
 
+#####Revised analysis (Feb 6, 2018) -- enhancer prioritized reg blocks
+
+
+
 #####Estimate expected number of hits by chance
 #Build list of excluded loci
 cat <( awk -v OFS="\t" '{ print $1, $2-40000, $3+40000 }' \
