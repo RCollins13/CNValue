@@ -104,7 +104,16 @@ fgrep -wf <( cat ${WRKDIR}/data/master_annotations/genelists/ExAC_constrained.ge
 
 
 #####Revised analysis (Feb 6, 2018) -- enhancer prioritized reg blocks
-
+echo -e "SignifRegBlock_13\nSignifRegBlock_21\nSignifRegBlock_23\nSignifRegBlock_26\n\
+         SignifRegBlock_31\nSignifRegBlock_42\nSignifRegBlock_53\nSignifRegBlock_55\n\
+         SignifRegBlock_57\nSignifRegBlock_63\nSignifRegBlock_65\nSignifRegBlock_71\n\
+         SignifRegBlock_73\nSignifRegBlock_75\nSignifRegBlock_80\nSignifRegBlock_81\n\
+         SignifRegBlock_82\nSignifRegBlock_85\nSignifRegBlock_86\nSignifRegBlock_94\n\
+         SignifRegBlock_102\nSignifRegBlock_115\nSignifRegBlock_118\nSignifRegBlock_119\n\
+         SignifRegBlock_123\nSignifRegBlock_126\nSignifRegBlock_133\nSignifRegBlock_134\n\
+         SignifRegBlock_135\nSignifRegBlock_136\nSignifRegBlock_138\nSignifRegBlock_146" | \
+fgrep -wf - ${WRKDIR}/analysis/perAnno_burden/signifRegulatoryBlocks.final.bed | \
+cut -f1-4 > ${TMPDIR}/HC_DEL_regBlocks.bed
 
 
 #####Estimate expected number of hits by chance

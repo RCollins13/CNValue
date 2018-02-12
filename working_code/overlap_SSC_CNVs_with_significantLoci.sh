@@ -153,6 +153,27 @@ for CNV in DEL DUP; do
 done
 
 
+#####Get DUPs overlapping top genes of interest for LCL nanostring validation
+CNV=DUP; VF=E4; filt=exonic
+while read gene; do
+  # echo -e "\n\n__${gene}__"
+  #CMA CNVs
+  for mem in probands siblings; do
+    fgrep -w $( echo ${gene} | sed 's/\-/_/g' ) \
+    <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed ) | \
+    bedtools intersect -u -b - \
+    -a ${TMPDIR}/SSC_CNVs.p10E9.hg19.${mem}.${CNV}.bed
+  done | sort -Vk4,4 -k2,2n -k3,3n | awk -v OFS="\t" -v gene=${gene} '{ print gene, $0 }'
+  # #WGS CNVs
+  # for mem in p1 s1; do
+  #   fgrep -w $( echo ${gene} | sed 's/\-/_/g' ) \
+  #   <( sed 's/\-/_/g' ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed ) | \
+  #   bedtools intersect -u -b - \
+  #   -a ${TMPDIR}/${CNV}.${mem}.riCNV.bed | awk -v OFS="\t" -v mem=${mem} '{ print $0, mem}'
+  # done
+done < <( echo -e "USP7\nADAMTS2\nCD8A\nDMRT2\nPROP1\nROCK1\nCTDP1\nNUP155\nC16orf72\nCOLEC12\nDOK6\nADAMTS17\nC5orf42\nATP2C2" )
+
+
 
 
 
