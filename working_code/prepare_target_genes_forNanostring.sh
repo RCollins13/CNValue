@@ -111,3 +111,58 @@ for wrapper in 1; do
   sed 's/,/\n/g' | sort | uniq | wc -l
 done | paste - - -
 
+
+#########################################
+#####Get breakdown of phenotypes per gene
+#########################################
+#Prep plot data directory, if necessary
+if ! [ -e ${WRKDIR}/data/plot_data/zfish_HPO_collection ]; then
+  mkdir ${WRKDIR}/data/plot_data/zfish_HPO_collection
+fi
+#Iterate over CNV classes
+for CNV in DEL DUP; do
+  #Print header
+  for wrapper in 1; do
+    echo "gene"
+    fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+      fgrep -v "CNCR" | fgrep -v "CTRL" | cut -f4
+  done | paste -s > ${WRKDIR}/data/plot_data/zfish_HPO_collection/${CNV}_HPO.txt
+  #Get number of CNVs per HPO term 
+  for wrapper in 1; do
+    echo "CNVdb"
+    #Iterate over HPO terms
+    while read label HPO; do
+      zcat ${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.${CNV}.E4.GRCh37.all.bed.gz | \
+      awk '{ print $(NF-1) }' | sed 's/\;/\t/g' | fgrep -wf \
+      <( echo -e "${HPO}" | sed 's/\;/\n/g' ) | wc -l
+    done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+              fgrep -v "CNCR" | fgrep -v "CTRL" | cut -f4-5 )
+  done | paste -s >> ${WRKDIR}/data/plot_data/zfish_HPO_collection/${CNV}_HPO.txt
+  #Iterate over genes of interest and count CNVs by phenotype
+  while read gene; do
+    awk -v gene=${gene} '{ if ($4==gene) print $0 }' \
+    ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed | \
+    bedtools intersect -wa -u -b - \
+    -a ${WRKDIR}/data/CNV/CNV_MASTER/GERM/GERM.${CNV}.E4.GRCh37.all.bed.gz | \
+    awk '{ print $(NF-1) }' > ${TMPDIR}/${gene}_HPOs.txt
+    for wrapper in 1; do
+      echo "${gene}"
+      while read HPO; do
+        sed 's/\;/\t/g' ${TMPDIR}/${gene}_HPOs.txt | fgrep -wf \
+        <( echo -e "${HPO}" | sed 's/\;/\n/g' ) | wc -l
+      done < <( fgrep -v "#" ${WRKDIR}/bin/rCNVmap/misc/analysis_group_HPO_mappings.list | \
+                fgrep -v "CNCR" | fgrep -v "CTRL" | cut -f5 )
+    done | paste -s >> ${WRKDIR}/data/plot_data/zfish_HPO_collection/${CNV}_HPO.txt
+  done < <( echo -e "USP7\nADAMTS2\nDMRT2\nATG5\nPCNX\nUNCX\nSNTG1\nTGM6\nLINGO1\n\
+                     SEMA5A\nRELL1\nROCK1\nCREBBP\nNRXN1\nCTDP1\nFAM19A5\nNTN1\n\
+                     NUP155\nC16orf72\nCOLEC12\nDOK6\nERC2\nMARCH1\nMEI4\nTAC1\n\
+                     TPO\nLRPPRC\nMTX2\nSUCLG1\nUGT2B7\nCOL23A1" )
+done
+
+
+
+
+
+
+
+

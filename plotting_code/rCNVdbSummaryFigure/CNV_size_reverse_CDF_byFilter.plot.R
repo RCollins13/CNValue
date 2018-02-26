@@ -19,10 +19,13 @@ pctvect.all <- log10(as.vector(sapply(-1:2,function(x){return((1:9)*10^x)})))
 pctvect.mids <- log10(as.vector(sapply(-1:1,function(x){return(c(5,10)*10^x)})))
 pctvect.mains <- log10(as.vector(sapply(-1:2,function(x){return(10^x)})))
 cols.groups <- c("#A5A6A7","#00BFF4","#EC008D","#FFCB00")
+# phenos <- c("NEURO","NDD","DD","PSYCH","SCZ","ASD","SEIZ",
+#             "HYPO","BEHAV","ID","SOMA","HEAD","GRO","CARD","SKEL","DRU",
+#             "MSC","EE","INT","EMI","CNCR","CGEN","CSKN","CGST","CRNL",
+#             "CBRN","CLNG","CBST","CEND","CHNK","CLIV","CMSK","CBLD")
 phenos <- c("NEURO","NDD","DD","PSYCH","SCZ","ASD","SEIZ",
             "HYPO","BEHAV","ID","SOMA","HEAD","GRO","CARD","SKEL","DRU",
-            "MSC","EE","INT","EMI","CNCR","CGEN","CSKN","CGST","CRNL",
-            "CBRN","CLNG","CBST","CEND","CHNK","CLIV","CMSK","CBLD")
+            "MSC","EE","INT","EMI")
 cols.phenos <- c(rep(cols.groups[2],10),
                  rep(cols.groups[3],10),
                  rep(cols.groups[4],13))
@@ -31,7 +34,7 @@ cols.phenos <- c(rep(cols.groups[2],10),
 plotsizes <- function(filt,CNV,cols,xaxis=T,yaxis=T,subgroups=T,
                       mar=c(3.5,3.5,0.5,0.5)){
   #Read data & convert to log-scaled CDF
-  sizes <- lapply(list("CTRL","NEURO","SOMA","CNCR"),function(group){
+  sizes <- lapply(list("CTRL","NEURO","SOMA"),function(group){
     dat <- read.table(paste(WRKDIR,"plot_data/rCNVdbSummaryFigure/",CNV,"_size.",group,
                             ".noMaxSize.E2.",filt,".txt",sep=""))[,1]
     dat <- log10(dat)
@@ -44,7 +47,7 @@ plotsizes <- function(filt,CNV,cols,xaxis=T,yaxis=T,subgroups=T,
   })
 
   #Read data & compute medians/IQRs
-  distribs <- lapply(list("CTRL","NEURO","SOMA","CNCR"),function(group){
+  distribs <- lapply(list("CTRL","NEURO","SOMA"),function(group){
     dat <- read.table(paste(WRKDIR,"plot_data/rCNVdbSummaryFigure/",CNV,"_size.",group,
                             ".noMaxSize.E2.",filt,".txt",sep=""))[,1]
     dat <- log10(dat)
@@ -74,7 +77,7 @@ plotsizes <- function(filt,CNV,cols,xaxis=T,yaxis=T,subgroups=T,
   par(mar=mar,bty="n")
 
   #Prepare plot
-  plot(x=log10(c(50000,5000000)),y=log10(c(0.03,100)),
+  plot(x=log10(c(50000,3000000)),y=log10(c(0.03,100)),
        type="n",xaxs="i",yaxs="i",xaxt="n",yaxt="n",xlab="",ylab="")
 
   #Gridlines - vertical & horizontal interleaved
@@ -132,15 +135,15 @@ plotsizes <- function(filt,CNV,cols,xaxis=T,yaxis=T,subgroups=T,
            y0=par("usr")[3],y1=log10(0.1)-0.1,col="gray75")
   rect(xleft=rev(IQRs[,1]),xright=rev(IQRs[,2]),
        ybottom=seq(par("usr")[3],log10(0.1)-0.1,
-                   by=(log10(0.1)-par("usr")[3])/5)[1:4],
+                   by=(log10(0.1)-par("usr")[3])/4)[1:3],
        ytop=seq(par("usr")[3],log10(0.1)-0.1,
-                by=(log10(0.1)-par("usr")[3])/5)[2:5],
-       border=NA,col=rev(adjustcolor(cols,alpha=0.75)))
+                by=(log10(0.1)-par("usr")[3])/4)[2:4],
+       border=NA,col=rev(adjustcolor(cols[1:3],alpha=0.75)))
   # points(x=medians,y=rep(mean(c(par("usr")[3],log10(0.1)-0.1)),4),
   #        pch=18,col=cols,cex=2)
-  median.pos <- sapply(1:4,function(i){
+  median.pos <- sapply(1:3,function(i){
     pts <- rev(seq(par("usr")[3],log10(0.1)-0.1,
-                   by=(log10(0.1)-par("usr")[3])/5))
+                   by=(log10(0.1)-par("usr")[3])/4))
     mean(pts[c(i,i+1)])
   })
   points(x=medians,y=median.pos,pch=23,cex=0.5,col="black",bg=cols,lwd=0.6)
@@ -154,7 +157,7 @@ plotsizes <- function(filt,CNV,cols,xaxis=T,yaxis=T,subgroups=T,
 }
 
 #Run plots
-pdf(paste(WRKDIR,"rCNV_map_paper/Figures/Figure1/CNVsize_by_filter_by_group.reverse_CDF.pdf",sep=""),
+pdf(paste(WRKDIR,"rCNV_map_paper/Figures/rCNVdbSummaryFigure/CNVsize_by_filter_by_group.reverse_CDF.pdf",sep=""),
     width=7,height=1.8)
 par(mfrow=c(1,4))
 plotsizes(filt="coding",CNV="DEL",cols=cols.groups,subgroups=T)
