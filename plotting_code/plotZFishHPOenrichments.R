@@ -97,7 +97,9 @@ dev.off()
 
 
 #####Plot key
-par(mar=c(0.1,0.1,0.1,6))
+pdf(paste(WRKDIR,"SSC_LCL_nanostring_and_Zebrafish_dupValidation/HPO_enrichments.key.pdf",sep=""),
+    height=2,width=1.6)
+par(mar=c(0.1,0.1,0.1,6),bty="n")
 plot(x=c(0,1),y=c(0,5),type="n",
      xlab="",ylab="",xaxt="n",yaxt="n",xaxs="i",yaxs="i")
 rectCols <- c("gray95","gray85",rev(heat.colors(5))[3:5])
@@ -106,9 +108,9 @@ rect(xleft=0.5-seq(0.1,0.5,0.1),
      ybottom=seq(0.5,4.5)-seq(0.1,0.5,0.1),
      ytop=seq(0.5,4.5)+seq(0.1,0.5,0.1),
      border="black",col=rectCols)
-axis(4,at=0.5:4.5,tick=F,las=2,line=-0.8,
-     labels=c(">0.1","0.1-0.01","0.01-0.001",
-              "0.001-0.0001","<0.0001"))
-
+axis(4,at=0.5:4.5,tick=F,las=2,line=-0.6,
+     labels=c("> 0.1","0.1-0.01","0.01-0.001",
+              "0.001-0.0001","< 0.0001"))
+dev.off()
 
 
