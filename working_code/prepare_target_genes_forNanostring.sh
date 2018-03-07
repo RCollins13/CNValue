@@ -9,7 +9,7 @@
 # Contact: Ryan L. Collins <rlcollins@g.harvard.edu>
 # Code development credits availble on GitHub
 
-#Get all target genes for nanostring experiment
+#Get all target genes for nanostring & zebrafish experiments
 
 #####Set parameters
 export WRKDIR=/data/talkowski/Samples/rCNVmap
@@ -119,7 +119,7 @@ done | paste - - -
 if ! [ -e ${WRKDIR}/data/plot_data/zfish_HPO_collection ]; then
   mkdir ${WRKDIR}/data/plot_data/zfish_HPO_collection
 fi
-#Iterate over CNV classes
+#Iterate over CNV classes & get top-level HPO terms
 for CNV in DEL DUP; do
   #Print header
   for wrapper in 1; do
@@ -158,9 +158,43 @@ for CNV in DEL DUP; do
                      NUP155\nC16orf72\nCOLEC12\nDOK6\nERC2\nMARCH1\nMEI4\nTAC1\n\
                      TPO\nLRPPRC\nMTX2\nSUCLG1\nUGT2B7\nCOL23A1" )
 done
-
-
-
+#####Iterate over genes and write a file per gene/CNV combo on all available CNV phenotype data
+for CNV in DEL DUP; do
+  while read gene; do
+    #Iterate over all germline cohorts and print nonredundant list of all terms
+    for wrapper in 1; do
+      #TGDB
+      awk -v gene=${gene} '{ if ($4==gene) print $0 }' \
+      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed | \
+      bedtools intersect -wa -u -b - \
+      -a /scratch/miket/rlc47temp/misc_CNVs/TGDB_CNVs.noExcluded.CHB_Cooper_GeneDX.${CNV}.hg19_merged.bed | \
+      cut -f5 | fgrep -f - ${WRKDIR}/data/HPO_map/master_patient_IDs_and_phenos.list | cut -f2
+      #Coe
+      awk -v gene=${gene} '{ if ($4==gene) print $0 }' \
+      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed | \
+      bedtools intersect -wa -u -b - \
+      -a <( awk -v FS="\t" -v CNV=${CNV} '{ if ($5==CNV) print $0 }' \
+      /scratch/miket/rlc47temp/misc_CNVs/Coe_2014_case_CNVcalls.wPhenos.GRCh37.bed ) | \
+      awk -v FS="\t" '{ print $(NF-1) }'
+      #PGC
+      awk -v gene=${gene} '{ if ($4==gene) print $0 }' \
+      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed | \
+      bedtools intersect -wa -u -b - \
+      -a /scratch/miket/rlc47temp/misc_CNVs/PGC_SCZ_41K_CNV_EGA.sorted.hg19.${CNV}.bed | \
+      awk -v FS="\t" '{ if ($NF=="Case") print "SCHIZOPHRENIA" }'
+      #SSC
+      awk -v gene=${gene} '{ if ($4==gene) print $0 }' \
+      ${WRKDIR}/data/master_annotations/gencode/gencode.v19.exons.protein_coding.bed | \
+      bedtools intersect -wa -u -b - \
+      -a ${TMPDIR}/SSC_CNVs.p10E9.hg19.probands.${CNV}.bed | cut -f4 | \
+      fgrep -wf - ${WRKDIR}/bin/rCNVmap/misc/SSC_phenotype_key.sed | sed 's/\//\t/g' | cut -f3
+    done | sed 's/\;/\n/g' | sort | uniq -c | awk -v OFS="\t" '{ print $1, $2 }' | sort -nrk1,1 -k2,2 > \
+    ${WRKDIR}/data/plot_data/zfish_HPO_collection/${gene}_${CNV}_raw_phenotypes.txt
+  done < <( echo -e "USP7\nADAMTS2\nDMRT2\nATG5\nPCNX\nUNCX\nSNTG1\nTGM6\nLINGO1\n\
+                     SEMA5A\nRELL1\nROCK1\nCREBBP\nNRXN1\nCTDP1\nFAM19A5\nNTN1\n\
+                     NUP155\nC16orf72\nCOLEC12\nDOK6\nERC2\nMARCH1\nMEI4\nTAC1\n\
+                     TPO\nLRPPRC\nMTX2\nSUCLG1\nUGT2B7\nCOL23A1" )
+done
 
 
 
