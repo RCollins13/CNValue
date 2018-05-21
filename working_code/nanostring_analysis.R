@@ -109,8 +109,15 @@ dat <- read.table(paste(WRKDIR,"rCNV_nanostring_count_matrix.wMetadata.txt",sep=
 #Read gene list
 genelist <- read.table(paste(WRKDIR,"nanostring_analysis_gene_list.txt",sep=""),header=T)
 endogenous.genes <- genelist[which(genelist$class %in% c("Endogenous","Housekeeping")),1]
-#Normalize all counts vs sum of positive/negative system controls and housekeeping genes
-norm.genes.idx <- which(colnames(dat) %in% genelist$gene[which(genelist$class %in% c("Housekeeping","Negative","Positive"))])
+# #Normalize all counts vs sum of positive/negative system controls and housekeeping genes
+# norm.genes.idx <- which(colnames(dat) %in% genelist$gene[which(genelist$class %in% c("Housekeeping","Negative","Positive"))])
+# norm.vect <- apply(dat[,norm.genes.idx],1,sum)
+# dat[,which(colnames(dat) %in% genelist$gene)] <- t(sapply(1:nrow(dat),function(i){
+#   i.vals <- as.numeric(dat[i,which(colnames(dat) %in% genelist$gene)])
+#   return(i.vals/norm.vect[i])
+# }))
+#Normalize all counts vs sum of just housekeeping genes
+norm.genes.idx <- which(colnames(dat) %in% genelist$gene[which(genelist$class %in% c("Housekeeping"))])
 norm.vect <- apply(dat[,norm.genes.idx],1,sum)
 dat[,which(colnames(dat) %in% genelist$gene)] <- t(sapply(1:nrow(dat),function(i){
   i.vals <- as.numeric(dat[i,which(colnames(dat) %in% genelist$gene)])
@@ -229,6 +236,8 @@ DE.p <- apply(corrected.expression.vals[,which(colnames(corrected.expression.val
   zscores <- scale(vals,scale=T,center=T)
   pnorm(zscores[,1],lower.tail=F)
 })
+#Exclude genes that aren't expressed above noise threshold
+DE.p <- DE.p[,which(!(colnames(DE.p) %in% names(which(names(mean.gene.vals) %in% endogenous.genes & mean.gene.vals<=noise.thresh))))]
 #FDR correct DE.p
 DE.p.FDR <- matrix(p.adjust(DE.p,method="fdr"),byrow=F,nrow=nrow(dat))
 colnames(DE.p.FDR) <- colnames(DE.p)
@@ -237,16 +246,58 @@ rownames(DE.p.FDR) <- dat$sample
 DE.genes.per.sample.nom <- sapply(1:nrow(DE.p),function(i){
   paste(colnames(DE.p)[which(DE.p[i,]<=0.05)],collapse=",")
 })
+DE.genes.per.sample.nom.ovr <- sapply(1:nrow(DE.p),function(i){
+  paste(intersect(unlist(strsplit(DE.genes.per.sample.nom[i],split=",")),
+            unlist(strsplit(dat$genes.all[i],split=","))),collapse=",")
+})
+DE.genes.per.sample.nom.ovr.key <- sapply(1:nrow(DE.p),function(i){
+  paste(intersect(unlist(strsplit(DE.genes.per.sample.nom[i],split=",")),
+                  unlist(strsplit(dat$genes.key[i],split=","))),collapse=",")
+})
 DE.genes.per.sample.FDR <- sapply(1:nrow(DE.p.FDR),function(i){
   paste(colnames(DE.p.FDR)[which(DE.p.FDR[i,]<=0.05)],collapse=",")
 })
+DE.genes.per.sample.FDR.ovr <- sapply(1:nrow(DE.p),function(i){
+  paste(intersect(unlist(strsplit(DE.genes.per.sample.FDR[i],split=",")),
+                  unlist(strsplit(dat$genes.all[i],split=","))),collapse=",")
+})
+DE.genes.per.sample.FDR.ovr.key <- sapply(1:nrow(DE.p),function(i){
+  paste(intersect(unlist(strsplit(DE.genes.per.sample.FDR[i],split=",")),
+                  unlist(strsplit(dat$genes.key[i],split=","))),collapse=",")
+})
 DE.genes.per.sample.bonf <- sapply(1:nrow(DE.p),function(i){
-  paste(colnames(DE.p)[which(DE.p[i,]<=0.05/(length(endogenous.genes)*nrow(dat)))],collapse=",")
+  paste(colnames(DE.p)[which(DE.p[i,]<=0.05/(ncol(DE.p)*nrow(dat)))],collapse=",")
+})
+DE.genes.per.sample.bonf.ovr <- sapply(1:nrow(DE.p),function(i){
+  paste(intersect(unlist(strsplit(DE.genes.per.sample.bonf[i],split=",")),
+                  unlist(strsplit(dat$genes.all[i],split=","))),collapse=",")
+})
+DE.genes.per.sample.bonf.ovr.key <- sapply(1:nrow(DE.p),function(i){
+  paste(intersect(unlist(strsplit(DE.genes.per.sample.bonf[i],split=",")),
+                  unlist(strsplit(dat$genes.key[i],split=","))),collapse=",")
 })
 DE.genes.per.sample <- cbind("sample"=dat$sample,
+                             "family"=dat$family,
+                             "ASD"=dat$ASD,
+                             "all.genes.expected"=dat$genes.all,
+                             "all.genes.key"=dat$genes.key,
                              "nominal"=DE.genes.per.sample.nom,
+                             "nominal.expected"=DE.genes.per.sample.nom.ovr,
+                             "nominal.key"=DE.genes.per.sample.nom.ovr.key,
                              "FDR"=DE.genes.per.sample.FDR,
-                             "Bonferroni"=DE.genes.per.sample.bonf)
+                             "FDR.expected"=DE.genes.per.sample.FDR.ovr,
+                             "FDR.key"=DE.genes.per.sample.FDR.ovr.key,
+                             "Bonferroni"=DE.genes.per.sample.bonf,
+                             "Bonferroni.expected"=DE.genes.per.sample.bonf.ovr,
+                             "Bonferroni.key"=DE.genes.per.sample.bonf.ovr.key)
+#Iterate over columns and restrict to genes with mean expression above the noise threshold
+DE.genes.per.sample[,-c(1:3)] <- apply(DE.genes.per.sample[,-c(1:3)],2,function(vals){
+  sapply(vals,function(genes){
+    genes.v <- unlist(strsplit(genes,split=","))
+    genes.filt <- names(which(names(mean.gene.vals) %in% genes.v & mean.gene.vals>noise.thresh))
+    return(paste(sort(genes.filt),collapse=","))
+  })
+})
 #Write out results
 write.table(DE.genes.per.sample,paste(WRKDIR,"Nanostring_DE_genes.txt",sep=""),
             col.names=T,row.names=F,quote=F,sep="\t")
