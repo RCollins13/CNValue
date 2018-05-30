@@ -18,6 +18,10 @@ if(!dir.exists(PLOTDIR)){
   dir.create(PLOTDIR)
 }
 sample.cols <- c("#C92836","#6A8CC6")
+gene.cols <- c("Endogenous"="#3375B9",
+               "Housekeeping"="#7ED8F3",
+               "Negative"="#494A4D",
+               "Positive"="#F7ED41")
 require(FactoMineR)
 require(beeswarm)
 require(vioplot)
@@ -97,6 +101,34 @@ singleGeneSwarm <- function(gene,expected.samples=NULL){
   axis(2,at=axTicks(2),line=-0.4,tick=F,
        labels=axTicks(2),las=2,cex.axis=0.7)
   mtext(2,line=3,text="mRNA Expression (A.U.)")
+}
+#Plot single Gaddygram of expression values
+gaddy <- function(vals){
+  #Prep plot area
+  par(mar=c(4,3,2,1),bty="n")
+  ylims <- round(as.numeric(quantile(as.matrix(vals),probs=c(0.025,0.995))))
+  plot(x=c(0,ncol(vals)),y=ylims,type="n",
+       xaxt="n",yaxt="n",xlab="",ylab="")
+  
+  #Iterate over genes and plot each
+  sapply(1:ncol(vals),function(i){
+    #Get gene information
+    gene <- colnames(vals)[i]
+    gvals <- sort(as.numeric(vals[,i]))
+    col <- gene.cols[which(names(gene.cols)==genelist$class[which(genelist$gene==gene)])]
+    
+    #Plot points & line for median
+    xpos <- seq(i-0.8,i-0.2,by=0.6/(nrow(vals)-1))
+    points(x=xpos,y=gvals,pch=19,cex=0.3,col=col)
+    segments(x0=i-0.8,x1=i-0.2,y0=mean(gvals),y1=mean(gvals))
+    
+    #Add gene label
+    axis(1,at=i-0.5,tick=F,line=-0.8,las=2,labels=gene,font=3,cex.axis=0.7)
+  })
+  
+  #Add x-axis
+  axis(2,at=axTicks(2),labels=NA)
+  axis(2,at=axTicks(2),tick=F,line=-0.4,labels=axTicks(2),las=2,cex.axis=0.7)
 }
 
 
@@ -222,13 +254,34 @@ sapply(endogenous.genes,function(gene){
 })
 
 
+##################################
+#####Expression distribution plots
+##################################
+#####Gaddygram of all expression values per gene
+#Calculate mean expression level per gene
+mean.gene.vals <- apply(corrected.expression.vals,2,mean)
+mean.gene.vals.log <- log10(mean.gene.vals)
+mean.gene.vals.log.sort <- sort(mean.gene.vals.log)
+#Sort gene expression matrix based on mean expression value
+corrected.expression.vals.sort <- corrected.expression.vals[,order(mean.gene.vals)]
+#Get number of genes per magnitude range
+gaddy.range <- floor(min(mean.gene.vals.log)):ceiling(max(mean.gene.vals.log))
+gaddy.range.table <- sapply(gaddy.range,function(i){
+  length(which(mean.gene.vals.log>=i & mean.gene.vals.log<(i+1)))
+})
+names(gaddy.range.table) <- gaddy.range
+gaddy.range <- gaddy.range.table[which(gaddy.range.table>0)]
+
+mtext(2,line=2,text="Normalized Expression (A.U.)")
+
+
+
+
 #####################################
 #####Differential expression analysis
 #####################################
 #Calculate noise threshold based on negative controls - 5% FDR
 noise.thresh <- quantile(as.vector(corrected.expression.vals[,grep("NEG_",colnames(corrected.expression.vals))]),0.95)
-#Mean expression levels per gene
-mean.gene.vals <- apply(corrected.expression.vals,2,mean)
 #Get list of endogenous genes where mean is below noise threshold
 length(which(mean.gene.vals[which(names(mean.gene.vals) %in% endogenous.genes)]<=noise.thresh))
 #Get p-value per sample per endogenous gene
