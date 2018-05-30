@@ -21,7 +21,7 @@ sample.cols <- c("#C92836","#6A8CC6")
 gene.cols <- c("Endogenous"="#3375B9",
                "Housekeeping"="#7ED8F3",
                "Negative"="#494A4D",
-               "Positive"="#F7ED41")
+               "Positive"="#FF0000")
 require(FactoMineR)
 require(beeswarm)
 require(vioplot)
@@ -105,7 +105,7 @@ singleGeneSwarm <- function(gene,expected.samples=NULL){
 #Plot single Gaddygram of expression values
 gaddy <- function(vals){
   #Prep plot area
-  par(mar=c(4,3,2,1),bty="n")
+  par(mar=c(5,3,3,1),bty="n")
   ylims <- round(as.numeric(quantile(as.matrix(vals),probs=c(0.025,0.995))))
   plot(x=c(0,ncol(vals)),y=ylims,type="n",
        xaxt="n",yaxt="n",xlab="",ylab="")
@@ -115,15 +115,16 @@ gaddy <- function(vals){
     #Get gene information
     gene <- colnames(vals)[i]
     gvals <- sort(as.numeric(vals[,i]))
+    gvals[which(is.infinite(gvals))] <- NA
     col <- gene.cols[which(names(gene.cols)==genelist$class[which(genelist$gene==gene)])]
     
     #Plot points & line for median
     xpos <- seq(i-0.8,i-0.2,by=0.6/(nrow(vals)-1))
     points(x=xpos,y=gvals,pch=19,cex=0.3,col=col)
-    segments(x0=i-0.8,x1=i-0.2,y0=mean(gvals),y1=mean(gvals))
+    segments(x0=i-0.8,x1=i-0.2,y0=mean(gvals,na.rm=T),y1=mean(gvals,na.rm=T),col=col,lwd=1.5)
     
     #Add gene label
-    axis(1,at=i-0.5,tick=F,line=-0.8,las=2,labels=gene,font=3,cex.axis=0.7)
+    axis(1,at=i-0.5,tick=F,line=-0.8,las=2,labels=gene,font=3,cex.axis=0.7,col.axis=col)
   })
   
   #Add x-axis
@@ -271,19 +272,57 @@ gaddy.range.table <- sapply(gaddy.range,function(i){
 })
 names(gaddy.range.table) <- gaddy.range
 gaddy.range <- gaddy.range.table[which(gaddy.range.table>0)]
+gaddy.range.table <- data.frame(c(1,cumsum(gaddy.range[-length(gaddy.range)])+1),
+                                cumsum(gaddy.range))
+#Plot gaddygram panels
+pdf(paste(PLOTDIR,"/Gaddygram.all_genes.multipanel.pdf",sep=""),
+    height=3,width=12)
+layout(matrix(1:length(gaddy.range),nrow=1,byrow=T),
+       widths=8+as.numeric(gaddy.range))
+sapply(1:length(gaddy.range),function(i){
+  gaddy(vals=corrected.expression.vals.sort[,gaddy.range.table[i,1]:gaddy.range.table[i,2]]/10^(as.numeric(names(gaddy.range)[i])-1))
+  if(i==1){
+    mtext(2,line=1.8,text="Normalized Expression (A.U.)",cex=0.8)
+  }
+  axis(3,at=c(par("usr")[1],par("usr")[2]),tck=0,labels=NA,line=0.3)
+  mtext(3,line=0.5,text=substitute("x10" ^X, list(X=as.numeric(names(gaddy.range)[i])-1)),cex=0.8)
+})
+dev.off()
 
-mtext(2,line=2,text="Normalized Expression (A.U.)")
+#####Gaddygram of housekeeping genes
+pdf(paste(PLOTDIR,"/Gaddygram.housekeeping.pdf",sep=""),
+    height=3,width=5)
+gaddy(vals=corrected.expression.vals.sort[,which(colnames(corrected.expression.vals.sort) %in% genelist$gene[which(genelist$class=="Housekeeping")])])
+mtext(2,line=1.8,text="Normalized Expression (A.U.)",cex=0.8)
+dev.off()
 
+#####Gaddygram of positive control genes
+pdf(paste(PLOTDIR,"/Gaddygram.positive_control.pdf",sep=""),
+    height=4,width=6)
+gaddy(vals=log10(corrected.expression.vals.sort[,which(colnames(corrected.expression.vals.sort) %in% genelist$gene[which(genelist$class=="Positive")])]))
+mtext(2,line=1.8,text="log10 Normalized Expression (A.U.)",cex=0.8)
+dev.off()
+
+#####Gaddygram of negative control genes & noise threshold
+#Calculate noise threshold based on negative controls - 5% FDR
+noise.thresh <- quantile(as.vector(corrected.expression.vals[,grep("NEG_",colnames(corrected.expression.vals))]),0.95)
+#Get list of endogenous genes where mean is below or at noise threshold
+length(which(mean.gene.vals[which(names(mean.gene.vals) %in% endogenous.genes)]<=noise.thresh))
+pdf(paste(PLOTDIR,"/Gaddygram.negative_control.pdf",sep=""),
+    height=4,width=6)
+gaddy(vals=log10(corrected.expression.vals.sort[,which(colnames(corrected.expression.vals.sort) %in% genelist$gene[which(genelist$class=="Negative")])]))
+rect(xleft=par("usr")[1],xright=par("usr")[2],
+     ybottom=par("usr")[3],ytop=log10(noise.thresh),
+     border=NA,col=adjustcolor("black",alpha=0.2))
+abline(h=log10(noise.thresh),lty=2)
+mtext(2,line=1.8,text="log10 Normalized Expression (A.U.)",cex=0.8)
+dev.off()
 
 
 
 #####################################
 #####Differential expression analysis
 #####################################
-#Calculate noise threshold based on negative controls - 5% FDR
-noise.thresh <- quantile(as.vector(corrected.expression.vals[,grep("NEG_",colnames(corrected.expression.vals))]),0.95)
-#Get list of endogenous genes where mean is below noise threshold
-length(which(mean.gene.vals[which(names(mean.gene.vals) %in% endogenous.genes)]<=noise.thresh))
 #Get p-value per sample per endogenous gene
 DE.p <- apply(corrected.expression.vals[,which(colnames(corrected.expression.vals) %in% endogenous.genes)],2,function(vals){
   zscores <- scale(vals,scale=T,center=T)
