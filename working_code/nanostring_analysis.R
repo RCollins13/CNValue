@@ -44,7 +44,7 @@ correctionScatter <- function(gene){
          legend=paste("R2 = ",round(cor(raw,corrected)^2,digits=3)))
 }
 #Single gene swarmplot, colored by status
-singleGeneSwarm <- function(gene,expected.samples=NULL){
+singleGeneSwarm <- function(gene,expected.samples=NULL,legend=T){
   #Get corrected expression values
   vals <- corrected.expression.vals[,which(colnames(corrected.expression.vals)==gene)]
   ylims <- range(vals)
@@ -78,8 +78,8 @@ singleGeneSwarm <- function(gene,expected.samples=NULL){
   #Add noise threshold
   rect(xleft=par("usr")[1],xright=par("usr")[2],
        ybottom=par("usr")[3],ytop=noise.thresh,
-       col=adjustcolor("black",alpha=0.3),border=NA)
-  abline(h=noise.thresh,lwd=2)
+       col=adjustcolor("black",alpha=0.1),border=NA)
+  abline(h=noise.thresh,lwd=2,lty=2)
   
   #Add boxplot & dots
   if(length(expected.samples)>0){
@@ -91,22 +91,39 @@ singleGeneSwarm <- function(gene,expected.samples=NULL){
            pwbg=sample.colors,lwd=2,pwcol=sample.outlines)
   
   #Dress up plot
-  mtext(3,line=0.3,font=2,text=gene)
-  legend("topright",bty="n",bg=NA,pch=19,col=c(sample.cols,"gray85"),
-         legend=c("Affected CNV carrier",
-                  "Unaffected non-carrier\nfamily control",
-                  "Unrelated non-carriers"),
-         cex=0.5)
+  if(gene %in% names(mean.gene.vals[which(mean.gene.vals<=noise.thresh)])){
+    mtext(3,line=0.3,font=3,text=gene,col="gray60")
+  }else{
+    mtext(3,line=0.3,font=2,text=gene)
+  }
+  
+  if(legend==T){
+    legend("topright",bty="n",bg=NA,pch=19,col=c(sample.cols,"gray85"),
+           legend=c("Affected CNV carrier",
+                    "Unaffected non-carrier\nfamily control",
+                    "Unrelated non-carriers"),
+           cex=0.5)
+  }
   axis(2,at=axTicks(2),labels=NA)
   axis(2,at=axTicks(2),line=-0.4,tick=F,
        labels=axTicks(2),las=2,cex.axis=0.7)
   mtext(2,line=3,text="mRNA Expression (A.U.)")
 }
 #Plot single Gaddygram of expression values
-gaddy <- function(vals){
+gaddy <- function(vals,ymin=NULL,ymax=NULL,colors=NULL){
   #Prep plot area
   par(mar=c(5,3,3,1),bty="n")
   ylims <- round(as.numeric(quantile(as.matrix(vals),probs=c(0.025,0.995))))
+  if(!is.null(ymin)){
+    if(ymin<ylims[2]){
+      ylims[1] <- ymin
+    }
+  }
+  if(!is.null(ymax)){
+    if(ymax>ylims[1]){
+      ylims[2] <- ymax
+    }
+  }
   plot(x=c(0,ncol(vals)),y=ylims,type="n",
        xaxt="n",yaxt="n",xlab="",ylab="")
   
@@ -116,7 +133,11 @@ gaddy <- function(vals){
     gene <- colnames(vals)[i]
     gvals <- sort(as.numeric(vals[,i]))
     gvals[which(is.infinite(gvals))] <- NA
-    col <- gene.cols[which(names(gene.cols)==genelist$class[which(genelist$gene==gene)])]
+    if(is.null(colors)){
+      col <- gene.cols[which(names(gene.cols)==genelist$class[which(genelist$gene==gene)])]
+    }else{
+      col <- colors[i]
+    }
     
     #Plot points & line for median
     xpos <- seq(i-0.8,i-0.2,by=0.6/(nrow(vals)-1))
@@ -172,6 +193,9 @@ dat <- dat[-outlier.samples,]
 #Unlist expected genes per sample
 expected.genes <- strsplit(dat$genes.all,split=",")
 names(expected.genes) <- dat$sample
+#Read list of genes ordered by chr & pos
+genome.ordered.genes.all <- read.table(paste(WRKDIR,"gene_symbols_ordered_by_chr_pos.hg19.txt",sep=""),
+                                       header=F)[,1]
 
 
 #############################################
@@ -292,15 +316,18 @@ dev.off()
 #####Gaddygram of housekeeping genes
 pdf(paste(PLOTDIR,"/Gaddygram.housekeeping.pdf",sep=""),
     height=3,width=5)
-gaddy(vals=corrected.expression.vals.sort[,which(colnames(corrected.expression.vals.sort) %in% genelist$gene[which(genelist$class=="Housekeeping")])])
+gaddy(vals=corrected.expression.vals.sort[,which(colnames(corrected.expression.vals.sort) %in% genelist$gene[which(genelist$class=="Housekeeping")])],
+      ymin=0,ymax=0.6)
 mtext(2,line=1.8,text="Normalized Expression (A.U.)",cex=0.8)
+# axis(3,at=c(par("usr")[1],par("usr")[2]),tck=0,labels=NA,line=0.3)
+# mtext(3,line=0.5,text=substitute("x10" ^X, list(X=-1)),cex=0.8)
 dev.off()
 
 #####Gaddygram of positive control genes
 pdf(paste(PLOTDIR,"/Gaddygram.positive_control.pdf",sep=""),
     height=4,width=6)
-gaddy(vals=log10(corrected.expression.vals.sort[,which(colnames(corrected.expression.vals.sort) %in% genelist$gene[which(genelist$class=="Positive")])]))
-mtext(2,line=1.8,text="log10 Normalized Expression (A.U.)",cex=0.8)
+gaddy(vals=log2(corrected.expression.vals.sort[,which(colnames(corrected.expression.vals.sort) %in% genelist$gene[which(genelist$class=="Positive")])]))
+mtext(2,line=1.8,text="log2 Normalized Expression (A.U.)",cex=0.8)
 dev.off()
 
 #####Gaddygram of negative control genes & noise threshold
@@ -310,14 +337,29 @@ noise.thresh <- quantile(as.vector(corrected.expression.vals[,grep("NEG_",colnam
 length(which(mean.gene.vals[which(names(mean.gene.vals) %in% endogenous.genes)]<=noise.thresh))
 pdf(paste(PLOTDIR,"/Gaddygram.negative_control.pdf",sep=""),
     height=4,width=6)
-gaddy(vals=log10(corrected.expression.vals.sort[,which(colnames(corrected.expression.vals.sort) %in% genelist$gene[which(genelist$class=="Negative")])]))
+gaddy(vals=log2(corrected.expression.vals.sort[,which(colnames(corrected.expression.vals.sort) %in% genelist$gene[which(genelist$class=="Negative")])]))
 rect(xleft=par("usr")[1],xright=par("usr")[2],
-     ybottom=par("usr")[3],ytop=log10(noise.thresh),
+     ybottom=par("usr")[3],ytop=log2(noise.thresh),
      border=NA,col=adjustcolor("black",alpha=0.2))
-abline(h=log10(noise.thresh),lty=2)
-mtext(2,line=1.8,text="log10 Normalized Expression (A.U.)",cex=0.8)
+abline(h=log2(noise.thresh),lty=2)
+mtext(2,line=1.8,text="log2 Normalized Expression (A.U.)",cex=0.8)
 dev.off()
 
+#####Gaddygram of lowest 43 endogenous genes w/noise threshold
+gaddy.noise.dat <- corrected.expression.vals.sort[,which(colnames(corrected.expression.vals.sort) %in% endogenous.genes)][,1:40]
+gaddy.noise.cols <- rep("#4DAC26",times=ncol(gaddy.noise.dat))
+gaddy.noise.cols[which(apply(gaddy.noise.dat,2,mean)<=noise.thresh)] <- "#D01C8B"
+pdf(paste(PLOTDIR,"/Gaddygram.noise_threshold_applied.pdf",sep=""),
+    height=3.5,width=7)
+gaddy(vals=(10^3)*gaddy.noise.dat,colors=gaddy.noise.cols)
+rect(xleft=par("usr")[1],xright=par("usr")[2],
+     ybottom=par("usr")[3],ytop=(10^3)*noise.thresh,
+     border=NA,col=adjustcolor("black",alpha=0.2))
+abline(h=(10^3)*noise.thresh,lty=2)
+axis(3,at=c(par("usr")[1],par("usr")[2]),tck=0,labels=NA,line=0.3)
+mtext(3,line=0.5,text=substitute("x10" ^X, list(X=-3)),cex=0.8)
+mtext(2,line=1.8,text="Normalized Expression (A.U.)",cex=0.8)
+dev.off()
 
 
 #####################################
@@ -410,14 +452,16 @@ sapply(endogenous.genes,function(gene){
 sapply(which(dat$ASD=="Case"),function(i){
   genes <- unlist(strsplit(dat$genes.all[i],split=","))
   genes <- genes[which(genes %in% endogenous.genes)]
+  genes <- c(genome.ordered.genes.all[which(genome.ordered.genes.all %in% genes)],
+             genes[which(!(genes %in% genome.ordered.genes.all))])
   genes.in.CNV <- unlist(strsplit(dat$genes.CNV[i],split=","))
   genes.in.CNV <- genes.in.CNV[which(genes.in.CNV %in% genes)]
   s.idx <- which(dat$family==dat$family[i])
   pdf(paste(PLOTDIR,"/",dat$family[i],"_CNV_interval_expression.pdf",sep=""),
-      height=4,width=3+2*length(genes))
+      height=3,width=2+1.5*length(genes))
   par(mfrow=c(1,length(genes)),mar=c(3.5,3.5,2,2))
   sapply(genes,function(gene){
-    singleGeneSwarm(gene,expected.samples=s.idx)
+    singleGeneSwarm(gene,expected.samples=s.idx,legend=F)
     if(gene %in% genes.in.CNV){
       mtext(1,line=0,text="IN CNV",font=2,col="red")
     }
