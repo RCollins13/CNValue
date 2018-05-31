@@ -25,6 +25,7 @@ gene.cols <- c("Endogenous"="#3375B9",
 require(FactoMineR)
 require(beeswarm)
 require(vioplot)
+require(psych)
 
 
 #####################
@@ -36,8 +37,8 @@ correctionScatter <- function(gene){
   corrected <- corrected.expression.vals[,which(colnames(corrected.expression.vals)==gene)]
   plot(raw,corrected,lwd=2,
        xlab="",ylab="")
-  mtext(1,text="Raw Expression (A.U.)",line=2.5)
-  mtext(2,text="Corrected Expression (A.U.)",line=2.5)
+  mtext(1,text="Norm. Expression (A.U.)",line=2.5)
+  mtext(2,text="Adj. Norm. Expression (A.U.)",line=2.5)
   mtext(3,text=gene,font=2,line=0.5)
   abline(lm(corrected ~ raw),col="red")
   legend("topleft",bg=NA,col=NA,bty="n",
@@ -152,7 +153,45 @@ gaddy <- function(vals,ymin=NULL,ymax=NULL,colors=NULL){
   axis(2,at=axTicks(2),labels=NA)
   axis(2,at=axTicks(2),tick=F,line=-0.4,labels=axTicks(2),las=2,cex.axis=0.7)
 }
-
+#Plot comparison of case/control number of DE genes
+DE.gene.case.control.comp.plot <- function(case.count,control.count){
+  #Format variables
+  case.count <- as.numeric(case.count)
+  control.count <- as.numeric(control.count)
+  
+  #Prep plot area
+  par(mar=c(2,3.5,2,1))
+  ylims <- c(0,max(c(case.count,control.count)+1))
+  plot(x=c(0,2),y=ylims,type="n",
+       xaxt="n",yaxt="n",xlab="",ylab="",xaxs="i")
+  
+  #Dress up plot
+  axis(1,at=0.5,tick=F,line=-0.8,labels="Cases",col.axis=sample.cols[1],font=2)
+  axis(1,at=1.5,tick=F,line=-0.8,labels="Controls",col.axis=sample.cols[2],font=2)
+  axis(2,at=axTicks(2),labels=NA)
+  axis(2,at=axTicks(2),labels=axTicks(2),las=2,line=-0.4,tick=F,cex.axis=0.8)
+  mtext(2,line=2,text="DE Genes")
+  
+  #Plot data for cases
+  if(any(case.count>0)){
+    vioplot(case.count,add=T,wex=0.4,drawRect=F,col=NA,border=sample.cols[1],at=0.5)
+  }
+  boxplot(case.count,outline=F,lwd=1,staplewex=0,lty=1,boxwex=0.3,add=T,at=0.5,col=NA,xaxt="n",yaxt="n")
+  beeswarm(case.count,pch=19,add=T,at=0.5,corral="wrap",corralWidth=0.4,
+           col=sample.cols[1])
+  
+  #Plot data for controls
+  if(any(control.count>0)){
+    vioplot(control.count,add=T,wex=0.4,drawRect=F,col=NA,border=sample.cols[2],at=1.5)
+  }
+  boxplot(control.count,outline=F,lwd=1,staplewex=0,lty=1,boxwex=0.3,add=T,at=1.5,col=NA,xaxt="n",yaxt="n")
+  beeswarm(control.count,pch=19,add=T,at=1.5,corral="wrap",corralWidth=0.4,
+           col=sample.cols[2])
+  
+  #Add p-value
+  text(x=1,y=par("usr")[4],pos=1,
+       labels=paste("P = ",round(suppressWarnings(wilcox.test(case.count,control.count))$p.value,digits=4),sep=""))
+}
 
 
 ######################
@@ -163,16 +202,9 @@ dat <- read.table(paste(WRKDIR,"rCNV_nanostring_count_matrix.wMetadata.txt",sep=
 #Read gene list
 genelist <- read.table(paste(WRKDIR,"nanostring_analysis_gene_list.txt",sep=""),header=T)
 endogenous.genes <- genelist[which(genelist$class %in% c("Endogenous","Housekeeping")),1]
-# #Normalize all counts vs sum of positive/negative system controls and housekeeping genes
-# norm.genes.idx <- which(colnames(dat) %in% genelist$gene[which(genelist$class %in% c("Housekeeping","Negative","Positive"))])
-# norm.vect <- apply(dat[,norm.genes.idx],1,sum)
-# dat[,which(colnames(dat) %in% genelist$gene)] <- t(sapply(1:nrow(dat),function(i){
-#   i.vals <- as.numeric(dat[i,which(colnames(dat) %in% genelist$gene)])
-#   return(i.vals/norm.vect[i])
-# }))
-#Normalize all counts vs sum of just housekeeping genes
+#Normalize all counts vs geometric mean of just housekeeping genes
 norm.genes.idx <- which(colnames(dat) %in% genelist$gene[which(genelist$class %in% c("Housekeeping"))])
-norm.vect <- apply(dat[,norm.genes.idx],1,sum)
+norm.vect <- apply(dat[,norm.genes.idx],1,geometric.mean,na.rm=T)
 dat[,which(colnames(dat) %in% genelist$gene)] <- t(sapply(1:nrow(dat),function(i){
   i.vals <- as.numeric(dat[i,which(colnames(dat) %in% genelist$gene)])
   return(i.vals/norm.vect[i])
@@ -292,10 +324,14 @@ corrected.expression.vals.sort <- corrected.expression.vals[,order(mean.gene.val
 #Get number of genes per magnitude range
 gaddy.range <- floor(min(mean.gene.vals.log)):ceiling(max(mean.gene.vals.log))
 gaddy.range.table <- sapply(gaddy.range,function(i){
-  length(which(mean.gene.vals.log>=i & mean.gene.vals.log<(i+1)))
+  length(which(mean.gene.vals.log>i & mean.gene.vals.log<=(i+1)))
 })
 names(gaddy.range.table) <- gaddy.range
 gaddy.range <- gaddy.range.table[which(gaddy.range.table>0)]
+if(gaddy.range[length(gaddy.range)]==1){
+  gaddy.range <- gaddy.range[-length(gaddy.range)]
+  gaddy.range[length(gaddy.range)] <- gaddy.range[length(gaddy.range)]+1
+}
 gaddy.range.table <- data.frame(c(1,cumsum(gaddy.range[-length(gaddy.range)])+1),
                                 cumsum(gaddy.range))
 #Plot gaddygram panels
@@ -382,7 +418,7 @@ DE.genes.per.sample.nom <- sapply(1:nrow(DE.p),function(i){
 })
 DE.genes.per.sample.nom.ovr <- sapply(1:nrow(DE.p),function(i){
   paste(intersect(unlist(strsplit(DE.genes.per.sample.nom[i],split=",")),
-            unlist(strsplit(dat$genes.all[i],split=","))),collapse=",")
+                  unlist(strsplit(dat$genes.all[i],split=","))),collapse=",")
 })
 DE.genes.per.sample.nom.ovr.key <- sapply(1:nrow(DE.p),function(i){
   paste(intersect(unlist(strsplit(DE.genes.per.sample.nom[i],split=",")),
@@ -435,6 +471,42 @@ DE.genes.per.sample[,-c(1:3)] <- apply(DE.genes.per.sample[,-c(1:3)],2,function(
 #Write out results
 write.table(DE.genes.per.sample,paste(WRKDIR,"Nanostring_DE_genes.txt",sep=""),
             col.names=T,row.names=F,quote=F,sep="\t")
+
+#####DE gene case vs control plot (six panels)
+#Get count of nom/fdr/bonf sig DE genes per sample
+DE.gene.counts.per.sample <- apply(DE.genes.per.sample[,-c(1:5)],2,function(strings){
+  as.numeric(sapply(strings,function(str){
+    length(unlist(strsplit(str,split=",")))
+  }))
+})
+DE.gene.counts.per.sample <- as.data.frame(cbind(DE.genes.per.sample[,1:5],
+                                                 apply(DE.gene.counts.per.sample,2,as.numeric)))
+#Prep plot area
+pdf(paste(PLOTDIR,"/DE_gene_counts.case_control.six_panel.pdf",sep=""),
+    height=5,width=9)
+par(mfrow=c(2,3))
+DE.gene.case.control.comp.plot(case.count=DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Case"),]$nominal,
+                               control.count=DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Control"),]$nominal)
+mtext(3,line=0.5,text="Nominal",font=2)
+DE.gene.case.control.comp.plot(case.count=DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Case"),]$FDR,
+                               control.count=DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Control"),]$FDR)
+mtext(3,line=0.5,text="FDR",font=2)
+DE.gene.case.control.comp.plot(case.count=DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Case"),]$Bonferroni,
+                               control.count=DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Control"),]$Bonferroni)
+mtext(3,line=0.5,text="Bonferroni",font=2)
+DE.gene.case.control.comp.plot(case.count=as.numeric(DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Case"),]$nominal)-
+                                 as.numeric(DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Case"),]$nominal.expected),
+                               control.count=as.numeric(DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Control"),]$nominal)-
+                                 as.numeric(DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Control"),]$nominal.expected))
+DE.gene.case.control.comp.plot(case.count=as.numeric(DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Case"),]$FDR)-
+                                 as.numeric(DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Case"),]$FDR.expected),
+                               control.count=as.numeric(DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Control"),]$FDR)-
+                                 as.numeric(DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Control"),]$FDR.expected))
+DE.gene.case.control.comp.plot(case.count=as.numeric(DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Case"),]$Bonferroni)-
+                                 as.numeric(DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Case"),]$Bonferroni.expected),
+                               control.count=as.numeric(DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Control"),]$Bonferroni)-
+                                 as.numeric(DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Control"),]$Bonferroni.expected))
+dev.off()
 
 
 ##########################
