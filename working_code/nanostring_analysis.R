@@ -35,8 +35,10 @@ require(psych)
 correctionScatter <- function(gene){
   raw <- dat[,which(colnames(dat)==gene)]
   corrected <- corrected.expression.vals[,which(colnames(corrected.expression.vals)==gene)]
+  lims <- range(c(raw,corrected),na.rm=T)
   plot(raw,corrected,lwd=2,
-       xlab="",ylab="")
+       xlab="",ylab="",xlim=lims,ylim=lims,
+       panel.first=c(abline(0,1,lty=2,col="gray70")))
   mtext(1,text="Norm. Expression (A.U.)",line=2.5)
   mtext(2,text="Adj. Norm. Expression (A.U.)",line=2.5)
   mtext(3,text=gene,font=2,line=0.5)
@@ -160,14 +162,18 @@ DE.gene.case.control.comp.plot <- function(case.count,control.count){
   control.count <- as.numeric(control.count)
   
   #Prep plot area
-  par(mar=c(2,3.5,2,1))
+  par(mar=c(2.5,3.5,2,1))
   ylims <- c(0,max(c(case.count,control.count)+1))
   plot(x=c(0,2),y=ylims,type="n",
        xaxt="n",yaxt="n",xlab="",ylab="",xaxs="i")
   
   #Dress up plot
   axis(1,at=0.5,tick=F,line=-0.8,labels="Cases",col.axis=sample.cols[1],font=2)
+  axis(1,at=0.5,tick=F,line=0.2,labels=paste("(n=",length(which(case.count>0)),
+                                              "/",length(case.count)," with > 0 DE)",sep=""))
   axis(1,at=1.5,tick=F,line=-0.8,labels="Controls",col.axis=sample.cols[2],font=2)
+  axis(1,at=1.5,tick=F,line=0.2,labels=paste("(n=",length(which(control.count>0)),
+                                              "/",length(control.count)," with > 0 DE)",sep=""))
   axis(2,at=axTicks(2),labels=NA)
   axis(2,at=axTicks(2),labels=axTicks(2),las=2,line=-0.4,tick=F,cex.axis=0.8)
   mtext(2,line=2,text="DE Genes")
@@ -177,7 +183,7 @@ DE.gene.case.control.comp.plot <- function(case.count,control.count){
     vioplot(case.count,add=T,wex=0.4,drawRect=F,col=NA,border=sample.cols[1],at=0.5)
   }
   boxplot(case.count,outline=F,lwd=1,staplewex=0,lty=1,boxwex=0.3,add=T,at=0.5,col=NA,xaxt="n",yaxt="n")
-  beeswarm(case.count,pch=19,add=T,at=0.5,corral="wrap",corralWidth=0.4,
+  beeswarm(case.count,pch=19,add=T,at=0.5,corral="wrap",method="swarm",corralWidth=0.4,
            col=sample.cols[1])
   
   #Plot data for controls
@@ -185,13 +191,51 @@ DE.gene.case.control.comp.plot <- function(case.count,control.count){
     vioplot(control.count,add=T,wex=0.4,drawRect=F,col=NA,border=sample.cols[2],at=1.5)
   }
   boxplot(control.count,outline=F,lwd=1,staplewex=0,lty=1,boxwex=0.3,add=T,at=1.5,col=NA,xaxt="n",yaxt="n")
-  beeswarm(control.count,pch=19,add=T,at=1.5,corral="wrap",corralWidth=0.4,
+  beeswarm(control.count,pch=19,add=T,at=1.5,corral="wrap",method="swarm",corralWidth=0.4,
            col=sample.cols[2])
   
   #Add p-value
   text(x=1,y=par("usr")[4],pos=1,
        labels=paste("P = ",round(suppressWarnings(wilcox.test(case.count,control.count))$p.value,digits=4),sep=""))
 }
+#Scatterplot of two sets of expression values
+exprCorScatter <- function(expr1,expr2,lab1,lab2,title=NULL){
+  detectable.key.genes <- c("C16orf72","C5orf42","COLEC12","CTDP1","NUP155","ROCK1","USP7","KCTD13")
+  plot(expr1,expr2,lwd=2,xlab="",ylab="")
+  points(x=expr1[which(gtex$gene %in% detectable.key.genes)],
+         y=expr2[which(gtex$gene %in% detectable.key.genes)],
+         bg="#4DAC26",pch=21,lwd=2)
+  sapply(expr1[which(gtex$gene %in% detectable.key.genes)],function(v){
+    axis(3,at=v,col="#4DAC26",lwd=4,labels=NA)
+  })
+  sapply(expr2[which(gtex$gene %in% detectable.key.genes)],function(v){
+    axis(4,at=v,col="#4DAC26",lwd=4,labels=NA)
+  })
+  points(x=expr1[which(gtex$gene %in% setdiff(unique(unlist(strsplit(dat$genes.key,split=","))),
+                                              detectable.key.genes))],
+         y=expr2[which(gtex$gene %in% setdiff(unique(unlist(strsplit(dat$genes.key,split=","))),
+                                              detectable.key.genes))],
+         bg="#D01C8B",pch=21,lwd=2)
+  try(sapply(expr1[which(gtex$gene %in% setdiff(unique(unlist(strsplit(dat$genes.key,split=","))),
+                                            detectable.key.genes))],
+         function(v){
+    axis(3,at=v,col="#D01C8B",lwd=4,labels=NA)
+  }))
+  try(sapply(expr2[which(gtex$gene %in% setdiff(unique(unlist(strsplit(dat$genes.key,split=","))),
+                                            detectable.key.genes))],
+         function(v){
+    axis(4,at=v,col="#D01C8B",lwd=4,labels=NA)
+  }))
+  mtext(1,text=lab1,line=2.5)
+  mtext(2,text=lab2,line=2.5)
+  mtext(3,text=title,font=2,line=1)
+  abline(lm(expr2[which(!is.infinite(expr1) & !is.infinite(expr2))] ~ expr1[which(!is.infinite(expr1) & !is.infinite(expr2))]),col="red")
+  legend("bottomright",bg=NA,col=NA,bty="n",
+         legend=paste("R2 = ",round(cor(expr2[which(!is.infinite(expr1) & !is.infinite(expr2))],
+                                        expr1[which(!is.infinite(expr1) & !is.infinite(expr2))],
+                                        use="pairwise.complete.obs")^2,digits=3)))
+}
+
 
 
 ######################
@@ -199,6 +243,10 @@ DE.gene.case.control.comp.plot <- function(case.count,control.count){
 ######################
 #Read master matrix
 dat <- read.table(paste(WRKDIR,"rCNV_nanostring_count_matrix.wMetadata.txt",sep=""),header=T,sep="\t")
+#Remove spaces from gene lists
+dat$genes.all <- sapply(dat$genes.all,function(str){gsub(" ","",str,fixed=T)})
+dat$genes.CNV <- sapply(dat$genes.CNV,function(str){gsub(" ","",str,fixed=T)})
+dat$genes.key <- sapply(dat$genes.key,function(str){gsub(" ","",str,fixed=T)})
 #Read gene list
 genelist <- read.table(paste(WRKDIR,"nanostring_analysis_gene_list.txt",sep=""),header=T)
 endogenous.genes <- genelist[which(genelist$class %in% c("Endogenous","Housekeeping")),1]
@@ -228,6 +276,21 @@ names(expected.genes) <- dat$sample
 #Read list of genes ordered by chr & pos
 genome.ordered.genes.all <- read.table(paste(WRKDIR,"gene_symbols_ordered_by_chr_pos.hg19.txt",sep=""),
                                        header=F)[,1]
+#Read GTEx expression data for all genes, and match to genes in experiment
+gtex.brain <- read.table(paste(WRKDIR,"GTEx_v7_median_brain_expression.txt",sep=""),header=T)
+gtex.brain <- gtex.brain[which(gtex.brain$gene %in% genelist$gene),]
+gtex.lcl <- read.table(paste(WRKDIR,"GTEx_v7_median_LCL_expression.txt",sep=""),header=T)
+colnames(gtex.lcl)[3] <- "median_lcl_expression"
+gtex.lcl <- gtex.lcl[which(gtex.lcl$gene %in% genelist$gene),]
+gtex <- as.data.frame(t(sapply(genelist$gene,function(gene){
+  brain <- median(gtex.brain$median_brain_expression[which(gtex.brain$gene %in% gene)])
+  lcl <- median(gtex.lcl$median_lcl_expression[which(gtex.lcl$gene %in% gene)])
+  return(c(gene,brain,lcl))
+})))
+gtex[,-1] <- apply(gtex[,-1],2,as.numeric)
+colnames(gtex) <- c("gene","brain","lcl")
+
+
 
 
 #############################################
@@ -311,6 +374,8 @@ sapply(endogenous.genes,function(gene){
 })
 
 
+
+
 ##################################
 #####Expression distribution plots
 ##################################
@@ -353,7 +418,7 @@ dev.off()
 pdf(paste(PLOTDIR,"/Gaddygram.housekeeping.pdf",sep=""),
     height=3,width=5)
 gaddy(vals=corrected.expression.vals.sort[,which(colnames(corrected.expression.vals.sort) %in% genelist$gene[which(genelist$class=="Housekeeping")])],
-      ymin=0,ymax=0.6)
+      ymin=0)
 mtext(2,line=1.8,text="Normalized Expression (A.U.)",cex=0.8)
 # axis(3,at=c(par("usr")[1],par("usr")[2]),tck=0,labels=NA,line=0.3)
 # mtext(3,line=0.5,text=substitute("x10" ^X, list(X=-1)),cex=0.8)
@@ -373,7 +438,8 @@ noise.thresh <- quantile(as.vector(corrected.expression.vals[,grep("NEG_",colnam
 length(which(mean.gene.vals[which(names(mean.gene.vals) %in% endogenous.genes)]<=noise.thresh))
 pdf(paste(PLOTDIR,"/Gaddygram.negative_control.pdf",sep=""),
     height=4,width=6)
-gaddy(vals=log2(corrected.expression.vals.sort[,which(colnames(corrected.expression.vals.sort) %in% genelist$gene[which(genelist$class=="Negative")])]))
+gaddy(vals=log2(corrected.expression.vals.sort[,which(colnames(corrected.expression.vals.sort) %in% genelist$gene[which(genelist$class=="Negative")])]),
+      ymin=-14,ymax=-5)
 rect(xleft=par("usr")[1],xright=par("usr")[2],
      ybottom=par("usr")[3],ytop=log2(noise.thresh),
      border=NA,col=adjustcolor("black",alpha=0.2))
@@ -396,6 +462,8 @@ axis(3,at=c(par("usr")[1],par("usr")[2]),tck=0,labels=NA,line=0.3)
 mtext(3,line=0.5,text=substitute("x10" ^X, list(X=-3)),cex=0.8)
 mtext(2,line=1.8,text="Normalized Expression (A.U.)",cex=0.8)
 dev.off()
+
+
 
 
 #####################################
@@ -446,7 +514,7 @@ DE.genes.per.sample.bonf.ovr.key <- sapply(1:nrow(DE.p),function(i){
   paste(intersect(unlist(strsplit(DE.genes.per.sample.bonf[i],split=",")),
                   unlist(strsplit(dat$genes.key[i],split=","))),collapse=",")
 })
-DE.genes.per.sample <- cbind("sample"=dat$sample,
+DE.genes.per.sample <- as.data.frame(cbind("sample"=dat$sample,
                              "family"=dat$family,
                              "ASD"=dat$ASD,
                              "all.genes.expected"=dat$genes.all,
@@ -459,7 +527,7 @@ DE.genes.per.sample <- cbind("sample"=dat$sample,
                              "FDR.key"=DE.genes.per.sample.FDR.ovr.key,
                              "Bonferroni"=DE.genes.per.sample.bonf,
                              "Bonferroni.expected"=DE.genes.per.sample.bonf.ovr,
-                             "Bonferroni.key"=DE.genes.per.sample.bonf.ovr.key)
+                             "Bonferroni.key"=DE.genes.per.sample.bonf.ovr.key))
 #Iterate over columns and restrict to genes with mean expression above the noise threshold
 DE.genes.per.sample[,-c(1:3)] <- apply(DE.genes.per.sample[,-c(1:3)],2,function(vals){
   sapply(vals,function(genes){
@@ -468,6 +536,8 @@ DE.genes.per.sample[,-c(1:3)] <- apply(DE.genes.per.sample[,-c(1:3)],2,function(
     return(paste(sort(genes.filt),collapse=","))
   })
 })
+#Exclude 16p11.2 control samples
+DE.genes.per.sample <- DE.genes.per.sample[-which(DE.genes.per.sample$all.genes.key=="KCTD13"),]
 #Write out results
 write.table(DE.genes.per.sample,paste(WRKDIR,"Nanostring_DE_genes.txt",sep=""),
             col.names=T,row.names=F,quote=F,sep="\t")
@@ -483,8 +553,8 @@ DE.gene.counts.per.sample <- as.data.frame(cbind(DE.genes.per.sample[,1:5],
                                                  apply(DE.gene.counts.per.sample,2,as.numeric)))
 #Prep plot area
 pdf(paste(PLOTDIR,"/DE_gene_counts.case_control.six_panel.pdf",sep=""),
-    height=5,width=9)
-par(mfrow=c(2,3))
+    height=6,width=9)
+par(mfrow=c(3,3))
 DE.gene.case.control.comp.plot(case.count=DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Case"),]$nominal,
                                control.count=DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Control"),]$nominal)
 mtext(3,line=0.5,text="Nominal",font=2)
@@ -506,7 +576,15 @@ DE.gene.case.control.comp.plot(case.count=as.numeric(DE.gene.counts.per.sample[w
                                  as.numeric(DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Case"),]$Bonferroni.expected),
                                control.count=as.numeric(DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Control"),]$Bonferroni)-
                                  as.numeric(DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Control"),]$Bonferroni.expected))
+DE.gene.case.control.comp.plot(case.count=DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Case"),]$nominal.expected,
+                               control.count=DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Control"),]$nominal.expected)
+DE.gene.case.control.comp.plot(case.count=DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Case"),]$FDR.expected,
+                               control.count=DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Control"),]$FDR.expected)
+DE.gene.case.control.comp.plot(case.count=DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Case"),]$Bonferroni.expected,
+                               control.count=DE.gene.counts.per.sample[which(DE.gene.counts.per.sample$ASD=="Control"),]$Bonferroni.expected)
 dev.off()
+
+
 
 
 ##########################
@@ -529,13 +607,17 @@ sapply(which(dat$ASD=="Case"),function(i){
   genes.in.CNV <- unlist(strsplit(dat$genes.CNV[i],split=","))
   genes.in.CNV <- genes.in.CNV[which(genes.in.CNV %in% genes)]
   s.idx <- which(dat$family==dat$family[i])
+  s.key.genes <- unlist(strsplit(dat$genes.key[i],split=","))
   pdf(paste(PLOTDIR,"/",dat$family[i],"_CNV_interval_expression.pdf",sep=""),
       height=3,width=2+1.5*length(genes))
   par(mfrow=c(1,length(genes)),mar=c(3.5,3.5,2,2))
   sapply(genes,function(gene){
     singleGeneSwarm(gene,expected.samples=s.idx,legend=F)
+    if(gene %in% s.key.genes){
+      mtext(1,line=0,text="KEY GENE",font=2,col="red")
+    }
     if(gene %in% genes.in.CNV){
-      mtext(1,line=0,text="IN CNV",font=2,col="red")
+      axis(3,at=par("usr")[1:2],tck=0,labels=NA,lwd=2,col="dodgerblue3")
     }
   })
   dev.off()
@@ -544,6 +626,44 @@ sapply(which(dat$ASD=="Case"),function(i){
 
 
 
-
+##################
+#####GTEx analysis
+##################
+#Merge mean nanostring expression values with gtex data
+gtex$nano <- sapply(gtex$gene,function(gene){
+  mean.gene.vals[which(names(mean.gene.vals)==gene)]
+})
+#Plot nano lcl vs GTEx lcl
+pdf(paste(PLOTDIR,"/expr_cor.nano_lcl_vs_gtex_lcl.pdf",sep=""),
+    height=4,width=4)
+par(mar=c(4,4,2,2))
+exprCorScatter(expr1=log2(gtex$nano),expr2=log2(gtex$lcl),
+               lab1="log2 Nanostring LCL Median",lab2="log2 GTEx LCL Median",
+               title="Nanostring LCL vs. GTEx LCL")
+rect(xleft=par("usr")[1],xright=log2(noise.thresh),
+     ybottom=par("usr")[3],ytop=par("usr")[4],
+     col=adjustcolor("black",alpha=0.1),border=NA)
+abline(v=log2(noise.thresh),lty=2,lwd=2)
+dev.off()
+#Plot GTEx lcl vs GTEx brain
+pdf(paste(PLOTDIR,"/expr_cor.gtex_lcl_vs_gtex_brain.pdf",sep=""),
+    height=4,width=4)
+par(mar=c(4,4,2,2))
+exprCorScatter(expr1=log2(gtex$lcl),expr2=log2(gtex$brain),
+               lab1="log2 GTEx LCL Median",lab2="log2 GTEx Brain Median",
+               title="GTEx LCL vs. GTEx Brain")
+dev.off()
+#Plot nano lcl vs GTEx brain
+pdf(paste(PLOTDIR,"/expr_cor.nano_lcl_vs_gtex_brain.pdf",sep=""),
+    height=4,width=4)
+par(mar=c(4,4,2,2))
+exprCorScatter(expr1=log2(gtex$nano),expr2=log2(gtex$brain),
+               lab1="log2 Nano. LCL Mean",lab2="log2 GTEx Brain Median",
+               title="Nanostring LCL vs. GTEx Brain")
+rect(xleft=par("usr")[1],xright=log2(noise.thresh),
+     ybottom=par("usr")[3],ytop=par("usr")[4],
+     col=adjustcolor("black",alpha=0.1),border=NA)
+abline(v=log2(noise.thresh),lty=2,lwd=2)
+dev.off()
 
 
