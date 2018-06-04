@@ -47,10 +47,9 @@ correctionScatter <- function(gene){
          legend=paste("R2 = ",round(cor(raw,corrected)^2,digits=3)))
 }
 #Single gene swarmplot, colored by status
-singleGeneSwarm <- function(gene,expected.samples=NULL,legend=T){
+singleGeneSwarm <- function(gene,expected.samples=NULL,legend=T,draw.thresh=T){
   #Get corrected expression values
   vals <- corrected.expression.vals[,which(colnames(corrected.expression.vals)==gene)]
-  ylims <- range(vals)
   names(vals) <- dat$sample
   
   #Get expected sample indexes & colors
@@ -74,15 +73,19 @@ singleGeneSwarm <- function(gene,expected.samples=NULL,legend=T){
   }
   
   #Prep plot area
+  ylims <- range(vals)
   par(mar=c(1,4,2,0.5),bty="n")
   plot(x=c(0,1),y=c(ylims),type="n",
        xlab="",ylab="",xaxt="n",yaxt="n")
+  abline(h=0,lwd=2)
   
   #Add noise threshold
-  rect(xleft=par("usr")[1],xright=par("usr")[2],
-       ybottom=par("usr")[3],ytop=noise.thresh,
-       col=adjustcolor("black",alpha=0.1),border=NA)
-  abline(h=noise.thresh,lwd=2,lty=2)
+  if(draw.thresh==T){
+    rect(xleft=par("usr")[1],xright=par("usr")[2],
+         ybottom=par("usr")[3],ytop=noise.thresh,
+         col=adjustcolor("black",alpha=0.1),border=NA)
+    abline(h=noise.thresh,lwd=2,lty=2)
+  }
   
   #Add boxplot & dots
   if(length(expected.samples)>0){
@@ -291,8 +294,6 @@ gtex[,-1] <- apply(gtex[,-1],2,as.numeric)
 colnames(gtex) <- c("gene","brain","lcl")
 
 
-
-
 #############################################
 #####Correct expression values for covariates
 #############################################
@@ -372,7 +373,6 @@ sapply(endogenous.genes,function(gene){
   correctionScatter(gene)
   dev.off()
 })
-
 
 
 
@@ -469,6 +469,51 @@ dev.off()
 #####################################
 #####Differential expression analysis
 #####################################
+#Get z-score per sample per endogenous gene
+DE.z <- apply(corrected.expression.vals[,which(colnames(corrected.expression.vals) %in% endogenous.genes)],2,function(vals){
+  zscores <- scale(vals,scale=T,center=T)
+  return(zscores)
+})
+#Collect DE z-scores per sample for detectable genes based on context
+DE.z.per.samp <- lapply(1:nrow(dat),function(i){
+  #Get data
+  case.status <- dat$ASD[i]
+  expected.genes <- as.character(unlist(expected.genes[i]))
+  genes.in.CNV <- as.character(unlist(strsplit(as.character(dat$genes.CNV[i]),split=",")))
+  genes.near.CNV <- setdiff(expected.genes,genes.in.CNV)
+  other.genes <- intersect(endogenous.genes,names(which(mean.gene.vals>noise.thresh)))
+  #Overwrite all for controls
+  if(case.status=="Control"){
+    genes.in.CNV <- c()
+    genes.near.CNV <- c()
+  }else{
+    other.genes <- setdiff(other.genes,expected.genes)
+  }
+  #Get z-scores and return as list
+  genes.in.CNV.z <- as.numeric(DE.z[i,which(colnames(DE.z) %in% genes.in.CNV)])
+  genes.near.CNV.z <- as.numeric(DE.z[i,which(colnames(DE.z) %in% genes.near.CNV)])
+  other.genes.z <- as.numeric(DE.z[i,which(colnames(DE.z) %in% other.genes)])
+  return(list(genes.in.CNV.z,genes.near.CNV.z,other.genes.z))
+})
+#Collect z-scores for plotting
+genes.in.DEL.z <- as.numeric(unlist(lapply(DE.z.per.samp[which(dat$family==11433)],function(l){return(l[[1]])})))
+genes.near.DEL.z <- as.numeric(unlist(lapply(DE.z.per.samp[which(dat$family==11433)],function(l){return(l[[2]])})))
+other.genes.z <- as.numeric(unlist(lapply(DE.z.per.samp,function(l){return(l[[3]])})))
+genes.near.DUP.z <- as.numeric(unlist(lapply(DE.z.per.samp[-which(dat$family==11433)],function(l){return(l[[2]])})))
+genes.in.DUP.z <- as.numeric(unlist(lapply(DE.z.per.samp[-which(dat$family==11433)],function(l){return(l[[1]])})))
+#Plot z-scores
+pdf(paste(PLOTDIR,"/expression_zscores_by_CNV_context.pdf",sep=""),
+    height=4,width=5)
+par(mar=c(4,4,2,1))
+boxplot(genes.in.DEL.z,genes.near.DEL.z,other.genes.z,genes.near.DUP.z,genes.in.DUP.z,
+        xaxt="n",yaxt="n",staplewex=0,lty=1,col="gray70",pch=21,bg=NA,cex=0.5,
+        ylim=c(-5,5),outline=F)
+abline(h=0,col="blue")
+axis(2,at=axTicks(2),las=2,cex.axis=0.8)
+mtext(2,line=2.5,text="Expression Z-Score")
+mtext(3,line=0.25,font=2,text="Expression Z-Score by CNV Context")
+axis(1,at=axTicks(1),tick=F,labels=c("In\nDEL","\n\nFlanking\nDEL","No\nCNV","Flanking\nDUP","In\nDUP"))
+dev.off()
 #Get p-value per sample per endogenous gene
 DE.p <- apply(corrected.expression.vals[,which(colnames(corrected.expression.vals) %in% endogenous.genes)],2,function(vals){
   zscores <- scale(vals,scale=T,center=T)
@@ -665,5 +710,106 @@ rect(xleft=par("usr")[1],xright=log2(noise.thresh),
      col=adjustcolor("black",alpha=0.1),border=NA)
 abline(v=log2(noise.thresh),lty=2,lwd=2)
 dev.off()
+
+
+
+#####################################################################################################
+#####SECONDARY: subset all data to just cases, and convert expression values to case-control residual
+#####################################################################################################
+#####Make all necessary changes to data
+#Set new plot & results directory
+PLOTDIR <- paste(WRKDIR,"/residual_expression_plots/",sep="")
+if(!dir.exists(PLOTDIR)){
+  dir.create(PLOTDIR)
+}
+#Convert case expression values to family-adjusted residual expression
+for(fam in unique(dat$family[which(dat$ASD=="Case")])){
+  #Get case & control indexes
+  case.idx <- which(dat$family==fam & dat$ASD=="Case")
+  control.idx <- which(dat$family==fam & dat$ASD=="Control")
+  #Adjust case expression values to case-control residuals
+  corrected.expression.vals[case.idx,] <- corrected.expression.vals[case.idx,]-corrected.expression.vals[control.idx,]
+  corrected.expression.vals[control.idx,] <- corrected.expression.vals[control.idx,]-corrected.expression.vals[control.idx,]
+  corrected.expression.vals.sort[case.idx,] <- corrected.expression.vals.sort[case.idx,]-corrected.expression.vals.sort[control.idx,]
+  corrected.expression.vals.sort[control.idx,] <- corrected.expression.vals.sort[control.idx,]-corrected.expression.vals.sort[control.idx,]
+}
+#Subset expression values & overall metadata to just cases
+corrected.expression.vals <- corrected.expression.vals[which(dat$ASD=="Case"),]
+corrected.expression.vals.sort <- corrected.expression.vals.sort[which(dat$ASD=="Case"),]
+expected.genes <- expected.genes[which(dat$ASD=="Case")]
+dat <- dat[which(dat$ASD=="Case"),]
+
+#Set noise threshold to zero
+# noise.threshold <- 0
+
+#####Overall expression distribution plots
+#Plot main gaddygram
+pdf(paste(PLOTDIR,"/Gaddygram.all_genes.multipanel.pdf",sep=""),
+    height=3,width=12)
+layout(matrix(1:length(gaddy.range),nrow=1,byrow=T),
+       widths=8+as.numeric(gaddy.range))
+sapply(1:length(gaddy.range),function(i){
+  gaddy(vals=corrected.expression.vals.sort[,gaddy.range.table[i,1]:gaddy.range.table[i,2]]/10^(as.numeric(names(gaddy.range)[i])-1))
+  if(i==1){
+    mtext(2,line=1.8,text="Normalized Expression (A.U.)",cex=0.8)
+  }
+  axis(3,at=c(par("usr")[1],par("usr")[2]),tck=0,labels=NA,line=0.3)
+  mtext(3,line=0.5,text=substitute("x10" ^X, list(X=as.numeric(names(gaddy.range)[i])-1)),cex=0.8)
+  abline(h=0)
+})
+dev.off()
+#Gaddygram of housekeeping genes
+pdf(paste(PLOTDIR,"/Gaddygram.housekeeping.pdf",sep=""),
+    height=3,width=5)
+gaddy(vals=corrected.expression.vals.sort[,which(colnames(corrected.expression.vals.sort) %in% genelist$gene[which(genelist$class=="Housekeeping")])])
+abline(h=0)
+mtext(2,line=1.8,text="Normalized Expression (A.U.)",cex=0.8)
+dev.off()
+#Gaddygram of positive control genes
+pdf(paste(PLOTDIR,"/Gaddygram.positive_control.pdf",sep=""),
+    height=4,width=6)
+gaddy(vals=corrected.expression.vals.sort[,which(colnames(corrected.expression.vals.sort) %in% genelist$gene[which(genelist$class=="Positive")])])
+abline(h=0)
+mtext(2,line=1.8,text="log2 Normalized Expression (A.U.)",cex=0.8)
+dev.off()
+#Gaddygram of negative control genes & noise threshold
+pdf(paste(PLOTDIR,"/Gaddygram.negative_control.pdf",sep=""),
+    height=4,width=6)
+gaddy(vals=corrected.expression.vals.sort[,which(colnames(corrected.expression.vals.sort) %in% genelist$gene[which(genelist$class=="Negative")])])
+mtext(2,line=1.8,text="log2 Normalized Expression (A.U.)",cex=0.8)
+dev.off()
+#Generate per-gene plots of expression per sample
+sapply(endogenous.genes,function(gene){
+  pdf(paste(PLOTDIR,"/",gene,"_gene_expression_distribution.pdf",sep=""),
+      height=4,width=4)
+  par(mar=c(3.5,3.5,2,2))
+  singleGeneSwarm(gene,draw.thresh=F)
+  dev.off()
+})
+#Generate per-CNV plots of expression for all genes relevant to a given proband
+sapply(which(dat$ASD=="Case"),function(i){
+  genes <- unlist(strsplit(dat$genes.all[i],split=","))
+  genes <- genes[which(genes %in% endogenous.genes)]
+  genes <- c(genome.ordered.genes.all[which(genome.ordered.genes.all %in% genes)],
+             genes[which(!(genes %in% genome.ordered.genes.all))])
+  genes.in.CNV <- unlist(strsplit(dat$genes.CNV[i],split=","))
+  genes.in.CNV <- genes.in.CNV[which(genes.in.CNV %in% genes)]
+  s.idx <- which(dat$family==dat$family[i])
+  s.key.genes <- unlist(strsplit(dat$genes.key[i],split=","))
+  pdf(paste(PLOTDIR,"/",dat$family[i],"_CNV_interval_expression.pdf",sep=""),
+      height=3,width=2+1.5*length(genes))
+  par(mfrow=c(1,length(genes)),mar=c(3.5,3.5,2,2))
+  sapply(genes,function(gene){
+    singleGeneSwarm(gene,expected.samples=s.idx,legend=F,draw.thresh=F)
+    if(gene %in% s.key.genes){
+      mtext(1,line=0,text="KEY GENE",font=2,col="red")
+    }
+    if(gene %in% genes.in.CNV){
+      axis(3,at=par("usr")[1:2],tck=0,labels=NA,lwd=2,col="dodgerblue3")
+    }
+  })
+  dev.off()
+})
+
 
 
